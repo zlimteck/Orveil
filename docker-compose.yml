@@ -1,0 +1,64 @@
+services:
+  mongodb:
+    image: mongo:8
+    container_name: notifhub-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-notifhub}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASS:-notifhub_pass}
+      MONGO_INITDB_DATABASE: notifhub
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - notifhub
+
+  apprise:
+    image: caronc/apprise:latest
+    container_name: notifhub-apprise
+    restart: unless-stopped
+    ports:
+      - "8008:8000"
+    networks:
+      - notifhub
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: notifhub-backend
+    restart: unless-stopped
+    ports:
+      - "5050:5050"
+    environment:
+      MONGODB_URI: mongodb://${MONGO_USER:-notifhub}:${MONGO_PASS:-notifhub_pass}@mongodb:27017/notifhub?authSource=admin
+      APPRISE_API_URL: http://apprise:8000
+      PORT: 5050
+      NODE_ENV: production
+      JWT_SECRET: ${JWT_SECRET:-notifhub-change-me-in-production}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-notifhub}
+    depends_on:
+      - mongodb
+      - apprise
+    networks:
+      - notifhub
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: notifhub-frontend
+    restart: unless-stopped
+    ports:
+      - "3050:80"
+    depends_on:
+      - backend
+    networks:
+      - notifhub
+
+volumes:
+  mongo_data:
+
+networks:
+  notifhub:
+    driver: bridge

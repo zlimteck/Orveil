@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --nh-surface:    17 27 25;
+    --nh-card:       26 40 38;
+    --nh-border:     45 64 61;
+    --nh-muted:      107 143 139;
+    --nh-thistle:    212 197 226;
+    --nh-periwinkle: 201 215 248;
+    --nh-frosted:    167 226 227;
+    --nh-celadon:    128 207 169;
+    --nh-granite:    76 102 99;
+    --nh-granite-2:  58 79 77;
+    --nh-granite-3:  38 53 51;
+    --nh-ink:        241 245 249;
+  }
+
+  :root.light {
+    --nh-surface:    240 245 244;
+    --nh-card:       255 255 255;
+    --nh-border:     197 214 212;
+    --nh-muted:      101 140 137;
+    --nh-thistle:    44 31 67;
+    --nh-periwinkle: 63 86 165;
+    --nh-frosted:    12 116 117;
+    --nh-celadon:    21 107 69;
+    --nh-granite:    138 171 168;
+    --nh-granite-2:  184 205 203;
+    --nh-granite-3:  226 238 236;
+    --nh-ink:        15 23 42;
+  }
+
+  body {
+    @apply bg-surface text-ink antialiased;
+  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-surface; }
+  ::-webkit-scrollbar-thumb { @apply bg-granite rounded-full; }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-periwinkle/20 text-periwinkle hover:bg-periwinkle/30 border border-periwinkle/30;
+  }
+  .btn-ghost {
+    @apply btn hover:bg-granite-3 text-thistle;
+  }
+  .btn-danger {
+    @apply btn bg-red-900/30 hover:bg-red-800/40 text-red-300;
+  }
+  :root.light .btn-danger {
+    background-color: rgb(254 226 226 / 0.8);
+    color: rgb(185 28 28);
+    border: none;
+  }
+  :root.light .btn-danger:hover {
+    background-color: rgb(254 202 202);
+  }
+
+  /* ── Light mode: semantic color overrides ── */
+  :root.light .text-red-300,
+  :root.light .text-red-400  { color: rgb(185 28 28); }
+  :root.light .text-amber-300,
+  :root.light .text-amber-400 { color: rgb(146 64 14); }
+  :root.light .hover\:text-red-400:hover { color: rgb(185 28 28); }
+
+  :root.light .bg-red-900\/40,
+  :root.light .bg-red-900\/30  { background-color: rgb(254 226 226 / 0.8); }
+  :root.light .bg-red-800\/40  { background-color: rgb(254 202 202); }
+  :root.light .bg-amber-900\/40 { background-color: rgb(254 243 199 / 0.8); }
+  :root.light .border-red-900\/40 { border-color: rgb(252 165 165 / 0.6); }
+  .card {
+    @apply bg-card border border-border rounded-xl p-5;
+  }
+  .input {
+    @apply w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-none focus:border-periwinkle transition-colors;
+  }
+  .select {
+    @apply input appearance-none cursor-pointer pr-8;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b8f8b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.6rem center;
+    background-size: 1.2em 1.2em;
+  }
+  .label {
+    @apply block text-xs font-medium text-thistle mb-1;
+  }
+}
