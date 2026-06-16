@@ -67,11 +67,37 @@ function FileIcon({ type, size, onError }) {
   );
 }
 
-export default function ServiceIcon({ type, size = 20 }) {
+function FaviconIcon({ url, size, onError }) {
+  return (
+    <img
+      src={url}
+      width={size}
+      height={size}
+      style={{ objectFit: 'contain', borderRadius: 3 }}
+      onError={onError}
+      alt=""
+    />
+  );
+}
+
+export default function ServiceIcon({ type, size = 20, url, faviconUrl }) {
+  const [useFavicon, setUseFavicon] = React.useState(true);
   const [useFallback, setUseFallback] = React.useState(false);
   const Fallback = FALLBACKS[type];
 
   if (!Fallback) return null;
+
+  if (type === 'http' && useFavicon) {
+    const src = faviconUrl || (url ? (() => { try { return `${new URL(url).origin}/favicon.ico`; } catch {} })() : null);
+    if (src) return (
+      <FaviconIcon
+        url={src}
+        size={size}
+        onError={() => setUseFavicon(false)}
+        direct
+      />
+    );
+  }
 
   if (!useFallback) {
     return (

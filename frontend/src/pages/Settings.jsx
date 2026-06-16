@@ -142,22 +142,21 @@ export default function Settings() {
               placeholder="http://apprise:8000" />
             <p className="text-xs text-muted mt-1">{t('settings.apprise.apiUrlHint')}</p>
           </div>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <button type="submit" className="btn-primary">
-            <Save size={14} />
-            {saved ? t('settings.saved') : t('settings.save')}
-          </button>
-          <button type="button" onClick={handleTest} disabled={testing} className="btn-primary">
-            <Send size={14} className={testing ? 'animate-pulse' : ''} />
-            {testing ? t('settings.testing') : t('settings.test')}
-          </button>
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <button type="submit" className="btn-primary">
+              <Save size={14} />
+              {saved ? t('settings.saved') : t('settings.save')}
+            </button>
+            <button type="button" onClick={handleTest} disabled={testing} className="btn-primary">
+              <Send size={14} className={testing ? 'animate-pulse' : ''} />
+              {testing ? t('settings.testing') : t('settings.test')}
+            </button>
+            {testResult === 'success'  && <p className="text-sm text-celadon">{t('settings.testOk')}</p>}
+            {testResult === 'no_urls' && <p className="text-sm text-amber-400">{t('settings.testNoUrls')}</p>}
+            {testResult === 'error'   && <p className="text-sm text-red-400">{t('settings.testError')}</p>}
+          </div>
         </div>
-
-        {testResult === 'success'  && <p className="text-sm text-celadon">{t('settings.testOk')}</p>}
-        {testResult === 'no_urls' && <p className="text-sm text-amber-400">{t('settings.testNoUrls')}</p>}
-        {testResult === 'error'   && <p className="text-sm text-red-400">{t('settings.testError')}</p>}
       </form>
 
       <ChangePassword />

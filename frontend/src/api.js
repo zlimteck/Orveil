@@ -33,6 +33,7 @@ export const monitors = {
   toggle: (id) => api.patch(`/monitors/${id}/toggle`).then(r => r.data),
   run: (id) => api.post(`/monitors/${id}/run`).then(r => r.data),
   delete: (id) => api.delete(`/monitors/${id}`).then(r => r.data),
+  reorder: (items) => api.patch('/monitors/reorder', { items }).then(r => r.data),
 };
 
 export const logs = {

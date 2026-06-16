@@ -1,10 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { monitors as monitorsApi, history as historyApi } from '../api';
 import { useLang } from '../context/LangContext';
 import StatusBadge from '../components/StatusBadge';
 import ServiceIcon from '../components/ServiceIcon';
 import ServiceDetail from '../components/ServiceDetail';
-import { RefreshCw, Radio, AlertTriangle, CheckCircle, Clock, ChevronDown } from 'lucide-react';
+import { RefreshCw, Radio, AlertTriangle, CheckCircle, Clock, ChevronDown, GripVertical } from 'lucide-react';
+import {
+  DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay,
+} from '@dnd-kit/core';
+import { SortableContext, useSortable, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 function ProgressBar({ value, warn = 80, danger = 95 }) {
   const color = value >= danger ? 'bg-red-400' : value >= warn ? 'bg-amber-400' : 'bg-frosted';
@@ -33,7 +38,7 @@ function CloudflareTunnels({ metrics }) {
           return (
             <div key={t2.id}>
               <button
-                onClick={() => hosts.length && toggle(t2.id)}
+                onClick={e => { e.stopPropagation(); hosts.length && toggle(t2.id); }}
                 className={`flex items-center gap-1.5 text-xs w-full text-left ${hosts.length ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
               >
                 <span className={ok ? 'text-celadon' : 'text-red-400'}>●</span>
@@ -163,6 +168,9 @@ function MetricsBlock({ monitor }) {
         </span>
         <span className="text-muted">·</span>
         <span className="text-muted">{metrics.responseTime != null ? `${metrics.responseTime}ms` : '—'}</span>
+        {!metrics.ok && metrics.errMsg && (
+          <span className="text-red-400 truncate">{metrics.errMsg}</span>
+        )}
       </div>
       <p className="text-xs text-muted truncate">{metrics.url}</p>
     </div>
@@ -231,23 +239,81 @@ function timeAgo(date, t) {
   return `${Math.floor(s / 3600)}${t('time.hour')}`;
 }
 
+const STATUS_ORDER = { error: 0, offline: 1, warning: 2, unknown: 3, online: 4 };
+
+function CardContent({ monitor, hist, onSelect, t, dragging = false, dragHandleProps = {} }) {
+  const uptime = hist[monitor._id]?.uptime?.h24;
+  return (
+    <div
+      onClick={() => !dragging && onSelect(monitor)}
+      className={`group card flex flex-col gap-2.5 cursor-pointer hover:border-periwinkle/40 transition-colors select-none h-full ${!monitor.enabled ? 'opacity-50' : ''} ${dragging ? 'shadow-2xl border-periwinkle/40' : ''}`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="shrink-0 relative flex items-center justify-center w-5 h-5">
+            <span className={dragHandleProps ? 'transition-opacity group-hover:opacity-0' : ''}>
+              <ServiceIcon type={monitor.type} size={20} url={monitor.config?.url} faviconUrl={monitor.metrics?.faviconUrl} />
+            </span>
+            {dragHandleProps && (
+              <div {...dragHandleProps} onClick={e => e.stopPropagation()}
+                className="absolute inset-0 flex items-center justify-center cursor-grab active:cursor-grabbing text-muted/50 hover:text-muted opacity-0 group-hover:opacity-100 transition-opacity touch-none">
+                <GripVertical size={16} />
+              </div>
+            )}
+          </span>
+          <div className="min-w-0">
+            <p className="font-medium text-thistle text-sm truncate">{monitor.name}</p>
+            {monitor.description && <p className="text-xs text-muted truncate">{monitor.description}</p>}
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <StatusBadge status={monitor.enabled ? monitor.status : 'unknown'} />
+          <div className="flex items-center gap-1.5">
+            {uptime != null && (
+              <span className={`text-xs font-medium ${uptime >= 99 ? 'text-celadon' : uptime >= 95 ? 'text-amber-400' : 'text-red-400'}`}>
+                {uptime}%
+              </span>
+            )}
+            <span className="text-xs text-muted">{timeAgo(monitor.lastChecked, t)}</span>
+          </div>
+        </div>
+      </div>
+      <div className="flex-1 flex flex-col justify-end">
+        <MetricsBlock monitor={monitor} />
+      </div>
+    </div>
+  );
+}
+
+function SortableCard({ monitor, hist, onSelect, t, sortMode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: monitor._id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0 : 1 };
+  return (
+    <div ref={setNodeRef} style={style}>
+      <CardContent monitor={monitor} hist={hist} onSelect={onSelect} t={t}
+        dragHandleProps={sortMode === 'manual' ? { ...attributes, ...listeners } : null} />
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { t } = useLang();
-  const [data, setData] = useState({ monitors: [] });
+  const [monitors, setMonitors] = useState([]);
   const [hist, setHist] = useState({});
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
+  const [sortMode, setSortMode] = useState('status');
+  const [activeId, setActiveId] = useState(null);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   async function load() {
     try {
       const [ms, h] = await Promise.all([monitorsApi.list(), historyApi.all(24)]);
-      setData({ monitors: ms });
+      setMonitors(ms);
       setHist(h);
-    } catch {
-      // backend non dispo
-    } finally {
-      setLoading(false);
-    }
+    } catch {}
+    finally { setLoading(false); }
   }
 
   useEffect(() => {
@@ -256,12 +322,43 @@ export default function Dashboard() {
     return () => clearInterval(timer);
   }, []);
 
+  const sorted = useMemo(() => {
+    if (sortMode === 'name')   return [...monitors].sort((a, b) => a.name.localeCompare(b.name));
+    if (sortMode === 'status') return [...monitors].sort((a, b) => (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3));
+    return monitors;
+  }, [monitors, sortMode]);
+
+  const groups = useMemo(() => {
+    const map = new Map();
+    sorted.forEach(m => {
+      const cat = m.category?.trim() || '';
+      if (!map.has(cat)) map.set(cat, []);
+      map.get(cat).push(m);
+    });
+    return map;
+  }, [sorted]);
+
+  const hasCategories = useMemo(() => monitors.some(m => m.category?.trim()), [monitors]);
+
+  function handleDragEnd({ active, over }) {
+    if (!over || active.id === over.id) return;
+    setMonitors(prev => {
+      const oldIndex = prev.findIndex(m => m._id === active.id);
+      const newIndex = prev.findIndex(m => m._id === over.id);
+      const reordered = arrayMove(prev, oldIndex, newIndex);
+      monitorsApi.reorder(reordered.map((m, i) => ({ id: m._id, position: i }))).catch(() => {});
+      return reordered;
+    });
+  }
+
   const counts = {
-    total:    data.monitors.length,
-    online:   data.monitors.filter(m => m.status === 'online').length,
-    warning:  data.monitors.filter(m => ['warning', 'error', 'offline'].includes(m.status)).length,
-    disabled: data.monitors.filter(m => !m.enabled).length,
+    total:    monitors.length,
+    online:   monitors.filter(m => m.status === 'online').length,
+    warning:  monitors.filter(m => ['warning', 'error', 'offline'].includes(m.status)).length,
+    disabled: monitors.filter(m => !m.enabled).length,
   };
+
+  const activeMonitor = activeId ? monitors.find(m => m._id === activeId) : null;
 
   return (
     <div className="p-4 md:p-6 space-y-5">
@@ -295,46 +392,61 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="space-y-3">
-        <h2 className="text-xs font-semibold text-muted uppercase tracking-wider">{t('dashboard.section')}</h2>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-semibold text-muted uppercase tracking-wider">{t('dashboard.section')}</h2>
+          <div className="flex gap-1">
+            {['manual', 'status', 'name'].map(mode => (
+              <button key={mode} onClick={() => setSortMode(mode)}
+                className={`text-xs px-2.5 py-1 rounded-lg border transition-colors ${
+                  sortMode === mode
+                    ? 'bg-periwinkle/20 text-periwinkle border-periwinkle/30'
+                    : 'text-muted border-border hover:text-thistle hover:border-granite'
+                }`}>
+                {t(`dashboard.sort${mode.charAt(0).toUpperCase() + mode.slice(1)}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {loading && <p className="text-muted text-sm">{t('dashboard.loading')}</p>}
-        {!loading && data.monitors.length === 0 && (
+        {!loading && monitors.length === 0 && (
           <div className="card text-center py-10">
             <p className="text-muted text-sm">{t('dashboard.empty')}</p>
           </div>
         )}
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {data.monitors.map(m => {
-            const uptime = hist[m._id]?.uptime?.h24;
-            return (
-              <div key={m._id}
-                onClick={() => setSelected(m)}
-                className={`card space-y-2.5 cursor-pointer hover:border-periwinkle/40 transition-colors ${!m.enabled ? 'opacity-50' : ''}`}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="shrink-0"><ServiceIcon type={m.type} size={20} /></span>
-                    <div className="min-w-0">
-                      <p className="font-medium text-thistle text-sm truncate">{m.name}</p>
-                      {m.description && <p className="text-xs text-muted truncate">{m.description}</p>}
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 shrink-0">
-                    <StatusBadge status={m.enabled ? m.status : 'unknown'} />
-                    <div className="flex items-center gap-1.5">
-                      {uptime != null && (
-                        <span className={`text-xs font-medium ${uptime >= 99 ? 'text-celadon' : uptime >= 95 ? 'text-amber-400' : 'text-red-400'}`}>
-                          {uptime}%
-                        </span>
-                      )}
-                      <span className="text-xs text-muted">{timeAgo(m.lastChecked, t)}</span>
-                    </div>
+
+        <DndContext sensors={sensors} collisionDetection={closestCenter}
+          onDragStart={({ active }) => setActiveId(active.id)}
+          onDragEnd={e => { handleDragEnd(e); setActiveId(null); }}
+          onDragCancel={() => setActiveId(null)}>
+          <SortableContext items={sorted.map(m => m._id)} strategy={rectSortingStrategy}>
+            <div className="space-y-5">
+              {[...groups.entries()].map(([cat, items]) => (
+                <div key={cat} className="space-y-2">
+                  {hasCategories && (
+                    <h3 className="text-xs font-semibold text-muted uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-4 h-px bg-border" />
+                      {cat || t('dashboard.uncategorized')}
+                      <span className="flex-1 h-px bg-border" />
+                    </h3>
+                  )}
+                  <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {items.map(m => (
+                      <SortableCard key={m._id} monitor={m} hist={hist} onSelect={setSelected} t={t} sortMode={sortMode} />
+                    ))}
                   </div>
                 </div>
-                <MetricsBlock monitor={m} />
-              </div>
-            );
-          })}
-        </div>
+              ))}
+            </div>
+          </SortableContext>
+
+          <DragOverlay dropAnimation={{ duration: 150, easing: 'ease' }}>
+            {activeMonitor && (
+              <CardContent monitor={activeMonitor} hist={hist} onSelect={() => {}} t={t} dragging />
+            )}
+          </DragOverlay>
+        </DndContext>
       </div>
 
       {selected && (

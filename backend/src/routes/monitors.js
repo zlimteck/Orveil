@@ -3,8 +3,17 @@ const Monitor = require('../models/Monitor');
 const { triggerNow } = require('../monitors/runner');
 
 router.get('/', async (req, res) => {
-  const monitors = await Monitor.find().sort({ createdAt: -1 });
+  const monitors = await Monitor.find().sort({ position: 1, createdAt: 1 });
   res.json(monitors);
+});
+
+router.patch('/reorder', async (req, res) => {
+  const { items } = req.body;
+  if (!Array.isArray(items)) return res.status(400).json({ error: 'items requis' });
+  await Promise.all(items.map(({ id, position }) =>
+    Monitor.findByIdAndUpdate(id, { position })
+  ));
+  res.json({ ok: true });
 });
 
 router.get('/stats', async (req, res) => {

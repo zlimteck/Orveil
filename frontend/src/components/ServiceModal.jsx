@@ -9,7 +9,7 @@ const TYPE_DEFAULTS = {
   hms:        { checkInterval: 5,  reportInterval: 0,  config: { hmsToken: '', vpsList: [{ id: '', name: '' }] } },
   ultracc:    { checkInterval: 5,  reportInterval: 0,  config: { apiUrl: '', ultraToken: '' } },
   syncthing:  { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', folderIds: [], rejectUnauthorized: true } },
-  http:       { checkInterval: 5,  reportInterval: 0,  config: { url: '', expectedStatus: 200, keyword: '', timeout: 10000, rejectUnauthorized: true } },
+  http:       { checkInterval: 5,  reportInterval: 0,  config: { url: '', expectedStatus: 200, keyword: '', timeout: 10000, bearerToken: '', basicUser: '', basicPass: '', customHeaderName: '', customHeaderValue: '', rejectUnauthorized: true } },
   ping:       { checkInterval: 2,  reportInterval: 0,  config: { host: '', port: 80, attempts: 3 } },
   proxmox:    { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiToken: '', node: 'pve', rejectUnauthorized: false } },
   immich:     { checkInterval: 30, reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
@@ -180,6 +180,16 @@ function ConfigFields({ type, config, onChange, t }) {
       </div>
       <Field label={t('form.fields.http.keyword')} value={config.keyword} onChange={v => set('keyword', v)}
         placeholder={t('form.fields.http.keywordPlaceholder')} hint={t('form.fields.http.keywordHint')} />
+      <Field label={t('form.fields.http.bearerToken')} value={config.bearerToken} onChange={v => set('bearerToken', v)}
+        placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" hint={t('form.fields.http.bearerTokenHint')} />
+      <div className="grid grid-cols-2 gap-3">
+        <Field label={t('form.fields.http.basicUser')} value={config.basicUser} onChange={v => set('basicUser', v)} placeholder="admin" />
+        <Field label={t('form.fields.http.basicPass')} value={config.basicPass} onChange={v => set('basicPass', v)} type="password" placeholder="••••••••" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label={t('form.fields.http.customHeaderName')} value={config.customHeaderName} onChange={v => set('customHeaderName', v)} placeholder="X-API-Key" />
+        <Field label={t('form.fields.http.customHeaderValue')} value={config.customHeaderValue} onChange={v => set('customHeaderValue', v)} placeholder="my-secret-key" />
+      </div>
       <TlsToggle config={config} set={set} t={t} />
       <CFAccessSection config={config} set={set} t={t} />
     </>
@@ -253,7 +263,7 @@ function ConfigFields({ type, config, onChange, t }) {
 export default function ServiceModal({ monitor, onClose, onSave, error }) {
   const { t } = useLang();
   const [form, setForm] = useState({
-    name: '', type: 'cloudflare', description: '',
+    name: '', type: 'cloudflare', description: '', category: '',
     enabled: true, checkInterval: 1, reportInterval: 6,
     config: TYPE_DEFAULTS.cloudflare.config,
   });
@@ -264,6 +274,7 @@ export default function ServiceModal({ monitor, onClose, onSave, error }) {
         name: monitor.name,
         type: monitor.type,
         description: monitor.description || '',
+        category: monitor.category || '',
         enabled: monitor.enabled,
         checkInterval: monitor.checkInterval,
         reportInterval: monitor.reportInterval,
@@ -290,8 +301,12 @@ export default function ServiceModal({ monitor, onClose, onSave, error }) {
         </div>
 
         <form onSubmit={e => { e.preventDefault(); onSave(form); }} className="p-5 space-y-4">
-          <Field label={t('form.name')} value={form.name}
-            onChange={v => setForm(f => ({ ...f, name: v }))} placeholder={t('form.namePlaceholder')} />
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={t('form.name')} value={form.name}
+              onChange={v => setForm(f => ({ ...f, name: v }))} placeholder={t('form.namePlaceholder')} />
+            <Field label={t('form.category')} value={form.category}
+              onChange={v => setForm(f => ({ ...f, category: v }))} placeholder={t('form.categoryPlaceholder')} />
+          </div>
 
           <div>
             <label className="label">{t('form.type')}</label>

@@ -87,7 +87,7 @@ export default function Services() {
         {items.map(m => (
           <div key={m._id} className={`card ${!m.enabled ? 'opacity-60' : ''}`}>
             <div className="flex items-start gap-3">
-              <span className="shrink-0 mt-0.5"><ServiceIcon type={m.type} size={22} /></span>
+              <span className="shrink-0 mt-0.5"><ServiceIcon type={m.type} size={22} url={m.config?.url} faviconUrl={m.metrics?.faviconUrl} /></span>
 
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">

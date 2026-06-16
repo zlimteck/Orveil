@@ -14,6 +14,8 @@ const monitorSchema = new mongoose.Schema({
   lastState: { type: mongoose.Schema.Types.Mixed, default: null },
   metrics: { type: mongoose.Schema.Types.Mixed, default: null },
   lastError: { type: String, default: null },
+  category: { type: String, default: '' },
+  position: { type: Number, default: 0 },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Monitor', monitorSchema);

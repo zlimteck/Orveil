@@ -43,7 +43,7 @@ async function runCheck(monitor) {
     lastState: result.state ?? monitor.lastState,
     metrics: result.metrics ?? monitor.metrics,
     lastChecked: new Date(),
-    lastError: result.status === 'error' ? (errorNotif?.message || 'Erreur inconnue') : null,
+    lastError: ['error', 'warning'].includes(result.status) ? (errorNotif?.message || result.state?.errMsg || 'Erreur inconnue') : null,
   };
 
   // AdGuard token refresh — persist updated tokens
@@ -63,14 +63,17 @@ async function runCheck(monitor) {
   }).catch(() => {});
 
   // Incident tracking
-  if (['error', 'offline'].includes(result.status) && prevStatus === 'online') {
-    Incident.create({
-      monitorId: monitor._id,
-      monitorName: monitor.name,
-      monitorType: monitor.type,
-      triggerStatus: result.status,
-    }).catch(() => {});
-  } else if (result.status === 'online' && ['error', 'offline'].includes(prevStatus)) {
+  if (['error', 'offline', 'warning'].includes(result.status)) {
+    const existingOpen = await Incident.findOne({ monitorId: monitor._id, resolvedAt: null });
+    if (!existingOpen) {
+      Incident.create({
+        monitorId: monitor._id,
+        monitorName: monitor.name,
+        monitorType: monitor.type,
+        triggerStatus: result.status,
+      }).catch(() => {});
+    }
+  } else if (result.status === 'online') {
     const open = await Incident.findOne({ monitorId: monitor._id, resolvedAt: null }).sort({ startedAt: -1 });
     if (open) {
       open.resolvedAt = new Date();

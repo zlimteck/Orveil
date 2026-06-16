@@ -54,7 +54,7 @@ export default function ServiceDetail({ monitor, onClose }) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-border">
           <div className="flex items-center gap-2.5">
-            <ServiceIcon type={monitor.type} size={20} />
+            <ServiceIcon type={monitor.type} size={20} url={monitor.config?.url} faviconUrl={monitor.metrics?.faviconUrl} />
             <div>
               <p className="font-semibold text-thistle text-sm">{monitor.name}</p>
               {monitor.description && <p className="text-xs text-muted">{monitor.description}</p>}
