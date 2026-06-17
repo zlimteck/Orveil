@@ -460,18 +460,18 @@ export default function Dashboard() {
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
-  async function load() {
-    setLoading(true);
+  async function load(showSpinner = false) {
+    if (showSpinner) setLoading(true);
     try {
       const [ms, h] = await Promise.all([monitorsApi.list(), historyApi.all(24)]);
       setMonitors(ms);
       setHist(h);
     } catch {}
-    finally { setLoading(false); }
+    finally { if (showSpinner) setLoading(false); }
   }
 
   useEffect(() => {
-    load();
+    load(true);
     const timer = setInterval(load, 30000);
     return () => clearInterval(timer);
   }, []);
@@ -527,8 +527,8 @@ export default function Dashboard() {
           <h1 className="text-xl md:text-2xl font-bold text-thistle">{t('dashboard.title')}</h1>
           <p className="text-xs md:text-sm text-muted mt-0.5">{t('dashboard.subtitle')}</p>
         </div>
-        <button onClick={load} className="btn-primary">
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+        <button onClick={() => load()} className="btn-primary">
+          <RefreshCw size={14} />
           <span className="hidden sm:inline">{t('dashboard.refresh')}</span>
         </button>
       </div>
