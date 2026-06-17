@@ -4,7 +4,7 @@ import { useLang } from '../context/LangContext';
 import StatusBadge from '../components/StatusBadge';
 import ServiceIcon from '../components/ServiceIcon';
 import ServiceDetail from '../components/ServiceDetail';
-import { RefreshCw, Radio, AlertTriangle, CheckCircle, Clock, GripVertical, Search } from 'lucide-react';
+import { RefreshCw, Radio, AlertTriangle, CheckCircle, Clock, GripVertical, Search, LayoutGrid, List } from 'lucide-react';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay,
 } from '@dnd-kit/core';
@@ -342,6 +342,54 @@ function CardContent({ monitor, hist, onSelect, t, dragging = false, dragHandleP
   );
 }
 
+function metricSummary(monitor) {
+  const m = monitor.metrics;
+  if (!m) return null;
+  switch (monitor.type) {
+    case 'http':       return m.responseTime != null ? `${m.responseTime}ms` : null;
+    case 'ping':       return m.latency != null ? `${m.latency}ms` : null;
+    case 'proxmox':    return m.cpuPct != null ? `CPU ${m.cpuPct}%` : null;
+    case 'ssh':        return m.memPct != null ? `RAM ${m.memPct}%` : null;
+    case 'immich':     return m.diskPct != null ? `${m.diskPct}%` : null;
+    case 'ultracc':    return m.free_pct != null ? `${m.free_pct}% libre` : null;
+    case 'adguard':    return m.pct_requests != null ? `${m.pct_requests}%` : null;
+    case 'cloudflare': return m.total != null ? `${m.healthy}/${m.total} tunnels` : null;
+    case 'portainer':  return m.containersRunning != null ? `${m.containersRunning} actifs` : null;
+    case 'docker':     return m.containersRunning != null ? `${m.containersRunning} actifs` : null;
+    case 'syncthing':  return m.folders_synced != null ? `${m.folders_synced} dossiers` : null;
+    case 'hms':        return Array.isArray(m.vps) ? `${m.vps.filter(v => v.state === 'running').length} VPS` : null;
+    case 'heartbeat':  return m.lastPing ? timeAgoMs(m.lastPing) : null;
+    default:           return null;
+  }
+}
+
+function ListRow({ monitor, hist, onSelect, t }) {
+  const uptime = hist[monitor._id]?.uptime?.h24;
+  const summary = metricSummary(monitor);
+  return (
+    <div
+      onClick={() => onSelect(monitor)}
+      className={`flex items-center gap-3 px-3 py-2 rounded-xl border border-transparent hover:border-periwinkle/30 hover:bg-granite-3/40 cursor-pointer transition-colors select-none ${!monitor.enabled ? 'opacity-50' : ''}`}
+    >
+      <span className="shrink-0">
+        <ServiceIcon type={monitor.type} size={18} url={monitor.config?.url} faviconUrl={monitor.metrics?.faviconUrl} />
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-thistle truncate">{monitor.name}</p>
+        {monitor.category && <p className="text-xs text-muted truncate">{monitor.category}</p>}
+      </div>
+      {summary && <span className="text-xs text-muted shrink-0 hidden sm:block">{summary}</span>}
+      {uptime != null && (
+        <span className={`text-xs font-medium shrink-0 hidden sm:block ${uptime >= 99 ? 'text-celadon' : uptime >= 95 ? 'text-amber-400' : 'text-red-400'}`}>
+          {uptime}%
+        </span>
+      )}
+      <span className="text-xs text-muted shrink-0 hidden md:block">{timeAgo(monitor.lastChecked, t)}</span>
+      <StatusBadge status={monitor.enabled ? monitor.status : 'unknown'} />
+    </div>
+  );
+}
+
 function SortableCard({ monitor, hist, onSelect, t, sortMode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: monitor._id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0 : 1 };
@@ -362,6 +410,9 @@ export default function Dashboard() {
   const [sortMode, setSortMode] = useState('status');
   const [activeId, setActiveId] = useState(null);
   const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem('nh_view') || 'grid');
+
+  const toggleView = (mode) => { setViewMode(mode); localStorage.setItem('nh_view', mode); };
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -466,15 +517,22 @@ export default function Dashboard() {
               className="input pl-8 text-sm w-full h-8"
             />
           </div>
-          <div className="flex gap-1 shrink-0">
+          <select value={sortMode} onChange={e => setSortMode(e.target.value)}
+            className="h-8 text-sm shrink-0 bg-surface border border-border rounded-lg px-2 pr-6 text-ink focus:outline-none focus:border-periwinkle transition-colors appearance-none cursor-pointer"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b8f8b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.3rem center', backgroundSize: '1.1em 1.1em' }}>
             {['manual', 'status', 'name'].map(mode => (
-              <button key={mode} onClick={() => setSortMode(mode)}
-                className={`text-xs px-2.5 h-8 rounded-lg border transition-colors ${
-                  sortMode === mode
-                    ? 'bg-periwinkle/20 text-periwinkle border-periwinkle/30'
-                    : 'text-muted border-border hover:text-thistle hover:border-granite'
-                }`}>
+              <option key={mode} value={mode}>
                 {t(`dashboard.sort${mode.charAt(0).toUpperCase() + mode.slice(1)}`)}
+              </option>
+            ))}
+          </select>
+          <div className="flex gap-1 shrink-0 border border-border rounded-lg p-0.5">
+            {[['grid', LayoutGrid], ['list', List]].map(([mode, Icon]) => (
+              <button key={mode} onClick={() => toggleView(mode)}
+                className={`p-1.5 rounded-md transition-colors ${
+                  viewMode === mode ? 'bg-periwinkle/20 text-periwinkle' : 'text-muted hover:text-thistle'
+                }`}>
+                <Icon size={14} />
               </button>
             ))}
           </div>
@@ -487,37 +545,54 @@ export default function Dashboard() {
           </div>
         )}
 
-        <DndContext sensors={sensors} collisionDetection={closestCenter}
-          onDragStart={({ active }) => setActiveId(active.id)}
-          onDragEnd={e => { handleDragEnd(e); setActiveId(null); }}
-          onDragCancel={() => setActiveId(null)}>
-          <SortableContext items={sorted.map(m => m._id)} strategy={rectSortingStrategy}>
-            <div className="space-y-5">
-              {[...groups.entries()].map(([cat, items]) => (
-                <div key={cat} className="space-y-2">
-                  {hasCategories && (
-                    <h3 className="text-xs font-semibold text-muted uppercase tracking-wider flex items-center gap-2">
-                      <span className="w-4 h-px bg-border" />
-                      {cat || t('dashboard.uncategorized')}
-                      <span className="flex-1 h-px bg-border" />
-                    </h3>
-                  )}
-                  <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
-                    {items.map(m => (
-                      <SortableCard key={m._id} monitor={m} hist={hist} onSelect={setSelected} t={t} sortMode={sortMode} />
-                    ))}
+        {viewMode === 'list' ? (
+          <div className="card divide-y divide-border p-1">
+            {[...groups.entries()].map(([cat, items]) => (
+              <div key={cat}>
+                {hasCategories && (
+                  <p className="text-xs font-semibold text-muted uppercase tracking-wider px-3 pt-3 pb-1">
+                    {cat || t('dashboard.uncategorized')}
+                  </p>
+                )}
+                {items.map(m => (
+                  <ListRow key={m._id} monitor={m} hist={hist} onSelect={setSelected} t={t} />
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <DndContext sensors={sensors} collisionDetection={closestCenter}
+            onDragStart={({ active }) => setActiveId(active.id)}
+            onDragEnd={e => { handleDragEnd(e); setActiveId(null); }}
+            onDragCancel={() => setActiveId(null)}>
+            <SortableContext items={sorted.map(m => m._id)} strategy={rectSortingStrategy}>
+              <div className="space-y-5">
+                {[...groups.entries()].map(([cat, items]) => (
+                  <div key={cat} className="space-y-2">
+                    {hasCategories && (
+                      <h3 className="text-xs font-semibold text-muted uppercase tracking-wider flex items-center gap-2">
+                        <span className="w-4 h-px bg-border" />
+                        {cat || t('dashboard.uncategorized')}
+                        <span className="flex-1 h-px bg-border" />
+                      </h3>
+                    )}
+                    <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
+                      {items.map(m => (
+                        <SortableCard key={m._id} monitor={m} hist={hist} onSelect={setSelected} t={t} sortMode={sortMode} />
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </SortableContext>
+                ))}
+              </div>
+            </SortableContext>
 
-          <DragOverlay dropAnimation={{ duration: 150, easing: 'ease' }}>
-            {activeMonitor && (
-              <CardContent monitor={activeMonitor} hist={hist} onSelect={() => {}} t={t} dragging />
-            )}
-          </DragOverlay>
-        </DndContext>
+            <DragOverlay dropAnimation={{ duration: 150, easing: 'ease' }}>
+              {activeMonitor && (
+                <CardContent monitor={activeMonitor} hist={hist} onSelect={() => {}} t={t} dragging />
+              )}
+            </DragOverlay>
+          </DndContext>
+        )}
       </div>
 
       {selected && (
