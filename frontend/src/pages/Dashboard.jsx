@@ -4,7 +4,7 @@ import { useLang } from '../context/LangContext';
 import StatusBadge from '../components/StatusBadge';
 import ServiceIcon from '../components/ServiceIcon';
 import ServiceDetail from '../components/ServiceDetail';
-import { RefreshCw, Radio, AlertTriangle, CheckCircle, Clock, GripVertical, Search, LayoutGrid, List, Thermometer } from 'lucide-react';
+import { RefreshCw, Radio, AlertTriangle, CheckCircle, Clock, GripVertical, Search, LayoutGrid, List, Thermometer, Wrench } from 'lucide-react';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay,
 } from '@dnd-kit/core';
@@ -362,7 +362,12 @@ function CardContent({ monitor, hist, onSelect, t, dragging = false, dragHandleP
           </div>
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
-          <StatusBadge status={monitor.enabled ? monitor.status : 'unknown'} />
+          <div className="flex items-center gap-1.5">
+            {monitor.maintenanceUntil && new Date(monitor.maintenanceUntil) > new Date() && (
+              <span className="flex items-center gap-0.5 text-xs text-amber-400" title="En maintenance"><Wrench size={11} /></span>
+            )}
+            <StatusBadge status={monitor.enabled ? monitor.status : 'unknown'} />
+          </div>
           <div className="flex items-center gap-1.5">
             {uptime != null && (
               <span className={`text-xs font-medium ${uptime >= 99 ? 'text-celadon' : uptime >= 95 ? 'text-amber-400' : 'text-red-400'}`}>

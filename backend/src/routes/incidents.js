@@ -16,4 +16,15 @@ router.get('/', async (req, res) => {
   res.json(incidents);
 });
 
+// POST /api/incidents/:id/acknowledge
+router.post('/:id/acknowledge', async (req, res) => {
+  const incident = await Incident.findByIdAndUpdate(
+    req.params.id,
+    { acknowledgedAt: new Date() },
+    { new: true }
+  );
+  if (!incident) return res.status(404).json({ error: 'Incident introuvable' });
+  res.json(incident);
+});
+
 module.exports = router;

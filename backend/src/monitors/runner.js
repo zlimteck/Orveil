@@ -26,6 +26,16 @@ async function runCheck(monitor) {
   const handler = handlers[monitor.type];
   if (!handler) return;
 
+  // Skip checks during maintenance window
+  if (monitor.maintenanceUntil && new Date(monitor.maintenanceUntil) > new Date()) {
+    console.log(`[Runner] Maintenance: ${monitor.name} — skip until ${monitor.maintenanceUntil}`);
+    return;
+  }
+  // Auto-clear expired maintenance
+  if (monitor.maintenanceUntil && new Date(monitor.maintenanceUntil) <= new Date()) {
+    await Monitor.findByIdAndUpdate(monitor._id, { maintenanceUntil: null });
+  }
+
   console.log(`[Runner] Check: ${monitor.name} (${monitor.type})`);
 
   let result;

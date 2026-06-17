@@ -7,7 +7,8 @@ const schema = new mongoose.Schema({
   startedAt:     { type: Date, default: Date.now },
   resolvedAt:    { type: Date, default: null },
   duration:      { type: Number, default: null }, // ms
-  triggerStatus: { type: String }, // 'error' | 'offline'
+  triggerStatus:   { type: String }, // 'error' | 'offline'
+  acknowledgedAt:  { type: Date, default: null },
 });
 
 schema.index({ monitorId: 1, startedAt: -1 });

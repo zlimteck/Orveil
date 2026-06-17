@@ -16,6 +16,7 @@ const monitorSchema = new mongoose.Schema({
   lastError: { type: String, default: null },
   category: { type: String, default: '' },
   position: { type: Number, default: 0 },
+  maintenanceUntil: { type: Date, default: null },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Monitor', monitorSchema);

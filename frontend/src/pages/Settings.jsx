@@ -44,7 +44,7 @@ function ChangePassword() {
           value={form.confirm} onChange={e => setForm(f => ({ ...f, confirm: e.target.value }))} />
         <div className="flex items-center gap-3">
           <button type="submit" disabled={state === 'saving'} className="btn-primary">
-            <Save size={14} /> {state === 'saving' ? t('settings.password.saving') : t('settings.password.change')}
+            <Save size={14} /> {state === 'saving' ? t('settings.password.saving') : t('settings.save')}
           </button>
           {state === 'ok'       && <span className="text-sm text-celadon">{t('settings.password.ok')}</span>}
           {state === 'mismatch' && <span className="text-sm text-red-400">{t('settings.password.mismatch')}</span>}
@@ -61,7 +61,8 @@ export default function Settings() {
   const { t } = useLang();
   const [form, setForm] = useState({ appriseUrls: [], appriseApiUrl: 'http://apprise:8000', weeklyReport: { enabled: false, dayOfWeek: 1, hour: 8 } });
   const [urlsText, setUrlsText] = useState('');
-  const [saved, setSaved] = useState(false);
+  const [savedApprise, setSavedApprise] = useState(false);
+  const [savedWeekly, setSavedWeekly] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -80,12 +81,20 @@ export default function Settings() {
       .finally(() => setLoading(false));
   }, []);
 
-  async function handleSave(e) {
+  async function handleSaveApprise(e) {
     e.preventDefault();
     const appriseUrls = urlsText.split('\n').map(u => u.trim()).filter(Boolean);
     await api.save({ appriseUrls, appriseApiUrl: form.appriseApiUrl, weeklyReport: form.weeklyReport });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setSavedApprise(true);
+    setTimeout(() => setSavedApprise(false), 2500);
+  }
+
+  async function handleSaveWeekly(e) {
+    e.preventDefault();
+    const appriseUrls = urlsText.split('\n').map(u => u.trim()).filter(Boolean);
+    await api.save({ appriseUrls, appriseApiUrl: form.appriseApiUrl, weeklyReport: form.weeklyReport });
+    setSavedWeekly(true);
+    setTimeout(() => setSavedWeekly(false), 2500);
   }
 
   async function handleTest() {
@@ -108,8 +117,7 @@ export default function Settings() {
         <p className="text-xs md:text-sm text-muted mt-0.5">{t('settings.subtitle')}</p>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-5">
-        <div className="card space-y-4">
+      <form onSubmit={handleSaveApprise} className="card space-y-4">
           <h2 className="font-semibold text-thistle text-sm flex items-center gap-2">
             <svg className="w-4 h-4 shrink-0" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
               <g transform="translate(0,128) scale(0.1,-0.1)" fill="currentColor" stroke="none">
@@ -161,7 +169,10 @@ export default function Settings() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3 pt-1">
-            <button type="button" onClick={handleTest} disabled={testing} className="btn-primary">
+            <button type="submit" className="btn-primary">
+              <Save size={14} /> {savedApprise ? t('settings.saved') : t('settings.save')}
+            </button>
+            <button type="button" onClick={handleTest} disabled={testing} className="btn-ghost border border-border px-3 py-2 rounded-lg text-sm flex items-center gap-2">
               <Send size={14} className={testing ? 'animate-pulse' : ''} />
               {testing ? t('settings.testing') : t('settings.test')}
             </button>
@@ -169,9 +180,9 @@ export default function Settings() {
             {testResult === 'no_urls' && <p className="text-sm text-amber-400">{t('settings.testNoUrls')}</p>}
             {testResult === 'error'   && <p className="text-sm text-red-400">{t('settings.testError')}</p>}
           </div>
-        </div>
+      </form>
 
-        <div className="card space-y-4">
+      <form onSubmit={handleSaveWeekly} className="card space-y-4">
           <h2 className="font-semibold text-thistle text-sm flex items-center gap-2">
             <CalendarClock size={14} className="text-periwinkle" /> {t('settings.weeklyReport.title')}
           </h2>
@@ -186,7 +197,7 @@ export default function Settings() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="label">{t('settings.weeklyReport.day')}</label>
-                <select className="input" value={form.weeklyReport?.dayOfWeek ?? 1}
+                <select className="select" value={form.weeklyReport?.dayOfWeek ?? 1}
                   onChange={e => setForm(f => ({ ...f, weeklyReport: { ...(f.weeklyReport || {}), dayOfWeek: +e.target.value } }))}>
                   {(t('settings.weeklyReport.days') || []).map((d, i) => (
                     <option key={i} value={i}>{d}</option>
@@ -201,14 +212,11 @@ export default function Settings() {
               </div>
             </div>
           )}
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button type="submit" className="btn-primary">
-            <Save size={14} />
-            {saved ? t('settings.saved') : t('settings.save')}
-          </button>
-        </div>
+          <div className="flex items-center gap-3 pt-1">
+            <button type="submit" className="btn-primary">
+              <Save size={14} /> {savedWeekly ? t('settings.saved') : t('settings.save')}
+            </button>
+          </div>
       </form>
 
       <ChangePassword />
