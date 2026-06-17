@@ -1,4 +1,5 @@
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const { connectDB } = require('./db');
@@ -9,17 +10,24 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Public routes
+// Frontend static files (before auth middleware)
+const publicDir = path.join(__dirname, '../public');
+app.use(express.static(publicDir));
+
+// Public API routes
 app.use('/api/auth',   require('./routes/auth'));
 app.get('/api/health', (req, res) => res.json({ ok: true, ts: new Date() }));
 
-// Protected routes
-app.use(authMiddleware);
+// Protected API routes
+app.use('/api', authMiddleware);
 app.use('/api/monitors',  require('./routes/monitors'));
 app.use('/api/logs',      require('./routes/logs'));
 app.use('/api/settings',  require('./routes/settings'));
 app.use('/api/history',   require('./routes/history'));
 app.use('/api/incidents', require('./routes/incidents'));
+
+// SPA fallback
+app.get('*', (req, res) => res.sendFile(path.join(publicDir, 'index.html')));
 
 const PORT = process.env.PORT || 5050;
 

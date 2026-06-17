@@ -94,20 +94,17 @@ function MetricsBlock({ monitor }) {
   );
 
   if (type === 'hms') return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {(metrics.vps || []).map(v => (
-        <div key={v.id} className="space-y-1">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className={v.state === 'running' ? 'text-celadon text-xs' : 'text-red-400 text-xs'}>●</span>
-              <span className="text-thistle font-medium text-xs truncate">{v.name}</span>
-            </div>
-            <span className="text-muted text-xs shrink-0">{v.ipv4}</span>
+        <div key={v.id} className="space-y-0.5">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className={v.state === 'running' ? 'text-celadon text-xs' : 'text-red-400 text-xs'}>●</span>
+            <span className="text-thistle font-medium text-xs truncate">{v.name}</span>
           </div>
-          <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted pl-3">
-            {v.datacenter && <span>📍 {v.datacenter}</span>}
-            {v.vcores && <span>⚡ {v.vcores} vCore</span>}
-            {v.ram_gb && <span>💾 {v.ram_gb} GB RAM</span>}
+          <div className="flex gap-3 text-xs text-muted pl-3">
+            {v.ipv4  && <span>IP : <span className="text-frosted">{v.ipv4}</span></span>}
+            {v.vcores && <span>CPU : <span className="text-frosted">{v.vcores}c</span></span>}
+            {v.ram_gb && <span>RAM : <span className="text-frosted">{v.ram_gb} GB</span></span>}
           </div>
         </div>
       ))}
@@ -133,7 +130,8 @@ function MetricsBlock({ monitor }) {
             <div key={d.id} className="flex items-center gap-1.5 text-xs">
               <span className={d.connected ? 'text-celadon' : 'text-muted'}>●</span>
               <span className={d.connected ? 'text-thistle' : 'text-muted'}>{d.name}</span>
-              {!d.connected && <span className="text-muted italic">{t('metrics.disconnected')}</span>}
+              {d.isHost && <span className="text-muted italic">{t('settings.docker.internal')}</span>}
+              {!d.connected && !d.isHost && <span className="text-muted italic">{t('metrics.disconnected')}</span>}
             </div>
           ))}
         </div>
@@ -172,6 +170,18 @@ function MetricsBlock({ monitor }) {
           <span className="text-red-400 truncate">{metrics.errMsg}</span>
         )}
       </div>
+      {metrics.sslInfo && (
+        <div className={`flex items-center gap-1 text-xs ${
+          metrics.sslStatus === 'expired'  ? 'text-red-400' :
+          metrics.sslStatus === 'expiring' ? 'text-amber-400' : 'text-muted'
+        }`}>
+          <span>SSL ·{' '}
+            {metrics.sslStatus === 'expired'
+              ? t('metrics.sslExpired')
+              : `${metrics.sslInfo.daysLeft}j`}
+          </span>
+        </div>
+      )}
       <p className="text-xs text-muted truncate">{metrics.url}</p>
     </div>
   );
@@ -196,8 +206,8 @@ function MetricsBlock({ monitor }) {
   if (type === 'immich') return (
     <div className="space-y-1.5">
       <div className="flex gap-4 text-xs text-muted">
-        <span>📷 <span className="text-thistle font-medium">{metrics.photos?.toLocaleString()}</span></span>
-        <span>🎬 <span className="text-thistle font-medium">{metrics.videos?.toLocaleString()}</span></span>
+        <span>Photos : <span className="text-thistle font-medium">{metrics.photos?.toLocaleString()}</span></span>
+        <span>Videos : <span className="text-thistle font-medium">{metrics.videos?.toLocaleString()}</span></span>
       </div>
       <div className="space-y-0.5">
         <div className="flex justify-between text-xs text-muted">
@@ -367,7 +377,7 @@ export default function Dashboard() {
           <h1 className="text-xl md:text-2xl font-bold text-thistle">{t('dashboard.title')}</h1>
           <p className="text-xs md:text-sm text-muted mt-0.5">{t('dashboard.subtitle')}</p>
         </div>
-        <button onClick={load} className="btn-primary text-xs">
+        <button onClick={load} className="btn-primary">
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           <span className="hidden sm:inline">{t('dashboard.refresh')}</span>
         </button>

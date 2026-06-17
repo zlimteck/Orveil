@@ -46,6 +46,7 @@ export default {
     loss: 'Loss',
     tunnels: 'Tunnels',
     used: 'used',
+    sslExpired: 'Expired',
   },
   nav: {
     dashboard: 'Dashboard',
@@ -247,7 +248,11 @@ export default {
         folderPlaceholder: 'e.g. yhk9n-v3fom',
       },
       http: {
+        method: 'Method',
+        body: 'Request body (JSON)',
         expectedStatus: 'Expected status',
+        sslAlertDays: 'SSL alert (days)',
+        sslAlertDaysHint: 'Alert when certificate expires in less than X days.',
         keyword: 'Keyword to find (optional)',
         keywordHint: 'Checks that the response contains this text.',
         keywordPlaceholder: 'OK',

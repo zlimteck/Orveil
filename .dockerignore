@@ -1,0 +1,33 @@
+.git/
+.github/
+.claude/
+.gitignore
+.dockerignore
+
+# Local dev
+dev-build.sh
+mongo_data/
+*.log
+
+# Dependencies (rebuilt in Docker)
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Build output
+frontend/dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docs
+docs/
+README.md
+LICENSE

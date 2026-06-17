@@ -52,7 +52,7 @@
     @apply btn hover:bg-granite-3 text-thistle;
   }
   .btn-danger {
-    @apply btn bg-red-900/30 hover:bg-red-800/40 text-red-300;
+    @apply btn bg-red-900/30 hover:bg-red-800/40 text-red-300 border border-transparent;
   }
   :root.light .btn-danger {
     background-color: rgb(254 226 226 / 0.8);

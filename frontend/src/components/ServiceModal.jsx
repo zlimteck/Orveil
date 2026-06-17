@@ -9,7 +9,7 @@ const TYPE_DEFAULTS = {
   hms:        { checkInterval: 5,  reportInterval: 0,  config: { hmsToken: '', vpsList: [{ id: '', name: '' }] } },
   ultracc:    { checkInterval: 5,  reportInterval: 0,  config: { apiUrl: '', ultraToken: '' } },
   syncthing:  { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', folderIds: [], rejectUnauthorized: true } },
-  http:       { checkInterval: 5,  reportInterval: 0,  config: { url: '', expectedStatus: 200, keyword: '', timeout: 10000, bearerToken: '', basicUser: '', basicPass: '', customHeaderName: '', customHeaderValue: '', rejectUnauthorized: true } },
+  http:       { checkInterval: 5,  reportInterval: 0,  config: { url: '', method: 'GET', body: '', expectedStatus: 200, keyword: '', timeout: 10000, sslAlertDays: 30, bearerToken: '', basicUser: '', basicPass: '', customHeaderName: '', customHeaderValue: '', rejectUnauthorized: true } },
   ping:       { checkInterval: 2,  reportInterval: 0,  config: { host: '', port: 80, attempts: 3 } },
   proxmox:    { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiToken: '', node: 'pve', rejectUnauthorized: false } },
   immich:     { checkInterval: 30, reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
@@ -175,8 +175,26 @@ function ConfigFields({ type, config, onChange, t }) {
     <>
       <Field label="URL" value={config.url} onChange={v => set('url', v)} placeholder="https://my-service.com" />
       <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-muted uppercase tracking-wider">{t('form.fields.http.method')}</label>
+          <select value={config.method || 'GET'} onChange={e => set('method', e.target.value)}
+            className="input text-sm">
+            {['GET','POST','PUT','PATCH','DELETE','HEAD'].map(m => <option key={m}>{m}</option>)}
+          </select>
+        </div>
         <Field label={t('form.fields.http.expectedStatus')} value={config.expectedStatus} onChange={v => set('expectedStatus', +v)} type="number" placeholder="200" />
+      </div>
+      {['POST','PUT','PATCH'].includes(config.method) && (
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-muted uppercase tracking-wider">{t('form.fields.http.body')}</label>
+          <textarea value={config.body || ''} onChange={e => set('body', e.target.value)}
+            rows={4} placeholder='{"key": "value"}'
+            className="input text-xs font-mono resize-y" />
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-3">
         <Field label="Timeout (ms)" value={config.timeout} onChange={v => set('timeout', +v)} type="number" placeholder="10000" />
+        <Field label={t('form.fields.http.sslAlertDays')} value={config.sslAlertDays ?? 30} onChange={v => set('sslAlertDays', +v)} type="number" placeholder="30" hint={t('form.fields.http.sslAlertDaysHint')} />
       </div>
       <Field label={t('form.fields.http.keyword')} value={config.keyword} onChange={v => set('keyword', v)}
         placeholder={t('form.fields.http.keywordPlaceholder')} hint={t('form.fields.http.keywordHint')} />

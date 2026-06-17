@@ -106,7 +106,20 @@ export default function Settings() {
 
       <form onSubmit={handleSave} className="space-y-5">
         <div className="card space-y-4">
-          <h2 className="font-semibold text-thistle text-sm">🔔 {t('settings.apprise.title')}</h2>
+          <h2 className="font-semibold text-thistle text-sm flex items-center gap-2">
+            <svg className="w-4 h-4 shrink-0" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+              <g transform="translate(0,128) scale(0.1,-0.1)" fill="currentColor" stroke="none">
+                <path d="M512 1235 c-128 -29 -267 -113 -342 -207 -204 -256 -183 -606 50 -838 124 -125 257 -180 430 -180 173 0 306 55 430 180 85 84 128 158 159 270 26 92 28 226 5 319 -51 206 -212 378 -414 442 -85 27 -234 34 -318 14z m280 -54 c193 -55 334 -190 398 -379 16 -49 21 -88 21 -165 0 -173 -48 -287 -170 -407 -114 -112 -226 -161 -376 -163 -117 -2 -185 9 -191 31 -3 9 -21 51 -41 92 -20 41 -39 84 -43 95 -28 76 -28 75 -54 64 -91 -42 -208 77 -178 179 13 42 45 78 61 68 6 -4 35 -49 66 -101 31 -52 58 -95 61 -95 4 0 -51 104 -88 165 -24 40 -23 55 6 80 23 19 24 27 30 185 6 161 9 191 20 238 8 35 14 41 69 69 127 64 281 80 409 44z"/>
+                <path d="M784 1015 c-10 -25 6 -35 52 -35 125 0 211 -112 174 -227 -7 -21 -19 -46 -27 -55 -17 -19 -11 -48 10 -48 34 0 77 84 77 151 0 68 -21 118 -67 165 -48 47 -91 64 -166 64 -32 0 -49 -5 -53 -15z"/>
+                <path d="M582 978 c-7 -7 -12 -18 -12 -25 0 -31 -76 -160 -123 -210 -28 -30 -82 -73 -119 -94 -38 -22 -68 -43 -68 -46 0 -7 63 -122 96 -175 l24 -37 77 44 c112 64 170 73 393 62 61 -3 52 23 -90 267 -132 225 -148 244 -178 214z m142 -273 c38 -68 69 -127 70 -132 0 -4 -15 -9 -35 -11 -29 -2 -37 1 -46 21 -11 24 -14 24 -65 15 -54 -10 -68 -20 -68 -50 0 -16 -55 -36 -67 -25 -2 3 8 71 23 151 30 156 27 152 94 154 22 1 33 -14 94 -123z"/>
+                <path d="M610 726 c0 -13 -3 -37 -6 -53 -6 -28 -5 -29 30 -25 20 2 36 6 36 8 0 12 -45 94 -52 94 -4 0 -8 -11 -8 -24z"/>
+                <path d="M764 905 c-9 -21 4 -35 32 -35 32 0 80 -25 88 -45 11 -29 7 -70 -10 -93 -18 -25 -11 -42 16 -42 11 0 26 12 35 30 33 64 8 153 -54 185 -38 19 -100 20 -107 0z"/>
+                <path d="M186 548 c-9 -12 -16 -42 -16 -65 0 -60 47 -112 108 -120 27 -4 42 -2 42 5 0 11 -109 202 -115 202 -2 0 -11 -10 -19 -22z"/>
+                <path d="M460 371 c-25 -16 -44 -33 -43 -38 1 -6 18 -38 38 -72 27 -45 42 -61 58 -61 26 0 85 34 93 53 7 19 -68 147 -86 146 -8 0 -35 -13 -60 -28z"/>
+              </g>
+            </svg>
+            {t('settings.apprise.title')}
+          </h2>
           <p className="text-xs text-muted">{t('settings.apprise.hint')}</p>
 
           <div>
@@ -162,11 +175,16 @@ export default function Settings() {
       <ChangePassword />
 
       <div className="card space-y-3">
-        <h2 className="font-semibold text-thistle text-sm">🐳 {t('settings.docker.title')}</h2>
+        <h2 className="font-semibold text-thistle text-sm flex items-center gap-2">
+          <svg viewBox="0 0 24 18" className="w-5 h-4 fill-[#2496ED]" xmlns="http://www.w3.org/2000/svg">
+            <path d="M13.4 4.5h2.2V2.3h-2.2v2.2zm0 2.7h2.2V5h-2.2v2.2zm-2.7 0h2.2V5h-2.2v2.2zm-2.7 0h2.2V5H8v2.2zm-2.7 0h2.2V5H5.3v2.2zm2.7-2.7h2.2V2.3H8V4.5zm2.7 0h2.2V2.3h-2.2V4.5zm0-2.7h2.2V-.1h-2.2V1.8zm-2.7 0h2.2V-.1H8V1.8zM23.3 8c-.5-.3-1.5-.4-2.3-.3-.1-.8-.6-1.6-1.3-2l-.4-.3-.3.4c-.4.5-.5 1.4-.5 2 0 .3 0 .8.3 1.3-.3.1-.8.3-1.5.3H.2l-.1.4c-.1.9 0 4.3 2 6.1.9.8 2.2 1.2 3.8 1.2 3.7 0 6.4-1.7 7.7-4.8.9 0 2.8.1 3.7-1.9l.2-.3-.4-.3zm-11 4.3H10v2.3h2.3v-2.3zm0-2.8H10v2.3h2.3V9.5zm2.7 2.8h-2.2v2.3h2.2v-2.3zm-2.7-5.5H10v2.2h2.3V6.8zM7.3 12.3H5v2.3h2.3v-2.3zm2.7 0H7.8v2.3H10v-2.3zm0-2.8H7.8v2.3H10V9.5zm-2.7 0H5v2.3h2.3V9.5zm-2.8 0H2.3v2.3h2.2V9.5zm2.8-2.7H5v2.2h2.3V6.8zm2.7 0H7.8v2.2H10V6.8z"/>
+          </svg>
+          {t('settings.docker.title')}
+        </h2>
         <div className="divide-y divide-border">
           {[
-            ['Frontend',    `${window.location.hostname}:3050`],
-            ['Backend API', `${window.location.hostname}:5050`],
+            ['App',         `${window.location.hostname}:3050`],
+            ['Backend API', `${window.location.hostname}:3050/api`],
             ['Apprise API', `${window.location.hostname}:8008`],
             ['MongoDB',     `${t('settings.docker.internal')} (mongo:27017)`],
           ].map(([label, val]) => (

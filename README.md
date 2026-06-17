@@ -10,6 +10,8 @@ Unified monitoring dashboard with notifications via [Apprise](https://github.com
 
 - **Unified dashboard** — status overview of all your services at a glance
 - **11 monitor types** — HTTP/HTTPS, Ping/TCP, SSH, Proxmox, Cloudflare, AdGuard, Portainer, Syncthing, Immich, HostMyServers, Ultra.cc
+- **Drag & drop reordering** — manually sort cards or switch to automatic sort by status or name
+- **Category grouping** — assign a category to each service to group cards on the dashboard
 - **Incident tracking** — automatic incident open/close with duration history
 - **Apprise notifications** — Pushover, Telegram, Discord, Slack, email, and [100+ more](https://github.com/caronc/apprise/wiki)
 - **Manual notifications** — send a message to all channels directly from the UI
@@ -25,7 +27,8 @@ Unified monitoring dashboard with notifications via [Apprise](https://github.com
 | Backend | Node.js + Express |
 | Database | MongoDB |
 | Notifications | Apprise (self-hosted sidecar) |
-| Deployment | Docker Compose |
+| Deployment | Single Docker image (frontend + backend) |
+| CI/CD | GitHub Actions → Docker Hub (amd64 + arm64) |
 
 ## Quick start
 
@@ -41,8 +44,7 @@ docker compose up -d
 
 | Service | URL |
 |---------|-----|
-| Frontend | http://localhost:3050 |
-| Backend API | http://localhost:5050 |
+| App (frontend + API) | http://localhost:3050 |
 | Apprise API | http://localhost:8008 |
 
 Default credentials: `admin` / `notifhub`
@@ -51,16 +53,16 @@ Default credentials: `admin` / `notifhub`
 
 | Type | What it checks |
 |------|----------------|
-| **HTTP** | HTTP/HTTPS endpoint — status code, optional keyword match, TLS cert |
+| **HTTP** | HTTP/HTTPS endpoint — status code, keyword match, Bearer/Basic/custom auth, multiple methods (GET/POST/PUT…), SSL certificate expiry |
 | **Ping** | ICMP ping or TCP port reachability |
 | **SSH** | CPU / RAM via SSH (password or private key) |
 | **Proxmox** | Node CPU / RAM via API token |
 | **Cloudflare** | Tunnel status via API token |
 | **AdGuard** | DNS protection status and request stats |
 | **Portainer** | Container count via API key |
-| **Syncthing** | Synced folders via API key |
-| **Immich** | Disk usage via API key |
-| **HMS (HostMyServers)** | VPS CPU / RAM via API token |
+| **Syncthing** | Synced folders and connected devices via API key |
+| **Immich** | Photo / video count and disk usage via API key |
+| **HMS (HostMyServers)** | VPS status and specs via API token |
 | **Ultra.cc** | Seedbox storage and traffic via Stats API URL |
 
 ## Notifications (Apprise)
@@ -86,7 +88,6 @@ Full list: https://github.com/caronc/apprise/wiki
 | `JWT_SECRET` | `notifhub-change-me-in-production` | JWT signing secret — **change this** |
 | `ADMIN_USERNAME` | `admin` | Admin account username |
 | `ADMIN_PASSWORD` | `notifhub` | Admin account password — **change this** |
-| `VITE_API_URL` | `http://localhost:5050` | Backend URL (build-time, frontend only) |
 
 ## License
 

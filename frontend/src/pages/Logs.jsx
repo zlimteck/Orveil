@@ -10,7 +10,12 @@ const LEVEL_BADGE = {
   error:   'bg-red-900/40 text-red-300',
 };
 
-const LEVEL_ICON = { info: 'ℹ️', success: '✅', warning: '⚠️', error: '❌' };
+const LEVEL_DOT = {
+  info:    'text-periwinkle',
+  success: 'text-celadon',
+  warning: 'text-amber-400',
+  error:   'text-red-400',
+};
 
 function Composer({ onSent }) {
   const { t, lang } = useLang();
@@ -107,7 +112,9 @@ export default function Logs() {
           <p className="text-xs md:text-sm text-muted mt-0.5">{subtitle}</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={load} className="btn-primary p-2"><RefreshCw size={14} /></button>
+          <button onClick={load} className="btn-primary">
+            <RefreshCw size={14} /><span className="hidden sm:inline">{t('dashboard.refresh')}</span>
+          </button>
           <button onClick={handleClear} className="btn-danger">
             <Trash2 size={14} /><span className="hidden sm:inline">{t('logs.clear')}</span>
           </button>
@@ -149,7 +156,7 @@ export default function Logs() {
       <div className="space-y-2">
         {data.logs.map(log => (
           <div key={log._id} className="card flex items-start gap-3 py-3 px-4">
-            <span className="text-base shrink-0 mt-0.5">{LEVEL_ICON[log.level]}</span>
+            <span className={`shrink-0 mt-1 text-sm ${LEVEL_DOT[log.level]}`}>●</span>
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <p className="font-medium text-thistle text-sm">{log.title}</p>

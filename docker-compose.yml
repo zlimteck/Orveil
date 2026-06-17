@@ -21,14 +21,12 @@ services:
     networks:
       - notifhub
 
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: notifhub-backend
+  app:
+    image: zlimteck/notifhub:latest
+    container_name: notifhub
     restart: unless-stopped
     ports:
-      - "5050:5050"
+      - "3050:5050"
     environment:
       MONGODB_URI: mongodb://${MONGO_USER:-notifhub}:${MONGO_PASS:-notifhub_pass}@mongodb:27017/notifhub?authSource=admin
       APPRISE_API_URL: http://apprise:8000
@@ -40,19 +38,6 @@ services:
     depends_on:
       - mongodb
       - apprise
-    networks:
-      - notifhub
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: notifhub-frontend
-    restart: unless-stopped
-    ports:
-      - "3050:80"
-    depends_on:
-      - backend
     networks:
       - notifhub
 

@@ -17,6 +17,13 @@ async function getConnections(http, apiUrl, apiKey) {
   return res.data.connections || {};
 }
 
+async function getSystemStatus(http, apiUrl, apiKey) {
+  const res = await http.get(`${apiUrl}/rest/system/status`, {
+    headers: { 'X-API-Key': apiKey },
+  });
+  return res.data;
+}
+
 async function getConfig(http, apiUrl, apiKey) {
   const res = await http.get(`${apiUrl}/rest/system/config`, {
     headers: { 'X-API-Key': apiKey },
@@ -41,12 +48,13 @@ async function check(config, lastState) {
   }
 
   const http = makeClient(rejectUnauthorized, cfHeaders(config));
-  let cfg, connections, folders = [];
+  let cfg, connections, sysStatus, folders = [];
 
   try {
-    [cfg, connections] = await Promise.all([
+    [cfg, connections, sysStatus] = await Promise.all([
       getConfig(http, apiUrl, apiKey),
       getConnections(http, apiUrl, apiKey),
+      getSystemStatus(http, apiUrl, apiKey),
     ]);
 
     const targetFolders = folderIds.length
@@ -76,11 +84,14 @@ async function check(config, lastState) {
   }
 
   const deviceMap = Object.fromEntries((cfg.devices || []).map(d => [d.deviceID, d.name]));
-  const devices = Object.entries(connections).map(([id, det]) => ({
+  const myID = sysStatus?.myID;
+  const hostDevice = myID ? { id: myID, name: deviceMap[myID] || 'Host', connected: true, isHost: true } : null;
+  const peers = Object.entries(connections).map(([id, det]) => ({
     id,
     name: deviceMap[id] || 'Inconnu',
     connected: det.connected,
   }));
+  const devices = hostDevice ? [hostDevice, ...peers] : peers;
 
   const notifications = [];
   const prevDeviceMap = lastState?.devices
@@ -121,7 +132,7 @@ async function check(config, lastState) {
 
   const connectedCount = devices.filter(d => d.connected).length;
   const outOfSync = folders.filter(f => f.needBytes > 0 || f.state === 'error').length;
-  const status = outOfSync > 0 ? 'warning' : connectedCount === 0 && devices.length > 0 ? 'offline' : 'online';
+  const status = outOfSync > 0 ? 'warning' : 'online';
 
   const state = { devices, folders };
   const metrics = {
