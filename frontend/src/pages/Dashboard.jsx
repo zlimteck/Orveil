@@ -4,7 +4,7 @@ import { useLang } from '../context/LangContext';
 import StatusBadge from '../components/StatusBadge';
 import ServiceIcon from '../components/ServiceIcon';
 import ServiceDetail from '../components/ServiceDetail';
-import { RefreshCw, Radio, AlertTriangle, CheckCircle, Clock, GripVertical, Search, LayoutGrid, List } from 'lucide-react';
+import { RefreshCw, Radio, AlertTriangle, CheckCircle, Clock, GripVertical, Search, LayoutGrid, List, Thermometer } from 'lucide-react';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay,
 } from '@dnd-kit/core';
@@ -250,6 +250,44 @@ function MetricsBlock({ monitor }) {
     </div>
   );
 
+  if (type === 'unraid') return (
+    <div className="space-y-1.5">
+      <div className="flex gap-3 text-xs text-muted flex-wrap">
+        <span>Array : <span className={metrics.arrayState === 'STARTED' ? 'text-celadon font-medium' : 'text-amber-400 font-medium'}>{metrics.arrayState}</span></span>
+        {metrics.diskErrors > 0 && <span className="text-red-400 font-medium">{metrics.diskErrors} erreur{metrics.diskErrors > 1 ? 's' : ''}</span>}
+        {metrics.containersRunning > 0 && <span><span className="text-thistle font-medium">{metrics.containersRunning}</span> containers</span>}
+        {metrics.tempAvg != null && <span className={`flex items-center gap-0.5 ${metrics.tempCrit > 0 ? 'text-red-400' : metrics.tempWarn > 0 ? 'text-amber-400' : 'text-muted'}`}><Thermometer size={12} />{metrics.tempAvg}°C</span>}
+      </div>
+      {metrics.diskTotal > 0 && (
+        <div className="space-y-0.5">
+          <div className="flex justify-between text-xs text-muted">
+            <span>{t('metrics.disk')} — {metrics.diskUsed} / {metrics.diskTotal} TB</span>
+            <span>{metrics.diskPct}%</span>
+          </div>
+          <ProgressBar value={metrics.diskPct} warn={80} danger={90} />
+        </div>
+      )}
+      {metrics.cpuPct != null && (
+        <div className="space-y-0.5">
+          <div className="flex justify-between text-xs text-muted">
+            <span>CPU{metrics.cpuBrand ? ` — ${metrics.cpuBrand}${metrics.cpuCores ? ` · ${metrics.cpuCores}c` : ''}` : ''}</span>
+            <span>{metrics.cpuPct}%</span>
+          </div>
+          <ProgressBar value={metrics.cpuPct} warn={70} danger={90} />
+        </div>
+      )}
+      {metrics.ramPct != null && (
+        <div className="space-y-0.5">
+          <div className="flex justify-between text-xs text-muted">
+            <span>{t('metrics.ram')}{metrics.ramUsedGB != null ? ` — ${metrics.ramUsedGB} / ${metrics.ramTotalGB} GB` : ''}</span>
+            <span>{metrics.ramPct}%</span>
+          </div>
+          <ProgressBar value={metrics.ramPct} warn={80} danger={90} />
+        </div>
+      )}
+    </div>
+  );
+
   if (type === 'docker') return (
     <div className="space-y-1.5">
       <div className="flex gap-4 text-xs text-muted">
@@ -359,6 +397,7 @@ function metricSummary(monitor) {
     case 'syncthing':  return m.folders_synced != null ? `${m.folders_synced} dossiers` : null;
     case 'hms':        return Array.isArray(m.vps) ? `${m.vps.filter(v => v.state === 'running').length} VPS` : null;
     case 'heartbeat':  return m.lastPing ? timeAgoMs(m.lastPing) : null;
+    case 'unraid':     return m.diskPct != null ? `${m.diskPct}% disque` : null;
     default:           return null;
   }
 }

@@ -29,6 +29,18 @@ function HmsIcon({ size = 20 }) {
   );
 }
 
+function UnraidIcon({ size = 20 }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="3" width="20" height="4" rx="1" fill="#F15A2B" opacity=".9"/>
+      <rect x="2" y="10" width="20" height="4" rx="1" fill="#F15A2B" opacity=".65"/>
+      <rect x="2" y="17" width="20" height="4" rx="1" fill="#F15A2B" opacity=".4"/>
+      <circle cx="19" cy="5" r="1.1" fill="#fff" opacity=".9"/>
+      <circle cx="19" cy="12" r="1.1" fill="#fff" opacity=".65"/>
+    </svg>
+  );
+}
+
 function DockerIcon({ size = 20 }) {
   return (
     <svg viewBox="0 0 24 18" width={size} height={Math.round(size * 18 / 24)} fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -58,6 +70,7 @@ const FALLBACKS = {
   hms:        ({ size }) => <HmsIcon size={size} />,
   ultracc:    ({ size }) => <UltraccIcon size={size} />,
   docker:     ({ size }) => <DockerIcon size={size} />,
+  unraid:     ({ size }) => <UnraidIcon size={size} />,
   http:       ({ size }) => <Globe size={size} color="#c9d7f8" />,
   ping:       ({ size }) => <Activity size={size} color="#80cfa9" />,
   ssh:        ({ size }) => <Terminal size={size} color="#a7e2e3" />,
@@ -65,13 +78,14 @@ const FALLBACKS = {
 };
 
 function FileIcon({ type, size, onError }) {
+  const [ext, setExt] = React.useState('png');
   return (
     <img
-      src={`/icons/${type}.png`}
+      src={`/icons/${type}.${ext}`}
       width={size}
       height={size}
       style={{ objectFit: 'contain' }}
-      onError={onError}
+      onError={() => ext === 'png' ? setExt('svg') : onError()}
       alt={type}
     />
   );
@@ -95,8 +109,6 @@ export default function ServiceIcon({ type, size = 20, url, faviconUrl }) {
   const [useFallback, setUseFallback] = React.useState(false);
   const Fallback = FALLBACKS[type];
 
-  if (!Fallback) return null;
-
   if (type === 'http' && useFavicon) {
     const src = faviconUrl || (url ? (() => { try { return `${new URL(url).origin}/favicon.ico`; } catch {} })() : null);
     if (src) return (
@@ -114,10 +126,11 @@ export default function ServiceIcon({ type, size = 20, url, faviconUrl }) {
       <FileIcon
         type={type}
         size={size}
-        onError={() => setUseFallback(true)}
+        onError={() => Fallback ? setUseFallback(true) : null}
       />
     );
   }
 
+  if (!Fallback) return null;
   return <Fallback size={size} />;
 }

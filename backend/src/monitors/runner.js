@@ -19,6 +19,7 @@ const handlers = {
   ssh:        require('./ssh'),
   heartbeat:  require('./heartbeat'),
   docker:     require('./docker'),
+  unraid:     require('./unraid'),
 };
 
 async function runCheck(monitor) {
@@ -85,7 +86,32 @@ async function runCheck(monitor) {
     }
   }
 
-  for (const notif of result.notifications || []) {
+  const monitorNotifs = result.notifications || [];
+  const hasStatusChange = monitorNotifs.some(n => n.type === 'status_change');
+
+  // Global status-change notifications for monitors that don't handle their own
+  if (!hasStatusChange) {
+    const wentDown = prevStatus === 'online' && ['error', 'offline', 'warning'].includes(result.status);
+    const cameBack = ['error', 'offline', 'warning'].includes(prevStatus) && result.status === 'online';
+
+    if (wentDown) {
+      monitorNotifs.push({
+        title: `🔴 ${monitor.name} — Hors ligne`,
+        message: monitorNotifs[0]?.message || `Statut : ${result.status}`,
+        level: 'error',
+        type: 'status_change',
+      });
+    } else if (cameBack) {
+      monitorNotifs.push({
+        title: `🟢 ${monitor.name} — De retour`,
+        message: 'Le service est de nouveau accessible.',
+        level: 'success',
+        type: 'status_change',
+      });
+    }
+  }
+
+  for (const notif of monitorNotifs) {
     await sendNotification({ ...notif, monitorId: monitor._id, monitorName: monitor.name });
   }
 }

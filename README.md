@@ -8,14 +8,16 @@ Unified monitoring dashboard with notifications via [Apprise](https://github.com
 
 ## Features
 
-- **Unified dashboard** — status overview of all your services at a glance
-- **11 monitor types** — HTTP/HTTPS, Ping/TCP, SSH, Proxmox, Cloudflare, AdGuard, Portainer, Syncthing, Immich, HostMyServers, Ultra.cc
-- **Drag & drop reordering** — manually sort cards or switch to automatic sort by status or name
+- **Unified dashboard** — status overview of all your services at a glance, grid or list view
+- **14 monitor types** — HTTP/HTTPS, Ping/TCP, SSH, Proxmox, Cloudflare, AdGuard, Portainer, Docker, Syncthing, Immich, HostMyServers, Ultra.cc, Heartbeat, Unraid
+- **Search & sort** — filter cards by name, sort by status / name / manual order
+- **Drag & drop reordering** — manually reorder cards in grid view
 - **Category grouping** — assign a category to each service to group cards on the dashboard
 - **Incident tracking** — automatic incident open/close with duration history
 - **Apprise notifications** — Pushover, Telegram, Discord, Slack, email, and [100+ more](https://github.com/caronc/apprise/wiki)
+- **Weekly report** — optional weekly Apprise summary (services in error, average uptime)
 - **Manual notifications** — send a message to all channels directly from the UI
-- **Light / dark theme** — persisted per browser
+- **Auto / light / dark theme** — follows system preference, persisted per browser
 - **FR / EN interface** — language toggle in the sidebar
 - **REST API** — full API with Bearer token auth, documented in-app
 
@@ -56,14 +58,36 @@ Default credentials: `admin` / `notifhub`
 | **HTTP** | HTTP/HTTPS endpoint — status code, keyword match, Bearer/Basic/custom auth, multiple methods (GET/POST/PUT…), SSL certificate expiry |
 | **Ping** | ICMP ping or TCP port reachability |
 | **SSH** | CPU / RAM via SSH (password or private key) |
+| **Heartbeat** | Cron job / script monitor — alerts if no ping received within expected interval |
+| **Docker** | Container count and status via Docker socket |
 | **Proxmox** | Node CPU / RAM via API token |
-| **Cloudflare** | Tunnel status via API token |
+| **Cloudflare** | Tunnel status and hostnames via API token |
 | **AdGuard** | DNS protection status and request stats |
-| **Portainer** | Container count via API key |
+| **Portainer** | Container list per environment via API key |
 | **Syncthing** | Synced folders and connected devices via API key |
 | **Immich** | Photo / video count and disk usage via API key |
 | **HMS (HostMyServers)** | VPS status and specs via API token |
 | **Ultra.cc** | Seedbox storage and traffic via Stats API URL |
+| **Unraid** | Array state, disk usage, CPU / RAM, temperature via GraphQL API |
+
+## Alerts sent per monitor type
+
+All monitor types automatically send a **down** alert when status changes to error/offline, and a **recovery** alert when coming back online. Incidents are opened on first alert and closed on recovery.
+
+Additional type-specific alerts:
+
+| Type | Extra alerts |
+|------|-------------|
+| **HTTP** | SSL expiry warning · SSL expired |
+| **SSH** | High RAM · High disk usage |
+| **Proxmox** | High CPU · High RAM |
+| **Cloudflare** | Per-tunnel offline / restored |
+| **AdGuard** | Protection disabled / re-enabled |
+| **Syncthing** | Folder error · Device disconnected / reconnected |
+| **Immich** | Critical disk usage |
+| **HMS** | Per-VPS unreachable · High CPU · High memory |
+| **Ultra.cc** | Low storage · Low traffic |
+| **Unraid** | Array stopped · Disk error |
 
 ## Notifications (Apprise)
 

@@ -301,6 +301,9 @@ export default {
         socketPath: 'Chemin du socket',
         socketPathHint: 'Montez /var/run/docker.sock dans le container pour utiliser le chemin par défaut.',
       },
+      unraid: {
+        apiKeyHint: 'Paramètres → Accès management → Clés API',
+      },
       ssh: {
         user: 'Utilisateur',
         password: 'Mot de passe',
@@ -339,6 +342,7 @@ export default {
       syncthing:  'Dossiers synchronisés',
       hms:        'VPS actifs',
       docker:     'Containers actifs',
+      unraid:     'Disque (%)',
     },
   },
 };

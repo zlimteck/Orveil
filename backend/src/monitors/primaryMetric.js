@@ -14,6 +14,7 @@ function primaryMetric(type, metrics) {
     case 'hms':        return Array.isArray(metrics.vps) ? metrics.vps.filter(v => v.state === 'running').length : null;
     case 'heartbeat':  return metrics.minutesSince ?? null;
     case 'docker':     return metrics.containersRunning ?? null;
+    case 'unraid':     return metrics.diskPct ?? null;
     default:           return null;
   }
 }

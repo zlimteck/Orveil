@@ -25,6 +25,7 @@ const TYPE_DEFAULTS = {
   ssh:        { checkInterval: 5,  reportInterval: 24, config: { host: '', port: 22, username: '', password: '', privateKey: '' } },
   heartbeat:  { checkInterval: 5,  reportInterval: 0,  config: { expectedEvery: 60, slug: uuid() } },
   docker:     { checkInterval: 1,  reportInterval: 0,  config: { socketPath: '/var/run/docker.sock' } },
+  unraid:     { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
 };
 
 const TYPE_LABELS = {
@@ -41,6 +42,7 @@ const TYPE_LABELS = {
   ssh:        'SSH',
   heartbeat:  'Heartbeat',
   docker:     'Docker',
+  unraid:     'Unraid',
 };
 
 function Field({ label, value, onChange, placeholder, type = 'text', hint }) {
@@ -187,10 +189,10 @@ function ConfigFields({ type, config, onChange, t }) {
     <>
       <Field label="URL" value={config.url} onChange={v => set('url', v)} placeholder="https://my-service.com" />
       <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-muted uppercase tracking-wider">{t('form.fields.http.method')}</label>
+        <div>
+          <label className="label">{t('form.fields.http.method')}</label>
           <select value={config.method || 'GET'} onChange={e => set('method', e.target.value)}
-            className="input text-sm">
+            className="select">
             {['GET','POST','PUT','PATCH','DELETE','HEAD'].map(m => <option key={m}>{m}</option>)}
           </select>
         </div>
@@ -309,6 +311,17 @@ function ConfigFields({ type, config, onChange, t }) {
     );
   }
 
+  if (type === 'unraid') return (
+    <>
+      <Field label="URL Unraid" value={config.apiUrl} onChange={v => set('apiUrl', v)}
+        placeholder="http://192.168.1.10:80" />
+      <Field label="API Key" value={config.apiKey} onChange={v => set('apiKey', v)}
+        placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        hint={t('form.fields.unraid.apiKeyHint')} />
+      <TlsToggle config={config} set={set} t={t} />
+    </>
+  );
+
   if (type === 'docker') return (
     <Field label={t('form.fields.docker.socketPath')} value={config.socketPath}
       onChange={v => set('socketPath', v)} placeholder="/var/run/docker.sock"
@@ -368,23 +381,20 @@ export default function ServiceModal({ monitor, onClose, onSave, error }) {
 
           <div>
             <label className="label">{t('form.type')}</label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {Object.entries(TYPE_LABELS).map(([v, l]) => {
-                const active = form.type === v;
-                return (
-                  <button key={v} type="button" disabled={!!monitor}
-                    onClick={() => !monitor && handleTypeChange(v)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition-colors text-left
-                      ${active
-                        ? 'bg-periwinkle/20 border-periwinkle/40 text-periwinkle'
-                        : 'bg-surface border-border text-muted hover:border-periwinkle/30 hover:text-thistle'
-                      } ${monitor ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                  >
-                    <ServiceIcon type={v} size={16} />
-                    <span className="truncate">{l}</span>
-                  </button>
-                );
-              })}
+            <div className="flex items-stretch gap-2">
+              <div className="flex-shrink-0 flex items-center justify-center px-3 py-2 rounded-lg border border-border bg-surface">
+                <ServiceIcon key={form.type} type={form.type} size={18} />
+              </div>
+              <select
+                className="input flex-1"
+                value={form.type}
+                disabled={!!monitor}
+                onChange={e => !monitor && handleTypeChange(e.target.value)}
+              >
+                {Object.entries(TYPE_LABELS).map(([v, l]) => (
+                  <option key={v} value={v}>{l}</option>
+                ))}
+              </select>
             </div>
           </div>
 
