@@ -18,7 +18,7 @@ export default function Sparkline({ points = [], color = '#c9d7f8', height = 56,
 
   const valid = points.filter(p => p.value != null);
 
-  const toX = i => PAD_LEFT + (i / (valid.length - 1)) * innerW;
+  const toX = i => (i / (valid.length - 1)) * innerW;
   const toY = v => PAD_TOP + innerH - ((v - min) / range) * innerH;
 
   const coords = valid.map((p, i) => [toX(i), toY(p.value)]);
@@ -48,40 +48,50 @@ export default function Sparkline({ points = [], color = '#c9d7f8', height = 56,
   });
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height }} preserveAspectRatio="none">
-      <defs>
-        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.2" />
-          <stop offset="100%" stopColor={color} stopOpacity="0.01" />
-        </linearGradient>
-      </defs>
+    <div className="relative w-full" style={{ height }}>
+      {/* Y-axis labels — outside SVG to avoid stretch */}
+      {showLabels && (
+        <div className="absolute top-0 bottom-0 left-0 flex flex-col justify-between py-1.5" style={{ width: PAD_LEFT - 4 }}>
+          {yTicks.map(({ val }, i) => (
+            <span key={i} className="block text-right leading-none" style={{ fontSize: 9, color: 'currentColor', opacity: 0.4 }}>
+              {formatVal(val)}
+            </span>
+          ))}
+        </div>
+      )}
 
-      {/* Grid lines */}
-      {yTicks.map(({ y }, i) => (
-        <line key={i} x1={PAD_LEFT} y1={y} x2={W - PAD_RIGHT} y2={y}
-          stroke="currentColor" strokeOpacity="0.07" strokeWidth="1" />
-      ))}
+      <svg
+        viewBox={`0 0 ${W - PAD_LEFT} ${H}`}
+        className="absolute top-0 bottom-0 right-0"
+        style={{ left: showLabels ? PAD_LEFT : 0, height }}
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.2" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.01" />
+          </linearGradient>
+        </defs>
 
-      {/* Y-axis labels */}
-      {showLabels && yTicks.map(({ y, val }, i) => (
-        <text key={i} x={PAD_LEFT - 4} y={y + 4} textAnchor="end"
-          fontSize="9" fill="currentColor" fillOpacity="0.4">
-          {formatVal(val)}
-        </text>
-      ))}
+        {/* Grid lines */}
+        {yTicks.map(({ y }, i) => (
+          <line key={i} x1={0} y1={y} x2={innerW} y2={y}
+            stroke="currentColor" strokeOpacity="0.07" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+        ))}
 
-      {/* Area fill */}
-      <polygon points={area} fill={`url(#${gradId})`} />
+        {/* Area fill */}
+        <polygon points={area} fill={`url(#${gradId})`} />
 
-      {/* Line */}
-      <polyline points={line} fill="none" stroke={color}
-        strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Line */}
+        <polyline points={line} fill="none" stroke={color}
+          strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
 
-      {/* Error/warning dots */}
-      {errorCoords.map(([x, y, status], i) => (
-        <circle key={i} cx={x} cy={y} r="2.5"
-          fill={status === 'warning' ? '#fbbf24' : '#f87171'} />
-      ))}
-    </svg>
+        {/* Error/warning dots */}
+        {errorCoords.map(([x, y, status], i) => (
+          <circle key={i} cx={x} cy={y} r="2.5"
+            fill={status === 'warning' ? '#fbbf24' : '#f87171'} />
+        ))}
+      </svg>
+    </div>
   );
 }

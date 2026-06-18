@@ -53,6 +53,7 @@ export const settings = {
 export const history = {
   all: (hours = 24) => api.get('/history', { params: { hours } }).then(r => r.data),
   monitor: (id, hours = 24) => api.get(`/history/${id}`, { params: { hours } }).then(r => r.data),
+  dailyAll: (days = 90) => api.get('/history/daily', { params: { days } }).then(r => r.data),
 };
 
 export const incidents = {

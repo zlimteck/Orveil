@@ -4,8 +4,9 @@ import { LayoutDashboard, Radio, Bell, Settings, Menu, X, Code2, Siren, LogOut, 
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLang } from '../context/LangContext';
+import { incidents as incidentsApi } from '../api';
 
-function NavItem({ to, icon: Icon, label, onClick }) {
+function NavItem({ to, icon: Icon, label, onClick, badge }) {
   return (
     <NavLink
       to={to}
@@ -19,8 +20,18 @@ function NavItem({ to, icon: Icon, label, onClick }) {
         }`
       }
     >
-      <Icon size={16} />
+      <span className="relative shrink-0">
+        <Icon size={16} />
+        {badge > 0 && (
+          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500" />
+        )}
+      </span>
       <span>{label}</span>
+      {badge > 0 && (
+        <span className="ml-auto text-xs font-semibold px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400">
+          {badge}
+        </span>
+      )}
     </NavLink>
   );
 }
@@ -76,17 +87,27 @@ function SidebarHeader() {
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [openIncidents, setOpenIncidents] = useState(0);
   const location = useLocation();
   const { logout } = useAuth();
   const { t } = useLang();
 
   useEffect(() => setSidebarOpen(false), [location.pathname]);
 
+  useEffect(() => {
+    function fetchIncidents() {
+      incidentsApi.list({ open: true, limit: 100 }).then(data => setOpenIncidents(data.length)).catch(() => {});
+    }
+    fetchIncidents();
+    const timer = setInterval(fetchIncidents, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
   const nav = [
     { to: '/',         icon: LayoutDashboard, label: t('nav.dashboard') },
     { to: '/monitors', icon: Radio,           label: t('nav.services') },
     { to: '/logs',     icon: Bell,            label: t('nav.notifications') },
-    { to: '/incidents',icon: Siren,           label: t('nav.incidents') },
+    { to: '/incidents',icon: Siren,           label: t('nav.incidents'), badge: openIncidents },
     { to: '/settings', icon: Settings,        label: t('nav.settings') },
     { to: '/docs',     icon: Code2,           label: t('nav.api') },
   ];

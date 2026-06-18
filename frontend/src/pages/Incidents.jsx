@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { incidents as api } from '../api';
 import { useLang } from '../context/LangContext';
-import { AlertTriangle, CheckCircle, BellOff, Trash2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle, BellOff, Trash2, X } from 'lucide-react';
 
 function duration(ms) {
   if (ms == null) return null;
@@ -13,6 +13,7 @@ function duration(ms) {
 
 function IncidentRow({ incident: i, onAcknowledge, onDelete }) {
   const { t, lang } = useLang();
+  const [confirming, setConfirming] = useState(false);
   const resolved = !!i.resolvedAt;
   const acknowledged = !!i.acknowledgedAt;
   const locale = lang === 'fr' ? 'fr-FR' : 'en-GB';
@@ -60,13 +61,30 @@ function IncidentRow({ incident: i, onAcknowledge, onDelete }) {
             <BellOff size={14} />
           </button>
         )}
-        <button
-          onClick={() => onDelete(i._id)}
-          title={t('incidents.delete')}
-          className="p-2 rounded-lg text-muted hover:text-red-400 transition-colors"
-        >
-          <Trash2 size={14} />
-        </button>
+        {confirming ? (
+          <>
+            <button
+              onClick={() => onDelete(i._id)}
+              className="text-xs px-2 py-1 rounded-lg bg-red-900/30 text-red-400 border border-red-900/40 hover:bg-red-900/50 transition-colors"
+            >
+              {t('incidents.confirmDelete')}
+            </button>
+            <button
+              onClick={() => setConfirming(false)}
+              className="p-2 rounded-lg text-muted hover:text-thistle transition-colors"
+            >
+              <X size={14} />
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => setConfirming(true)}
+            title={t('incidents.delete')}
+            className="p-2 rounded-lg text-muted hover:text-red-400 transition-colors"
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
       </div>
     </div>
   );

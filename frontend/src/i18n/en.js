@@ -166,6 +166,7 @@ export default {
     acknowledge: 'Acknowledge',
     acknowledged: 'Acknowledged',
     delete: 'Delete incident',
+    confirmDelete: 'Confirm?',
     start: 'Started',
     resolvedAt: 'Resolved',
     duration: 'Duration',

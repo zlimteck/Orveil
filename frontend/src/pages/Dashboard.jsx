@@ -11,6 +11,65 @@ import {
 import { SortableContext, useSortable, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+function Sparkline({ points }) {
+  const vals = (points || []).map(p => p.value).filter(v => v != null);
+  if (vals.length < 2) return null;
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const range = max - min || 1;
+  const W = 200, H = 28;
+  const pts = (points || []).filter(p => p.value != null);
+  const coords = pts.map((p, i) =>
+    `${(i / (pts.length - 1)) * W},${H - 2 - ((p.value - min) / range) * (H - 6)}`
+  ).join(' ');
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full text-periwinkle/50" style={{ height: 28 }} preserveAspectRatio="none">
+      <polyline points={coords} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}
+
+function StatusStrip({ points }) {
+  if (!points || !points.length) return null;
+  return (
+    <div className="flex gap-px" style={{ height: 20 }}>
+      {points.map((p, i) => (
+        <div key={i} className={`flex-1 rounded-sm ${
+          p.status === 'online'  ? 'bg-celadon/50' :
+          p.status === 'warning' ? 'bg-amber-400/50' :
+          ['error','offline'].includes(p.status) ? 'bg-red-400/50' :
+          'bg-granite/30'
+        }`} />
+      ))}
+    </div>
+  );
+}
+
+function UptimeBar({ days }) {
+  if (!days || days.every(d => d === null)) return null;
+  const NUMERIC_TYPES = ['http','ping','proxmox','ssh','immich','ultracc','adguard','unraid'];
+  return (
+    <div className="space-y-1">
+      <div className="flex gap-px" style={{ height: 6 }}>
+        {days.map((uptime, i) => (
+          <div key={i} title={uptime != null ? `${uptime}%` : '–'}
+            className={`flex-1 rounded-sm ${
+              uptime == null    ? 'bg-granite/25' :
+              uptime >= 99      ? 'bg-celadon/70' :
+              uptime >= 90      ? 'bg-amber-400/70' :
+              'bg-red-400/70'
+            }`}
+          />
+        ))}
+      </div>
+      <div className="flex justify-between text-xs text-muted" style={{ fontSize: 9 }}>
+        <span>90j</span>
+        <span>auj.</span>
+      </div>
+    </div>
+  );
+}
+
 function ProgressBar({ value, warn = 80, danger = 95 }) {
   const color = value >= danger ? 'bg-red-400' : value >= warn ? 'bg-amber-400' : 'bg-frosted';
   return (
@@ -336,12 +395,58 @@ function timeAgo(date, t) {
 
 const STATUS_ORDER = { error: 0, offline: 1, warning: 2, unknown: 3, online: 4 };
 
-function CardContent({ monitor, hist, onSelect, t, dragging = false, dragHandleProps = {} }) {
+function SkeletonStatCard() {
+  return (
+    <div className="card flex items-center gap-3 p-4">
+      <div className="skeleton w-9 h-9 rounded-xl shrink-0" />
+      <div className="space-y-1.5">
+        <div className="skeleton h-6 w-8 rounded" />
+        <div className="skeleton h-2.5 w-16 rounded" />
+      </div>
+    </div>
+  );
+}
+
+function SkeletonCard() {
+  return (
+    <div className="card flex flex-col gap-3" style={{ minHeight: 130 }}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="skeleton w-5 h-5 rounded-md shrink-0" />
+          <div className="skeleton h-3.5 w-28 rounded" />
+        </div>
+        <div className="skeleton h-3.5 w-14 rounded-full" />
+      </div>
+      <div className="space-y-2 flex-1">
+        <div className="skeleton h-2.5 w-full rounded" />
+        <div className="skeleton h-2.5 w-3/4 rounded" />
+        <div className="skeleton h-2.5 w-1/2 rounded" />
+      </div>
+    </div>
+  );
+}
+
+function SkeletonListRow() {
+  return (
+    <div className="flex items-center gap-3 px-3 py-2.5">
+      <div className="skeleton w-4 h-4 rounded shrink-0" />
+      <div className="skeleton h-3.5 flex-1 max-w-[180px] rounded" />
+      <div className="flex-1" />
+      <div className="skeleton h-3.5 w-20 rounded hidden sm:block" />
+      <div className="skeleton h-3.5 w-16 rounded-full" />
+    </div>
+  );
+}
+
+function CardContent({ monitor, hist, dailyHist, onSelect, t, dragging = false, dragHandleProps = {} }) {
   const uptime = hist[monitor._id]?.uptime?.h24;
+  const points = hist[monitor._id]?.points || [];
+  const daily  = dailyHist[monitor._id] || null;
+  const hasNumeric = points.some(p => p.value != null);
   return (
     <div
       onClick={() => !dragging && onSelect(monitor)}
-      className={`group card flex flex-col gap-2.5 cursor-pointer hover:border-periwinkle/40 transition-colors select-none h-full ${!monitor.enabled ? 'opacity-50' : ''} ${dragging ? 'shadow-2xl border-periwinkle/40' : ''}`}
+      className={`group card flex flex-col gap-2.5 cursor-pointer hover:border-periwinkle/40 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200 select-none h-full animate-fade-in-up ${!monitor.enabled ? 'opacity-50' : ''} ${dragging ? 'shadow-2xl border-periwinkle/40' : ''}`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
@@ -378,8 +483,12 @@ function CardContent({ monitor, hist, onSelect, t, dragging = false, dragHandleP
           </div>
         </div>
       </div>
-      <div className="flex-1 flex flex-col justify-end">
+      <div className="flex-1 flex flex-col justify-end gap-2">
         <MetricsBlock monitor={monitor} />
+        {points.length > 1 && (
+          hasNumeric ? <Sparkline points={points} /> : <StatusStrip points={points} />
+        )}
+        {daily && <UptimeBar days={daily} />}
       </div>
     </div>
   );
@@ -413,7 +522,7 @@ function ListRow({ monitor, hist, onSelect, t }) {
   return (
     <div
       onClick={() => onSelect(monitor)}
-      className={`flex items-center gap-3 px-3 py-2 rounded-xl border border-transparent hover:border-periwinkle/30 hover:bg-granite-3/40 cursor-pointer transition-colors select-none ${!monitor.enabled ? 'opacity-50' : ''}`}
+      className={`flex items-center gap-3 px-3 py-2 rounded-xl border border-transparent hover:border-periwinkle/30 hover:bg-granite-3/40 cursor-pointer transition-all duration-150 select-none animate-fade-in-up ${!monitor.enabled ? 'opacity-50' : ''}`}
     >
       <span className="shrink-0">
         <ServiceIcon type={monitor.type} size={18} url={monitor.config?.url} faviconUrl={monitor.metrics?.faviconUrl} />
@@ -434,12 +543,12 @@ function ListRow({ monitor, hist, onSelect, t }) {
   );
 }
 
-function SortableCard({ monitor, hist, onSelect, t, sortMode }) {
+function SortableCard({ monitor, hist, dailyHist, onSelect, t, sortMode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: monitor._id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0 : 1 };
   return (
     <div ref={setNodeRef} style={style}>
-      <CardContent monitor={monitor} hist={hist} onSelect={onSelect} t={t}
+      <CardContent monitor={monitor} hist={hist} dailyHist={dailyHist} onSelect={onSelect} t={t}
         dragHandleProps={sortMode === 'manual' ? { ...attributes, ...listeners } : null} />
     </div>
   );
@@ -449,6 +558,7 @@ export default function Dashboard() {
   const { t } = useLang();
   const [monitors, setMonitors] = useState([]);
   const [hist, setHist] = useState({});
+  const [dailyHist, setDailyHist] = useState({});
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [sortMode, setSortMode] = useState('status');
@@ -463,9 +573,10 @@ export default function Dashboard() {
   async function load(showSpinner = false) {
     if (showSpinner) setLoading(true);
     try {
-      const [ms, h] = await Promise.all([monitorsApi.list(), historyApi.all(24)]);
+      const [ms, h, dh] = await Promise.all([monitorsApi.list(), historyApi.all(24), historyApi.dailyAll(90)]);
       setMonitors(ms);
       setHist(h);
+      setDailyHist(dh);
     } catch {}
     finally { if (showSpinner) setLoading(false); }
   }
@@ -534,13 +645,13 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
+        {loading ? [0,1,2,3].map(i => <SkeletonStatCard key={i} />) : [
           { key: 'dashboard.stats.total',    value: counts.total,    icon: Radio,         color: 'text-periwinkle' },
           { key: 'dashboard.stats.online',   value: counts.online,   icon: CheckCircle,   color: 'text-celadon' },
           { key: 'dashboard.stats.alerts',   value: counts.warning,  icon: AlertTriangle, color: 'text-amber-400' },
           { key: 'dashboard.stats.disabled', value: counts.disabled, icon: Clock,         color: 'text-muted' },
         ].map(({ key, value, icon: Icon, color }) => (
-          <div key={key} className="card flex items-center gap-3 p-4">
+          <div key={key} className="card flex items-center gap-3 p-4 animate-fade-in-up">
             <div className={`p-2 rounded-xl bg-granite-3 shrink-0 ${color}`}>
               <Icon size={18} />
             </div>
@@ -583,18 +694,24 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {loading && (
-          <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 12rem)' }}>
-            <RefreshCw size={28} className="animate-spin text-muted" />
+        {loading && viewMode === 'list' && (
+          <div className="card divide-y divide-border p-1">
+            {[0,1,2,3,4].map(i => <SkeletonListRow key={i} />)}
           </div>
         )}
+        {loading && viewMode === 'grid' && (
+          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {[0,1,2,3,4,5].map(i => <SkeletonCard key={i} />)}
+          </div>
+        )}
+
         {!loading && monitors.length === 0 && (
           <div className="card text-center py-10">
             <p className="text-muted text-sm">{t('dashboard.empty')}</p>
           </div>
         )}
 
-        {viewMode === 'list' ? (
+        {!loading && viewMode === 'list' ? (
           <div className="card divide-y divide-border p-1">
             {[...groups.entries()].map(([cat, items]) => (
               <div key={cat}>
@@ -609,7 +726,7 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
-        ) : (
+        ) : !loading && (
           <DndContext sensors={sensors} collisionDetection={closestCenter}
             onDragStart={({ active }) => setActiveId(active.id)}
             onDragEnd={e => { handleDragEnd(e); setActiveId(null); }}
@@ -627,7 +744,7 @@ export default function Dashboard() {
                     )}
                     <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
                       {items.map(m => (
-                        <SortableCard key={m._id} monitor={m} hist={hist} onSelect={setSelected} t={t} sortMode={sortMode} />
+                        <SortableCard key={m._id} monitor={m} hist={hist} dailyHist={dailyHist} onSelect={setSelected} t={t} sortMode={sortMode} />
                       ))}
                     </div>
                   </div>
@@ -637,7 +754,7 @@ export default function Dashboard() {
 
             <DragOverlay dropAnimation={{ duration: 150, easing: 'ease' }}>
               {activeMonitor && (
-                <CardContent monitor={activeMonitor} hist={hist} onSelect={() => {}} t={t} dragging />
+                <CardContent monitor={activeMonitor} hist={hist} dailyHist={dailyHist} onSelect={() => {}} t={t} dragging />
               )}
             </DragOverlay>
           </DndContext>

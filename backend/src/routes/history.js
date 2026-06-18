@@ -2,6 +2,40 @@ const router = require('express').Router();
 const MetricSnapshot = require('../models/MetricSnapshot');
 const Monitor = require('../models/Monitor');
 
+// GET /api/history/daily?days=90 — daily uptime per monitor (all monitors)
+router.get('/daily', async (req, res) => {
+  const days = Math.min(parseInt(req.query.days || '90'), 90);
+  const since = new Date(Date.now() - days * 24 * 3600 * 1000);
+
+  const monitors = await Monitor.find({}, '_id').lean();
+  const results = {};
+
+  await Promise.all(monitors.map(async m => {
+    const snapshots = await MetricSnapshot.find({ monitorId: m._id, ts: { $gte: since } })
+      .sort({ ts: 1 })
+      .lean();
+
+    const byDay = {};
+    for (const s of snapshots) {
+      const day = new Date(s.ts).toISOString().slice(0, 10);
+      if (!byDay[day]) byDay[day] = { total: 0, online: 0 };
+      byDay[day].total++;
+      if (s.status === 'online') byDay[day].online++;
+    }
+
+    const arr = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const day = new Date(Date.now() - i * 24 * 3600 * 1000).toISOString().slice(0, 10);
+      const d = byDay[day];
+      arr.push(d ? Math.round((d.online / d.total) * 1000) / 10 : null);
+    }
+
+    results[m._id] = arr;
+  }));
+
+  res.json(results);
+});
+
 // GET /api/history/:monitorId?hours=24&points=48
 router.get('/:monitorId', async (req, res) => {
   const { monitorId } = req.params;

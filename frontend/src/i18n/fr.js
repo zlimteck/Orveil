@@ -166,6 +166,7 @@ export default {
     acknowledge: 'Acquitter',
     acknowledged: 'Acquitté',
     delete: "Supprimer l'incident",
+    confirmDelete: 'Confirmer ?',
     start: 'Début',
     resolvedAt: 'Résolu',
     duration: 'Durée',
