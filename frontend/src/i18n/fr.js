@@ -122,6 +122,11 @@ export default {
       title: 'Services Docker',
       internal: 'interne',
     },
+    display: {
+      title: 'Affichage',
+      hint: 'Personnalisez la présentation du dashboard.',
+      showGraphs: 'Afficher les graphiques sur les cards',
+    },
     weeklyReport: {
       title: 'Rapport hebdomadaire',
       hint: 'Envoie un résumé Apprise chaque semaine avec les services en erreur et l\'uptime moyen.',
@@ -226,6 +231,7 @@ export default {
     subtitle_one: 'configuré',
     subtitle_many: 'configurés',
     new: 'Nouveau service',
+    runAll: 'Tout vérifier',
     emptyTitle: 'Aucun service',
     emptyHint: 'Cliquez sur "Nouveau" pour commencer.',
     checkEvery: 'Check toutes les',
@@ -264,6 +270,8 @@ export default {
     enabled: 'Activé',
     category: 'Catégorie',
     categoryPlaceholder: 'Réseau, Apps…',
+    cardMetric: 'Métrique affichée sur la card',
+    cardMetricDefault: 'Défaut (primaire)',
     cancel: 'Annuler',
     save: 'Enregistrer',
     create: 'Créer',

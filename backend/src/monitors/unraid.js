@@ -72,7 +72,7 @@ async function check(config, lastState) {
     const tempWarn  = met.temperature?.summary?.warningCount  ?? 0;
     const tempCrit  = met.temperature?.summary?.criticalCount ?? 0;
 
-    const containersRunning = containers.filter(c => c.state === 'running').length;
+    const containersRunning = containers.filter(c => c.state === 'RUNNING').length;
 
     const metrics = {
       arrayState:  array.state || 'UNKNOWN',

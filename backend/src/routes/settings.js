@@ -12,13 +12,14 @@ router.get('/', async (req, res) => {
 });
 
 router.put('/', async (req, res) => {
-  const { appriseUrls, appriseApiUrl, weeklyReport } = req.body;
+  const { appriseUrls, appriseApiUrl, weeklyReport, showGraphs } = req.body;
   const update = { appriseUrls, appriseApiUrl };
   if (weeklyReport !== undefined) {
     update['weeklyReport.enabled']   = weeklyReport.enabled   ?? false;
     update['weeklyReport.dayOfWeek'] = weeklyReport.dayOfWeek ?? 1;
     update['weeklyReport.hour']      = weeklyReport.hour      ?? 8;
   }
+  if (showGraphs !== undefined) update.showGraphs = showGraphs;
   const s = await Settings.findOneAndUpdate(
     { key: 'global' },
     update,

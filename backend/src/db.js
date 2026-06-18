@@ -22,12 +22,23 @@ function buildUri() {
 
 async function connectDB() {
   const uri = buildUri();
-  try {
-    await mongoose.connect(uri);
-    console.log('MongoDB connecté');
-  } catch (err) {
-    console.error('Erreur MongoDB:', err.message);
-    process.exit(1);
+  const MAX_RETRIES = 10;
+  const DELAY_MS = 3000;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      await mongoose.connect(uri);
+      console.log('MongoDB connecté');
+      return;
+    } catch (err) {
+      if (attempt < MAX_RETRIES) {
+        console.warn(`MongoDB: tentative ${attempt}/${MAX_RETRIES} échouée — retry dans ${DELAY_MS / 1000}s`);
+        await new Promise(r => setTimeout(r, DELAY_MS));
+      } else {
+        console.error('MongoDB: impossible de se connecter après', MAX_RETRIES, 'tentatives:', err.message);
+        process.exit(1);
+      }
+    }
   }
 }
 

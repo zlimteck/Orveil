@@ -3,6 +3,7 @@ import { X, Plus, Trash2, Wifi } from 'lucide-react';
 import { useLang } from '../context/LangContext';
 import { useToast } from '../context/ToastContext';
 import { monitors as monitorsApi } from '../api';
+import { getMetrics } from '../utils/metricConfig';
 import ServiceIcon from './ServiceIcon';
 
 function uuid() {
@@ -334,7 +335,7 @@ function ConfigFields({ type, config, onChange, t }) {
 }
 
 export default function ServiceModal({ monitor, onClose, onSave }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const toast = useToast();
   const [testing, setTesting] = useState(false);
 
@@ -353,6 +354,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
   const [form, setForm] = useState({
     name: '', type: 'cloudflare', description: '', category: '',
     enabled: true, checkInterval: 1, reportInterval: 6,
+    cardMetric: null,
     config: TYPE_DEFAULTS.cloudflare.config,
   });
 
@@ -366,6 +368,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
         enabled: monitor.enabled,
         checkInterval: monitor.checkInterval,
         reportInterval: monitor.reportInterval,
+        cardMetric: monitor.cardMetric || null,
         config: monitor.config || {},
       });
     }
@@ -373,7 +376,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
 
   const handleTypeChange = (type) => {
     const d = TYPE_DEFAULTS[type];
-    setForm(f => ({ ...f, type, checkInterval: d.checkInterval, reportInterval: d.reportInterval, config: { ...d.config } }));
+    setForm(f => ({ ...f, type, checkInterval: d.checkInterval, reportInterval: d.reportInterval, cardMetric: null, config: { ...d.config } }));
   };
 
   return (
@@ -443,6 +446,19 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
               className="w-4 h-4 rounded accent-periwinkle" />
             <span className="text-sm text-thistle">{t('form.enabled')}</span>
           </label>
+
+          {getMetrics(form.type).length > 0 && (
+            <div>
+              <label className="label">{t('form.cardMetric')}</label>
+              <select className="select" value={form.cardMetric || ''}
+                onChange={e => setForm(f => ({ ...f, cardMetric: e.target.value || null }))}>
+                <option value="">{t('form.cardMetricDefault')}</option>
+                {getMetrics(form.type).map(m => (
+                  <option key={m.key} value={m.key}>{lang === 'fr' ? m.fr : m.en}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="flex justify-between gap-3 pt-2 border-t border-border">
             <div>

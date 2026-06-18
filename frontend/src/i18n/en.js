@@ -122,6 +122,11 @@ export default {
       title: 'Docker services',
       internal: 'internal',
     },
+    display: {
+      title: 'Display',
+      hint: 'Customize the appearance of the dashboard.',
+      showGraphs: 'Show graphs on dashboard cards',
+    },
     weeklyReport: {
       title: 'Weekly report',
       hint: 'Sends an Apprise summary every week with services in error and average uptime.',
@@ -226,6 +231,7 @@ export default {
     subtitle_one: 'configured',
     subtitle_many: 'configured',
     new: 'New service',
+    runAll: 'Run all',
     emptyTitle: 'No services',
     emptyHint: 'Click "New" to get started.',
     checkEvery: 'Check every',
@@ -264,6 +270,8 @@ export default {
     enabled: 'Enabled',
     category: 'Category',
     categoryPlaceholder: 'Network, Apps…',
+    cardMetric: 'Card graph metric',
+    cardMetricDefault: 'Default (primary)',
     cancel: 'Cancel',
     save: 'Save',
     create: 'Create',

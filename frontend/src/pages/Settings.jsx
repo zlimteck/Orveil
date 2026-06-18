@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { settings as api, auth as authApi } from '../api';
-import { Save, Send, Info, KeyRound, CalendarClock } from 'lucide-react';
+import { Save, Send, Info, KeyRound, CalendarClock, BarChart2 } from 'lucide-react';
 import { useLang } from '../context/LangContext';
 import { useToast } from '../context/ToastContext';
 
@@ -55,7 +55,7 @@ function ChangePassword() {
 export default function Settings() {
   const { t } = useLang();
   const toast = useToast();
-  const [form, setForm] = useState({ appriseUrls: [], appriseApiUrl: 'http://apprise:8000', weeklyReport: { enabled: false, dayOfWeek: 1, hour: 8 } });
+  const [form, setForm] = useState({ appriseUrls: [], appriseApiUrl: 'http://apprise:8000', weeklyReport: { enabled: false, dayOfWeek: 1, hour: 8 }, showGraphs: true });
   const [urlsText, setUrlsText] = useState('');
   const [testing, setTesting] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -67,6 +67,7 @@ export default function Settings() {
           appriseUrls: s.appriseUrls || [],
           appriseApiUrl: s.appriseApiUrl || 'http://apprise:8000',
           weeklyReport: s.weeklyReport || { enabled: false, dayOfWeek: 1, hour: 8 },
+          showGraphs: s.showGraphs !== false,
         });
         setUrlsText((s.appriseUrls || []).join('\n'));
       })
@@ -74,18 +75,26 @@ export default function Settings() {
       .finally(() => setLoading(false));
   }, []);
 
+  async function saveAll(patch = {}) {
+    const appriseUrls = urlsText.split('\n').map(u => u.trim()).filter(Boolean);
+    await api.save({
+      appriseUrls,
+      appriseApiUrl: form.appriseApiUrl,
+      weeklyReport: form.weeklyReport,
+      showGraphs: form.showGraphs,
+      ...patch,
+    });
+    toast.add(t('settings.saved'), 'success');
+  }
+
   async function handleSaveApprise(e) {
     e.preventDefault();
-    const appriseUrls = urlsText.split('\n').map(u => u.trim()).filter(Boolean);
-    await api.save({ appriseUrls, appriseApiUrl: form.appriseApiUrl, weeklyReport: form.weeklyReport });
-    toast.add(t('settings.saved'), 'success');
+    await saveAll();
   }
 
   async function handleSaveWeekly(e) {
     e.preventDefault();
-    const appriseUrls = urlsText.split('\n').map(u => u.trim()).filter(Boolean);
-    await api.save({ appriseUrls, appriseApiUrl: form.appriseApiUrl, weeklyReport: form.weeklyReport });
-    toast.add(t('settings.saved'), 'success');
+    await saveAll();
   }
 
   async function handleTest() {
@@ -176,7 +185,11 @@ export default function Settings() {
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" className="w-4 h-4 rounded accent-periwinkle"
               checked={form.weeklyReport?.enabled || false}
-              onChange={e => setForm(f => ({ ...f, weeklyReport: { ...(f.weeklyReport || {}), enabled: e.target.checked } }))} />
+              onChange={e => {
+                const weeklyReport = { ...(form.weeklyReport || {}), enabled: e.target.checked };
+                setForm(f => ({ ...f, weeklyReport }));
+                saveAll({ weeklyReport });
+              }} />
             <span className="text-sm text-thistle">{t('settings.weeklyReport.enable')}</span>
           </label>
           {form.weeklyReport?.enabled && (
@@ -204,6 +217,23 @@ export default function Settings() {
             </button>
           </div>
       </form>
+
+      <div className="card space-y-3">
+        <h2 className="font-semibold text-thistle text-sm flex items-center gap-2">
+          <BarChart2 size={14} className="text-periwinkle" /> {t('settings.display.title')}
+        </h2>
+        <p className="text-xs text-muted">{t('settings.display.hint')}</p>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" className="w-4 h-4 rounded accent-periwinkle"
+            checked={form.showGraphs}
+            onChange={e => {
+              const showGraphs = e.target.checked;
+              setForm(f => ({ ...f, showGraphs }));
+              saveAll({ showGraphs });
+            }} />
+          <span className="text-sm text-thistle">{t('settings.display.showGraphs')}</span>
+        </label>
+      </div>
 
       <ChangePassword />
 

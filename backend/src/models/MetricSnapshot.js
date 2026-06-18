@@ -4,7 +4,8 @@ const schema = new mongoose.Schema({
   monitorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Monitor', required: true },
   type:      { type: String },
   status:    { type: String },
-  value:     { type: Number, default: null }, // primary metric (cpu%, ms, etc.)
+  value:     { type: Number, default: null },
+  metrics:   { type: mongoose.Schema.Types.Mixed, default: null },
 }, { timestamps: { createdAt: 'ts', updatedAt: false } });
 
 schema.index({ monitorId: 1, ts: -1 });

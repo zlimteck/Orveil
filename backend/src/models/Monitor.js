@@ -17,6 +17,7 @@ const monitorSchema = new mongoose.Schema({
   category: { type: String, default: '' },
   position: { type: Number, default: 0 },
   maintenanceUntil: { type: Date, default: null },
+  cardMetric: { type: String, default: null },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Monitor', monitorSchema);

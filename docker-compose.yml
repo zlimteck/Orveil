@@ -11,6 +11,12 @@ services:
       - mongo_data:/data/db
     networks:
       - notifhub
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
 
   apprise:
     image: caronc/apprise:latest
@@ -38,8 +44,10 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
-      - mongodb
-      - apprise
+      mongodb:
+        condition: service_healthy
+      apprise:
+        condition: service_started
     networks:
       - notifhub
 

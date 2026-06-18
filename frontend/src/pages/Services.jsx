@@ -5,7 +5,7 @@ import { useToast } from '../context/ToastContext';
 import StatusBadge from '../components/StatusBadge';
 import ServiceModal from '../components/ServiceModal';
 import ServiceIcon from '../components/ServiceIcon';
-import { Plus, Play, Pencil, Trash2, Power, Wrench, X } from 'lucide-react';
+import { Plus, Play, Pencil, Trash2, Power, Wrench, X, RefreshCw } from 'lucide-react';
 
 function timeRemaining(until) {
   const ms = new Date(until) - Date.now();
@@ -74,6 +74,7 @@ export default function Services() {
   const [items, setItems] = useState([]);
   const [modal, setModal] = useState(null);
   const [running, setRunning] = useState({});
+  const [runningAll, setRunningAll] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [maintenanceOpen, setMaintenanceOpen] = useState(null);
 
@@ -107,6 +108,20 @@ export default function Services() {
     setRunning(r => ({ ...r, [id]: true }));
     await api.run(id);
     setTimeout(() => { load(); setRunning(r => ({ ...r, [id]: false })); }, 2000);
+  }
+
+  async function handleRunAll() {
+    const enabled = items.filter(m => m.enabled);
+    if (!enabled.length) return;
+    const ids = enabled.map(m => m._id);
+    setRunningAll(true);
+    setRunning(r => Object.fromEntries([...Object.entries(r), ...ids.map(id => [id, true])]));
+    await Promise.allSettled(enabled.map(m => api.run(m._id)));
+    setTimeout(() => {
+      load();
+      setRunningAll(false);
+      setRunning(r => Object.fromEntries(Object.entries(r).filter(([id]) => !ids.includes(id))));
+    }, 2000);
   }
 
   async function handleDelete(id) {
@@ -145,10 +160,16 @@ export default function Services() {
           <h1 className="text-xl md:text-2xl font-bold text-thistle">{t('services.title')}</h1>
           <p className="text-xs md:text-sm text-muted mt-0.5">{subtitle}</p>
         </div>
-        <button onClick={() => setModal('new')} className="btn-primary text-sm">
-          <Plus size={15} />
-          <span className="hidden sm:inline">{t('services.new')}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={handleRunAll} disabled={runningAll} className="btn-primary text-sm disabled:opacity-50">
+            <RefreshCw size={15} className={runningAll ? 'animate-spin' : ''} />
+            <span className="hidden sm:inline">{t('services.runAll')}</span>
+          </button>
+          <button onClick={() => setModal('new')} className="btn-primary text-sm">
+            <Plus size={15} />
+            <span className="hidden sm:inline">{t('services.new')}</span>
+          </button>
+        </div>
       </div>
 
       {items.length === 0 && (

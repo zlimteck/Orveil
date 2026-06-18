@@ -12,18 +12,33 @@ export default function Sparkline({ points = [], color = '#c9d7f8', height = 56,
   const innerW = W - PAD_LEFT - PAD_RIGHT;
   const innerH = H - PAD_TOP - PAD_BOTTOM;
 
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+  const dataMin = Math.min(...values);
+  const dataMax = Math.max(...values);
+
+  // When all values are equal, build a scale from 0 to max (or 0 to 1 if max=0)
+  // to avoid showing nonsensical negative labels
+  const min = dataMax === dataMin ? 0 : dataMin;
+  const max = dataMax === dataMin ? (dataMax > 0 ? dataMax * 1.5 : 1) : dataMax;
   const range = max - min || 1;
 
+  // Index-based x positioning: data always fills the full width regardless of time gaps
   const valid = points.filter(p => p.value != null);
-
-  const toX = i => (i / (valid.length - 1)) * innerW;
+  const toX = vi => valid.length <= 1 ? 0 : (vi / (valid.length - 1)) * innerW;
   const toY = v => PAD_TOP + innerH - ((v - min) / range) * innerH;
 
-  const coords = valid.map((p, i) => [toX(i), toY(p.value)]);
-  const line = coords.map(([x, y]) => `${x},${y}`).join(' ');
-  const area = `${coords[0][0]},${PAD_TOP + innerH} ` + line + ` ${coords[coords.length - 1][0]},${PAD_TOP + innerH}`;
+  // Build segments: groups of consecutive valid points (null values create visual gaps)
+  const segments = [];
+  let current = [];
+  let vi = 0;
+  for (const p of points) {
+    if (p.value != null) {
+      current.push({ p, vi: vi++ });
+    } else {
+      if (current.length >= 2) segments.push(current);
+      current = [];
+    }
+  }
+  if (current.length >= 2) segments.push(current);
 
   const gradId = `sg-${color.replace('#', '')}-${height}`;
 
@@ -41,11 +56,10 @@ export default function Sparkline({ points = [], color = '#c9d7f8', height = 56,
     return v.toFixed(1);
   };
 
-  const errorPoints = valid.filter(p => p.status === 'error' || p.status === 'offline' || p.status === 'warning');
-  const errorCoords = errorPoints.map(p => {
-    const i = valid.indexOf(p);
-    return [toX(i), toY(p.value), p.status];
-  });
+  const errorCoords = valid
+    .map((p, vi) => ({ p, vi }))
+    .filter(({ p }) => p.status === 'error' || p.status === 'offline' || p.status === 'warning')
+    .map(({ p, vi }) => [toX(vi), toY(p.value), p.status]);
 
   return (
     <div className="relative w-full" style={{ height }}>
@@ -62,8 +76,8 @@ export default function Sparkline({ points = [], color = '#c9d7f8', height = 56,
 
       <svg
         viewBox={`0 0 ${W - PAD_LEFT} ${H}`}
-        className="absolute top-0 bottom-0 right-0"
-        style={{ left: showLabels ? PAD_LEFT : 0, height }}
+        className="absolute top-0 right-0"
+        style={{ left: showLabels ? PAD_LEFT : 0, height, width: showLabels ? `calc(100% - ${PAD_LEFT}px)` : '100%' }}
         preserveAspectRatio="none"
       >
         <defs>
@@ -79,12 +93,19 @@ export default function Sparkline({ points = [], color = '#c9d7f8', height = 56,
             stroke="currentColor" strokeOpacity="0.07" strokeWidth="1" vectorEffect="non-scaling-stroke" />
         ))}
 
-        {/* Area fill */}
-        <polygon points={area} fill={`url(#${gradId})`} />
-
-        {/* Line */}
-        <polyline points={line} fill="none" stroke={color}
-          strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+        {/* Area fill + line per segment (null values create visual breaks) */}
+        {segments.map((seg, si) => {
+          const coords = seg.map(({ p, vi }) => [toX(vi), toY(p.value)]);
+          const lineStr = coords.map(([x, y]) => `${x},${y}`).join(' ');
+          const areaStr = `${coords[0][0]},${PAD_TOP + innerH} ` + lineStr + ` ${coords[coords.length - 1][0]},${PAD_TOP + innerH}`;
+          return (
+            <g key={si}>
+              <polygon points={areaStr} fill={`url(#${gradId})`} />
+              <polyline points={lineStr} fill="none" stroke={color}
+                strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+            </g>
+          );
+        })}
 
         {/* Error/warning dots */}
         {errorCoords.map(([x, y, status], i) => (

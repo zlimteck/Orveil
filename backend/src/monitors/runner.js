@@ -60,6 +60,7 @@ async function runCheck(monitor) {
     type: monitor.type,
     status: result.status,
     value: primaryMetric(monitor.type, result.metrics),
+    metrics: result.metrics ?? null,
   }).catch(() => {});
 
   // Incident tracking

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, AlertTriangle, CheckCircle } from 'lucide-react';
 import { history as historyApi, incidents as incidentsApi } from '../api';
 import { useLang } from '../context/LangContext';
+import { getMetrics } from '../utils/metricConfig';
 import ServiceIcon from './ServiceIcon';
 import StatusBadge from './StatusBadge';
 import Sparkline from './Sparkline';
@@ -37,9 +38,30 @@ export default function ServiceDetail({ monitor, onClose }) {
   }, [monitor._id, period]);
 
   const sparkColor = monitor.status === 'online' ? '#c9d7f8' : monitor.status === 'warning' ? '#fbbf24' : '#f87171';
-  const hasPoints = hist?.points?.length >= 2;
-  const metricLabel = t(`modal.metricLabels.${monitor.type}`) || t('modal.metric');
   const locale = lang === 'fr' ? 'fr-FR' : 'en-GB';
+
+  const availableMetrics = getMetrics(monitor.type);
+  const points = hist?.points || [];
+  const hasAnyData = points.length >= 2;
+  const hasMetricsData = points.some(p => p.metrics != null);
+
+  // Build the list of graphs to display
+  const graphs = (() => {
+    if (!hasAnyData) return [];
+    if (hasMetricsData && availableMetrics.length > 0) {
+      const list = availableMetrics.map(metric => {
+        const pts = points.map(p => ({ ...p, value: p.metrics?.[metric.key] ?? null }));
+        const vals = pts.filter(p => p.value != null);
+        if (vals.length < 2) return null;
+        return { key: metric.key, label: lang === 'fr' ? metric.fr : metric.en, pts };
+      }).filter(Boolean);
+      if (list.length > 0) return list;
+    }
+    // Fallback: primary metric (old snapshots without metrics object)
+    const hasPrimary = points.some(p => p.value != null);
+    if (!hasPrimary) return [];
+    return [{ key: '__primary', label: t(`modal.metricLabels.${monitor.type}`) || t('modal.metric'), pts: points }];
+  })();
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm"
@@ -86,23 +108,21 @@ export default function ServiceDetail({ monitor, onClose }) {
             </div>
           </div>
 
-          {/* Sparkline */}
-          {hasPoints && (
-            <div>
-              <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
-                {metricLabel}
-              </p>
+          {/* Sparklines — one per metric (or fallback primary) */}
+          {graphs.map(g => (
+            <div key={g.key}>
+              <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">{g.label}</p>
               <div className="bg-surface rounded-lg px-3 pt-3 pb-2">
-                <Sparkline points={hist.points} color={sparkColor} height={90} showLabels />
+                <Sparkline points={g.pts} color={sparkColor} height={75} showLabels />
                 <div className="flex justify-between text-xs text-muted mt-1">
-                  <span>{period === 24 ? '−24h' : period === 168 ? `−${t('modal.period7d')}` : `−${period}h`}</span>
+                  <span>{period === 24 ? '−24h' : `−${t('modal.period7d')}`}</span>
                   <span>{t('modal.now')}</span>
                 </div>
               </div>
             </div>
-          )}
+          ))}
 
-          {!hasPoints && hist !== null && (
+          {graphs.length === 0 && hist !== null && (
             <p className="text-xs text-muted italic text-center py-4">{t('modal.noData')}</p>
           )}
 

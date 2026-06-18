@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { monitors as monitorsApi, history as historyApi } from '../api';
+import { monitors as monitorsApi, history as historyApi, settings as settingsApi } from '../api';
 import { useLang } from '../context/LangContext';
 import { useAuth } from '../context/AuthContext';
+import { extractValue } from '../utils/metricConfig';
 import StatusBadge from '../components/StatusBadge';
 import ServiceIcon from '../components/ServiceIcon';
 import ServiceDetail from '../components/ServiceDetail';
@@ -12,17 +13,18 @@ import {
 import { SortableContext, useSortable, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-function Sparkline({ points }) {
-  const vals = (points || []).map(p => p.value).filter(v => v != null);
+function Sparkline({ points, cardMetric }) {
+  const vals = (points || []).map(p => extractValue(p, cardMetric)).filter(v => v != null);
   if (vals.length < 2) return null;
   const min = Math.min(...vals);
   const max = Math.max(...vals);
   const range = max - min || 1;
   const W = 200, H = 28;
-  const pts = (points || []).filter(p => p.value != null);
-  const coords = pts.map((p, i) =>
-    `${(i / (pts.length - 1)) * W},${H - 2 - ((p.value - min) / range) * (H - 6)}`
-  ).join(' ');
+  const pts = (points || []).filter(p => extractValue(p, cardMetric) != null);
+  const coords = pts.map((p, i) => {
+    const v = extractValue(p, cardMetric);
+    return `${(i / (pts.length - 1)) * W},${H - 2 - ((v - min) / range) * (H - 6)}`;
+  }).join(' ');
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full text-periwinkle/50" style={{ height: 28 }} preserveAspectRatio="none">
       <polyline points={coords} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
@@ -439,11 +441,12 @@ function SkeletonListRow() {
   );
 }
 
-function CardContent({ monitor, hist, dailyHist, onSelect, t, dragging = false, dragHandleProps = {} }) {
+function CardContent({ monitor, hist, dailyHist, showGraphs, onSelect, t, dragging = false, dragHandleProps = {} }) {
   const uptime = hist[monitor._id]?.uptime?.h24;
   const points = hist[monitor._id]?.points || [];
   const daily  = dailyHist[monitor._id] || null;
-  const hasNumeric = points.some(p => p.value != null);
+  const cardMetric = monitor.cardMetric || null;
+  const hasNumeric = points.some(p => extractValue(p, cardMetric) != null);
   return (
     <div
       onClick={() => !dragging && onSelect(monitor)}
@@ -486,8 +489,8 @@ function CardContent({ monitor, hist, dailyHist, onSelect, t, dragging = false, 
       </div>
       <div className="flex-1 flex flex-col justify-end gap-2">
         <MetricsBlock monitor={monitor} />
-        {points.length > 1 && (
-          hasNumeric ? <Sparkline points={points} /> : <StatusStrip points={points} />
+        {showGraphs && points.length > 1 && (
+          hasNumeric ? <Sparkline points={points} cardMetric={cardMetric} /> : <StatusStrip points={points} />
         )}
         {daily && <UptimeBar days={daily} />}
       </div>
@@ -544,12 +547,12 @@ function ListRow({ monitor, hist, onSelect, t }) {
   );
 }
 
-function SortableCard({ monitor, hist, dailyHist, onSelect, t, sortMode }) {
+function SortableCard({ monitor, hist, dailyHist, showGraphs, onSelect, t, sortMode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: monitor._id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0 : 1 };
   return (
     <div ref={setNodeRef} style={style}>
-      <CardContent monitor={monitor} hist={hist} dailyHist={dailyHist} onSelect={onSelect} t={t}
+      <CardContent monitor={monitor} hist={hist} dailyHist={dailyHist} showGraphs={showGraphs} onSelect={onSelect} t={t}
         dragHandleProps={sortMode === 'manual' ? { ...attributes, ...listeners } : null} />
     </div>
   );
@@ -561,6 +564,7 @@ export default function Dashboard() {
   const [monitors, setMonitors] = useState([]);
   const [hist, setHist] = useState({});
   const [dailyHist, setDailyHist] = useState({});
+  const [showGraphs, setShowGraphs] = useState(true);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [sortMode, setSortMode] = useState('status');
@@ -575,10 +579,14 @@ export default function Dashboard() {
   async function load(showSpinner = false) {
     if (showSpinner) setLoading(true);
     try {
-      const [ms, h, dh] = await Promise.all([monitorsApi.list(), historyApi.all(24), historyApi.dailyAll(90)]);
+      const [ms, h, dh, s] = await Promise.all([
+        monitorsApi.list(), historyApi.all(24), historyApi.dailyAll(90),
+        settingsApi.get(),
+      ]);
       setMonitors(ms);
       setHist(h);
       setDailyHist(dh);
+      setShowGraphs(s.showGraphs !== false);
     } catch {}
     finally { if (showSpinner) setLoading(false); }
   }
@@ -753,7 +761,7 @@ export default function Dashboard() {
                     )}
                     <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
                       {items.map(m => (
-                        <SortableCard key={m._id} monitor={m} hist={hist} dailyHist={dailyHist} onSelect={setSelected} t={t} sortMode={sortMode} />
+                        <SortableCard key={m._id} monitor={m} hist={hist} dailyHist={dailyHist} showGraphs={showGraphs} onSelect={setSelected} t={t} sortMode={sortMode} />
                       ))}
                     </div>
                   </div>
@@ -763,7 +771,7 @@ export default function Dashboard() {
 
             <DragOverlay dropAnimation={{ duration: 150, easing: 'ease' }}>
               {activeMonitor && (
-                <CardContent monitor={activeMonitor} hist={hist} dailyHist={dailyHist} onSelect={() => {}} t={t} dragging />
+                <CardContent monitor={activeMonitor} hist={hist} dailyHist={dailyHist} showGraphs={showGraphs} onSelect={() => {}} t={t} dragging />
               )}
             </DragOverlay>
           </DndContext>

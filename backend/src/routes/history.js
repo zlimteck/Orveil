@@ -79,12 +79,12 @@ router.get('/', async (req, res) => {
 });
 
 function downsample(snapshots, maxPoints) {
-  if (snapshots.length <= maxPoints) return snapshots.map(s => ({ ts: s.ts, status: s.status, value: s.value }));
+  const toPoint = s => ({ ts: s.ts, status: s.status, value: s.value, metrics: s.metrics ?? null });
+  if (snapshots.length <= maxPoints) return snapshots.map(toPoint);
   const step = snapshots.length / maxPoints;
   const out = [];
   for (let i = 0; i < maxPoints; i++) {
-    const s = snapshots[Math.floor(i * step)];
-    out.push({ ts: s.ts, status: s.status, value: s.value });
+    out.push(toPoint(snapshots[Math.floor(i * step)]));
   }
   return out;
 }

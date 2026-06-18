@@ -10,6 +10,7 @@ const settingsSchema = new mongoose.Schema({
     hour:       { type: Number, default: 8 },   // UTC hour
     lastSentAt: { type: Date, default: null },
   },
+  showGraphs: { type: Boolean, default: true },
 });
 
 module.exports = mongoose.model('Settings', settingsSchema);
