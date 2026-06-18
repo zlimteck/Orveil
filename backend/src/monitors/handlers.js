@@ -1,0 +1,16 @@
+module.exports = {
+  cloudflare: require('./cloudflare'),
+  adguard:    require('./adguard'),
+  hms:        require('./hms'),
+  ultracc:    require('./ultracc'),
+  syncthing:  require('./syncthing'),
+  http:       require('./http'),
+  ping:       require('./ping'),
+  proxmox:    require('./proxmox'),
+  immich:     require('./immich'),
+  portainer:  require('./portainer'),
+  ssh:        require('./ssh'),
+  heartbeat:  require('./heartbeat'),
+  docker:     require('./docker'),
+  unraid:     require('./unraid'),
+};

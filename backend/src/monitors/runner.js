@@ -4,23 +4,8 @@ const Incident = require('../models/Incident');
 const Settings = require('../models/Settings');
 const primaryMetric = require('./primaryMetric');
 const { sendNotification } = require('../services/notifier');
-
-const handlers = {
-  cloudflare: require('./cloudflare'),
-  adguard:    require('./adguard'),
-  hms:        require('./hms'),
-  ultracc:    require('./ultracc'),
-  syncthing:  require('./syncthing'),
-  http:       require('./http'),
-  ping:       require('./ping'),
-  proxmox:    require('./proxmox'),
-  immich:     require('./immich'),
-  portainer:  require('./portainer'),
-  ssh:        require('./ssh'),
-  heartbeat:  require('./heartbeat'),
-  docker:     require('./docker'),
-  unraid:     require('./unraid'),
-};
+const sse = require('../sse');
+const handlers = require('./handlers');
 
 async function runCheck(monitor) {
   const handler = handlers[monitor.type];
@@ -67,6 +52,7 @@ async function runCheck(monitor) {
 
   const prevStatus = monitor.status;
   await Monitor.findByIdAndUpdate(monitor._id, update);
+  sse.broadcast('monitor', { id: monitor._id, ...update });
 
   // Snapshot
   MetricSnapshot.create({

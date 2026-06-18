@@ -36,6 +36,7 @@ export const monitors = {
   reorder: (items) => api.patch('/monitors/reorder', { items }).then(r => r.data),
   setMaintenance: (id, minutes) => api.post(`/monitors/${id}/maintenance`, { minutes }).then(r => r.data),
   cancelMaintenance: (id) => api.delete(`/monitors/${id}/maintenance`).then(r => r.data),
+  test: (id) => api.post(`/monitors/${id}/test`).then(r => r.data),
 };
 
 export const logs = {
@@ -60,4 +61,8 @@ export const incidents = {
   list: (params) => api.get('/incidents', { params }).then(r => r.data),
   acknowledge: (id) => api.post(`/incidents/${id}/acknowledge`).then(r => r.data),
   delete: (id) => api.delete(`/incidents/${id}`).then(r => r.data),
+};
+
+export const stats = {
+  get: () => api.get('/stats').then(r => r.data),
 };

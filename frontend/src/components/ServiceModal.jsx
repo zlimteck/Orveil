@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { X, Plus, Trash2, Wifi } from 'lucide-react';
 import { useLang } from '../context/LangContext';
+import { useToast } from '../context/ToastContext';
+import { monitors as monitorsApi } from '../api';
 import ServiceIcon from './ServiceIcon';
 
 function uuid() {
@@ -331,8 +333,23 @@ function ConfigFields({ type, config, onChange, t }) {
   return null;
 }
 
-export default function ServiceModal({ monitor, onClose, onSave, error }) {
+export default function ServiceModal({ monitor, onClose, onSave }) {
   const { t } = useLang();
+  const toast = useToast();
+  const [testing, setTesting] = useState(false);
+
+  async function handleTest() {
+    if (!monitor?._id) return;
+    setTesting(true);
+    try {
+      const r = await monitorsApi.test(monitor._id);
+      if (r.status === 'online') toast.add(`${t('test.ok')} — ${monitor.name}`, 'success');
+      else toast.add(`${t('test.error')} — ${monitor.name} (${r.status}${r.error ? ': ' + r.error : ''})`, 'error');
+    } catch (err) {
+      toast.add(err.response?.data?.error || t('test.error'), 'error');
+    }
+    setTesting(false);
+  }
   const [form, setForm] = useState({
     name: '', type: 'cloudflare', description: '', category: '',
     enabled: true, checkInterval: 1, reportInterval: 6,
@@ -427,13 +444,20 @@ export default function ServiceModal({ monitor, onClose, onSave, error }) {
             <span className="text-sm text-thistle">{t('form.enabled')}</span>
           </label>
 
-          {error && (
-            <p className="text-xs text-red-400 bg-red-900/20 border border-red-900/40 rounded-lg px-3 py-2">{error}</p>
-          )}
-
-          <div className="flex justify-end gap-3 pt-2 border-t border-border">
-            <button type="button" onClick={onClose} className="btn-ghost">{t('form.cancel')}</button>
-            <button type="submit" className="btn-primary">{monitor ? t('form.save') : t('form.create')}</button>
+          <div className="flex justify-between gap-3 pt-2 border-t border-border">
+            <div>
+              {monitor && (
+                <button type="button" onClick={handleTest} disabled={testing}
+                  className="btn-ghost border border-border px-3 py-2 rounded-lg text-sm flex items-center gap-2">
+                  <Wifi size={14} className={testing ? 'animate-pulse text-periwinkle' : ''} />
+                  {testing ? t('test.testing') : t('test.button')}
+                </button>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button type="button" onClick={onClose} className="btn-ghost">{t('form.cancel')}</button>
+              <button type="submit" className="btn-primary">{monitor ? t('form.save') : t('form.create')}</button>
+            </div>
           </div>
         </form>
       </div>

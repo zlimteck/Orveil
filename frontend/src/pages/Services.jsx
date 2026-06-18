@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { monitors as api } from '../api';
 import { useLang } from '../context/LangContext';
+import { useToast } from '../context/ToastContext';
 import StatusBadge from '../components/StatusBadge';
 import ServiceModal from '../components/ServiceModal';
 import ServiceIcon from '../components/ServiceIcon';
@@ -69,10 +70,11 @@ function MaintenancePopover({ monitor, onClose, onSet, onCancel }) {
 
 export default function Services() {
   const { t } = useLang();
+  const toast = useToast();
   const [items, setItems] = useState([]);
   const [modal, setModal] = useState(null);
   const [running, setRunning] = useState({});
-  const [saveError, setSaveError] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const [maintenanceOpen, setMaintenanceOpen] = useState(null);
 
   async function load() {
@@ -86,14 +88,13 @@ export default function Services() {
   }, []);
 
   async function handleSave(form) {
-    setSaveError(null);
     try {
       if (modal && modal._id) await api.update(modal._id, form);
       else await api.create(form);
       setModal(null);
       load();
     } catch (err) {
-      setSaveError(err.response?.data?.error || err.message);
+      toast.add(err.response?.data?.error || err.message, 'error');
     }
   }
 
@@ -108,9 +109,9 @@ export default function Services() {
     setTimeout(() => { load(); setRunning(r => ({ ...r, [id]: false })); }, 2000);
   }
 
-  async function handleDelete(m) {
-    if (!confirm(t('services.actions.deleteConfirm')(m.name))) return;
-    await api.delete(m._id);
+  async function handleDelete(id) {
+    await api.delete(id);
+    setConfirmDelete(null);
     load();
   }
 
@@ -213,10 +214,24 @@ export default function Services() {
                   <button title={t('services.actions.edit')} onClick={() => setModal(m)} className="btn-ghost p-2 rounded-lg">
                     <Pencil size={14} />
                   </button>
-                  <button title={t('services.actions.delete')} onClick={() => handleDelete(m)}
-                    className="p-2 rounded-lg text-muted hover:text-red-400 transition-colors">
-                    <Trash2 size={14} />
-                  </button>
+                  {confirmDelete === m._id ? (
+                    <>
+                      <button
+                        onClick={() => handleDelete(m._id)}
+                        className="text-xs px-2 py-1 rounded-lg bg-red-900/30 text-red-400 border border-red-900/40 hover:bg-red-900/50 transition-colors"
+                      >
+                        {t('incidents.confirmDelete')}
+                      </button>
+                      <button onClick={() => setConfirmDelete(null)} className="p-2 rounded-lg text-muted hover:text-thistle transition-colors">
+                        <X size={14} />
+                      </button>
+                    </>
+                  ) : (
+                    <button title={t('services.actions.delete')} onClick={() => setConfirmDelete(m._id)}
+                      className="p-2 rounded-lg text-muted hover:text-red-400 transition-colors">
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -227,9 +242,8 @@ export default function Services() {
       {modal && (
         <ServiceModal
           monitor={modal === 'new' ? null : modal}
-          onClose={() => { setModal(null); setSaveError(null); }}
+          onClose={() => setModal(null)}
           onSave={handleSave}
-          error={saveError}
         />
       )}
     </div>

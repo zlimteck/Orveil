@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Radio, Bell, Settings, Menu, X, Code2, Siren, LogOut, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Radio, Bell, Settings, Menu, X, Code2, Siren, LogOut, Sun, Moon, BarChart2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLang } from '../context/LangContext';
@@ -108,16 +108,17 @@ export default function Layout() {
     { to: '/monitors', icon: Radio,           label: t('nav.services') },
     { to: '/logs',     icon: Bell,            label: t('nav.notifications') },
     { to: '/incidents',icon: Siren,           label: t('nav.incidents'), badge: openIncidents },
+    { to: '/stats',    icon: BarChart2,       label: t('nav.stats') },
     { to: '/settings', icon: Settings,        label: t('nav.settings') },
     { to: '/docs',     icon: Code2,           label: t('nav.api') },
   ];
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen overflow-hidden">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-56 shrink-0 bg-card border-r border-border flex-col">
+      <aside className="hidden md:flex w-56 shrink-0 bg-card border-r border-border flex-col h-screen sticky top-0">
         <SidebarHeader />
-        <nav className="flex-1 p-3 space-y-1">
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {nav.map(item => <NavItem key={item.to} {...item} />)}
         </nav>
         <UserFooter onLogout={logout} />

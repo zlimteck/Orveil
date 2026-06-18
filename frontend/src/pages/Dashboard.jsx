@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { monitors as monitorsApi, history as historyApi } from '../api';
 import { useLang } from '../context/LangContext';
+import { useAuth } from '../context/AuthContext';
 import StatusBadge from '../components/StatusBadge';
 import ServiceIcon from '../components/ServiceIcon';
 import ServiceDetail from '../components/ServiceDetail';
@@ -556,6 +557,7 @@ function SortableCard({ monitor, hist, dailyHist, onSelect, t, sortMode }) {
 
 export default function Dashboard() {
   const { t } = useLang();
+  const { token } = useAuth();
   const [monitors, setMonitors] = useState([]);
   const [hist, setHist] = useState({});
   const [dailyHist, setDailyHist] = useState({});
@@ -583,9 +585,16 @@ export default function Dashboard() {
 
   useEffect(() => {
     load(true);
-    const timer = setInterval(load, 30000);
-    return () => clearInterval(timer);
-  }, []);
+
+    const es = new EventSource(`/api/events?token=${token}`);
+    es.addEventListener('monitor', (e) => {
+      const data = JSON.parse(e.data);
+      setMonitors(prev => prev.map(m => m._id === data.id ? { ...m, ...data } : m));
+    });
+    es.onerror = () => {};
+
+    return () => es.close();
+  }, [token]);
 
   const sorted = useMemo(() => {
     if (sortMode === 'name')   return [...monitors].sort((a, b) => a.name.localeCompare(b.name));

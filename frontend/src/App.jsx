@@ -3,6 +3,8 @@ import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LangProvider } from './context/LangContext';
+import { ToastProvider } from './context/ToastContext';
+import Stats from './pages/Stats';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Services from './pages/Services';
@@ -32,6 +34,7 @@ export default function App() {
     <ThemeProvider>
     <LangProvider>
     <AuthProvider>
+    <ToastProvider>
       <Routes>
         <Route path="/login" element={<LoginGuard />} />
         <Route element={<AuthGuard />}>
@@ -42,9 +45,11 @@ export default function App() {
             <Route path="incidents" element={<Incidents />} />
             <Route path="settings" element={<Settings />} />
             <Route path="docs" element={<ApiDocs />} />
+            <Route path="stats" element={<Stats />} />
           </Route>
         </Route>
       </Routes>
+    </ToastProvider>
     </AuthProvider>
     </LangProvider>
     </ThemeProvider>

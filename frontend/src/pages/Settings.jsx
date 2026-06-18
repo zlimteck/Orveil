@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { settings as api, auth as authApi } from '../api';
 import { Save, Send, Info, KeyRound, CalendarClock } from 'lucide-react';
 import { useLang } from '../context/LangContext';
+import { useToast } from '../context/ToastContext';
 
 const EXAMPLES = [
   'pover://UserKey@ApiToken/',
@@ -13,21 +14,22 @@ const EXAMPLES = [
 
 function ChangePassword() {
   const { t } = useLang();
+  const toast = useToast();
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirm: '' });
-  const [state, setState] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (form.newPassword !== form.confirm) { setState('mismatch'); return; }
-    setState('saving');
+    if (form.newPassword !== form.confirm) { toast.add(t('settings.password.mismatch'), 'error'); return; }
+    setSaving(true);
     try {
       await authApi.changePassword({ currentPassword: form.currentPassword, newPassword: form.newPassword });
-      setState('ok');
+      toast.add(t('settings.password.ok'), 'success');
       setForm({ currentPassword: '', newPassword: '', confirm: '' });
     } catch (err) {
-      setState(err.response?.data?.error || 'error');
+      toast.add(err.response?.data?.error || '❌ Error', 'error');
     }
-    setTimeout(() => setState(null), 3000);
+    setSaving(false);
   }
 
   return (
@@ -42,16 +44,9 @@ function ChangePassword() {
           value={form.newPassword} onChange={e => setForm(f => ({ ...f, newPassword: e.target.value }))} />
         <input className="input" type="password" placeholder={t('settings.password.confirm')}
           value={form.confirm} onChange={e => setForm(f => ({ ...f, confirm: e.target.value }))} />
-        <div className="flex items-center gap-3">
-          <button type="submit" disabled={state === 'saving'} className="btn-primary">
-            <Save size={14} /> {state === 'saving' ? t('settings.password.saving') : t('settings.save')}
-          </button>
-          {state === 'ok'       && <span className="text-sm text-celadon">{t('settings.password.ok')}</span>}
-          {state === 'mismatch' && <span className="text-sm text-red-400">{t('settings.password.mismatch')}</span>}
-          {state && state !== 'ok' && state !== 'mismatch' && state !== 'saving' && (
-            <span className="text-sm text-red-400">❌ {state}</span>
-          )}
-        </div>
+        <button type="submit" disabled={saving} className="btn-primary">
+          <Save size={14} /> {saving ? t('settings.password.saving') : t('settings.save')}
+        </button>
       </form>
     </div>
   );
@@ -59,12 +54,10 @@ function ChangePassword() {
 
 export default function Settings() {
   const { t } = useLang();
+  const toast = useToast();
   const [form, setForm] = useState({ appriseUrls: [], appriseApiUrl: 'http://apprise:8000', weeklyReport: { enabled: false, dayOfWeek: 1, hour: 8 } });
   const [urlsText, setUrlsText] = useState('');
-  const [savedApprise, setSavedApprise] = useState(false);
-  const [savedWeekly, setSavedWeekly] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -85,27 +78,23 @@ export default function Settings() {
     e.preventDefault();
     const appriseUrls = urlsText.split('\n').map(u => u.trim()).filter(Boolean);
     await api.save({ appriseUrls, appriseApiUrl: form.appriseApiUrl, weeklyReport: form.weeklyReport });
-    setSavedApprise(true);
-    setTimeout(() => setSavedApprise(false), 2500);
+    toast.add(t('settings.saved'), 'success');
   }
 
   async function handleSaveWeekly(e) {
     e.preventDefault();
     const appriseUrls = urlsText.split('\n').map(u => u.trim()).filter(Boolean);
     await api.save({ appriseUrls, appriseApiUrl: form.appriseApiUrl, weeklyReport: form.weeklyReport });
-    setSavedWeekly(true);
-    setTimeout(() => setSavedWeekly(false), 2500);
+    toast.add(t('settings.saved'), 'success');
   }
 
   async function handleTest() {
     setTesting(true);
-    setTestResult(null);
     try {
       const r = await api.test();
-      setTestResult(r.sent ? 'success' : 'no_urls');
-    } catch { setTestResult('error'); }
+      toast.add(r.sent ? t('settings.testOk') : t('settings.testNoUrls'), r.sent ? 'success' : 'warning');
+    } catch { toast.add(t('settings.testError'), 'error'); }
     setTesting(false);
-    setTimeout(() => setTestResult(null), 4000);
   }
 
   if (loading) return <div className="p-6 text-muted">{t('settings.loading')}</div>;
@@ -170,15 +159,12 @@ export default function Settings() {
 
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <button type="submit" className="btn-primary">
-              <Save size={14} /> {savedApprise ? t('settings.saved') : t('settings.save')}
+              <Save size={14} /> {t('settings.save')}
             </button>
             <button type="button" onClick={handleTest} disabled={testing} className="btn-ghost border border-border px-3 py-2 rounded-lg text-sm flex items-center gap-2">
               <Send size={14} className={testing ? 'animate-pulse' : ''} />
               {testing ? t('settings.testing') : t('settings.test')}
             </button>
-            {testResult === 'success'  && <p className="text-sm text-celadon">{t('settings.testOk')}</p>}
-            {testResult === 'no_urls' && <p className="text-sm text-amber-400">{t('settings.testNoUrls')}</p>}
-            {testResult === 'error'   && <p className="text-sm text-red-400">{t('settings.testError')}</p>}
           </div>
       </form>
 
@@ -214,7 +200,7 @@ export default function Settings() {
           )}
           <div className="flex items-center gap-3 pt-1">
             <button type="submit" className="btn-primary">
-              <Save size={14} /> {savedWeekly ? t('settings.saved') : t('settings.save')}
+              <Save size={14} /> {t('settings.save')}
             </button>
           </div>
       </form>

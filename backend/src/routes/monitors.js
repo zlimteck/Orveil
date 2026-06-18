@@ -2,6 +2,7 @@ const router = require('express').Router();
 const Monitor = require('../models/Monitor');
 const Incident = require('../models/Incident');
 const { triggerNow } = require('../monitors/runner');
+const handlers = require('../monitors/handlers');
 
 router.get('/', async (req, res) => {
   const monitors = await Monitor.find().sort({ position: 1, createdAt: 1 });
@@ -86,6 +87,20 @@ router.delete('/:id', async (req, res) => {
   await Monitor.findByIdAndDelete(req.params.id);
   await Incident.deleteMany({ monitorId: req.params.id });
   res.json({ ok: true });
+});
+
+// POST /api/monitors/:id/test — run a check and return the result without saving
+router.post('/:id/test', async (req, res) => {
+  const monitor = await Monitor.findById(req.params.id);
+  if (!monitor) return res.status(404).json({ error: 'Service introuvable' });
+  const handler = handlers[monitor.type];
+  if (!handler) return res.status(400).json({ error: `Type inconnu: ${monitor.type}` });
+  try {
+    const result = await handler.check(monitor.config, monitor.lastState);
+    res.json({ status: result.status, metrics: result.metrics });
+  } catch (err) {
+    res.json({ status: 'error', error: err.message });
+  }
 });
 
 // POST /api/monitors/:id/maintenance  body: { minutes: 60 }
