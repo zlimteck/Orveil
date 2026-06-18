@@ -81,12 +81,18 @@ router.get('/', async (req, res) => {
 function downsample(snapshots, maxPoints) {
   const toPoint = s => ({ ts: s.ts, status: s.status, value: s.value, metrics: s.metrics ?? null });
   if (snapshots.length <= maxPoints) return snapshots.map(toPoint);
-  const step = snapshots.length / maxPoints;
+
+  // Always keep the last RECENT snapshots so fresh metrics data is never downsampled away
+  const RECENT = Math.min(8, Math.floor(maxPoints / 4));
+  const recent = snapshots.slice(-RECENT);
+  const older  = snapshots.slice(0, -RECENT);
+  const olderSlots = maxPoints - RECENT;
+  const step = older.length / olderSlots;
   const out = [];
-  for (let i = 0; i < maxPoints; i++) {
-    out.push(toPoint(snapshots[Math.floor(i * step)]));
+  for (let i = 0; i < olderSlots; i++) {
+    out.push(toPoint(older[Math.floor(i * step)]));
   }
-  return out;
+  return [...out, ...recent.map(toPoint)];
 }
 
 function calcUptime(snapshots) {

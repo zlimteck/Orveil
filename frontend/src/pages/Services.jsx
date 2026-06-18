@@ -185,11 +185,18 @@ export default function Services() {
           return (
             <div key={m._id} className={`card ${!m.enabled ? 'opacity-60' : ''}`}>
               <div className="flex items-start gap-3">
-                <span className="shrink-0 mt-0.5"><ServiceIcon type={m.type} size={22} url={m.config?.url} faviconUrl={m.metrics?.faviconUrl} /></span>
+                <span className="shrink-0 mt-0.5"><ServiceIcon type={m.type} size={22} url={m.config?.url} faviconUrl={m.metrics?.faviconUrl} serviceUrl={m.serviceUrl} /></span>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <p className="font-semibold text-thistle text-sm">{m.name}</p>
+                    {m.serviceUrl ? (
+                      <a href={m.serviceUrl} target="_blank" rel="noreferrer"
+                        className="font-semibold text-thistle text-sm hover:text-periwinkle transition-colors">
+                        {m.name}
+                      </a>
+                    ) : (
+                      <p className="font-semibold text-thistle text-sm">{m.name}</p>
+                    )}
                     <StatusBadge status={m.enabled ? m.status : 'unknown'} />
                     {inMaintenance && (
                       <span className="text-xs px-1.5 py-0.5 rounded bg-amber-900/30 text-amber-400 border border-amber-900/40 flex items-center gap-1">

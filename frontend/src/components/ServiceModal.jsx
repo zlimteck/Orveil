@@ -29,6 +29,7 @@ const TYPE_DEFAULTS = {
   heartbeat:  { checkInterval: 5,  reportInterval: 0,  config: { expectedEvery: 60, slug: uuid() } },
   docker:     { checkInterval: 1,  reportInterval: 0,  config: { socketPath: '/var/run/docker.sock' } },
   unraid:     { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
+  speedtest:  { checkInterval: 60, reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
 };
 
 const TYPE_LABELS = {
@@ -46,6 +47,7 @@ const TYPE_LABELS = {
   heartbeat:  'Heartbeat',
   docker:     'Docker',
   unraid:     'Unraid',
+  speedtest:  'Speedtest Tracker',
 };
 
 function Field({ label, value, onChange, placeholder, type = 'text', hint }) {
@@ -331,6 +333,18 @@ function ConfigFields({ type, config, onChange, t }) {
       hint={t('form.fields.docker.socketPathHint')} />
   );
 
+  if (type === 'speedtest') return (
+    <>
+      <Field label="URL Speedtest Tracker" value={config.apiUrl} onChange={v => set('apiUrl', v)}
+        placeholder="https://speedtest.example.com"
+        hint={t('form.fields.speedtest.urlHint')} />
+      <Field label="API Key" value={config.apiKey} onChange={v => set('apiKey', v)}
+        placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        hint={t('form.fields.speedtest.apiKeyHint')} />
+      <TlsToggle config={config} set={set} t={t} />
+    </>
+  );
+
   return null;
 }
 
@@ -354,7 +368,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
   const [form, setForm] = useState({
     name: '', type: 'cloudflare', description: '', category: '',
     enabled: true, checkInterval: 1, reportInterval: 6,
-    cardMetric: null,
+    cardMetric: null, serviceUrl: '',
     config: TYPE_DEFAULTS.cloudflare.config,
   });
 
@@ -369,6 +383,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
         checkInterval: monitor.checkInterval,
         reportInterval: monitor.reportInterval,
         cardMetric: monitor.cardMetric || null,
+        serviceUrl: monitor.serviceUrl || '',
         config: monitor.config || {},
       });
     }
@@ -376,7 +391,10 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
 
   const handleTypeChange = (type) => {
     const d = TYPE_DEFAULTS[type];
-    setForm(f => ({ ...f, type, checkInterval: d.checkInterval, reportInterval: d.reportInterval, cardMetric: null, config: { ...d.config } }));
+    setForm(f => {
+      const autoName = !f.name || Object.values(TYPE_LABELS).includes(f.name);
+      return { ...f, type, checkInterval: d.checkInterval, reportInterval: d.reportInterval, cardMetric: null, config: { ...d.config }, ...(autoName ? { name: TYPE_LABELS[type] } : {}) };
+    });
   };
 
   return (
@@ -420,6 +438,9 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
 
           <Field label={t('form.description')} value={form.description}
             onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="…" />
+
+          <Field label={t('form.serviceUrl')} value={form.serviceUrl}
+            onChange={v => setForm(f => ({ ...f, serviceUrl: v }))} placeholder="https://…" />
 
           <div className="grid grid-cols-2 gap-3">
             <div>

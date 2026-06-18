@@ -15,6 +15,7 @@ function primaryMetric(type, metrics) {
     case 'heartbeat':  return metrics.minutesSince ?? null;
     case 'docker':     return metrics.containersRunning ?? null;
     case 'unraid':     return metrics.diskPct ?? null;
+    case 'speedtest':  return metrics.downloadMbps ?? null;
     default:           return null;
   }
 }

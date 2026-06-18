@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const monitorSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  type: { type: String, required: true, enum: ['cloudflare', 'adguard', 'hms', 'ultracc', 'syncthing', 'http', 'ping', 'proxmox', 'immich', 'portainer', 'ssh', 'heartbeat', 'docker', 'unraid'] },
+  type: { type: String, required: true, enum: ['cloudflare', 'adguard', 'hms', 'ultracc', 'syncthing', 'http', 'ping', 'proxmox', 'immich', 'portainer', 'ssh', 'heartbeat', 'docker', 'unraid', 'speedtest'] },
   description: { type: String, default: '' },
   enabled: { type: Boolean, default: true },
   checkInterval: { type: Number, default: 5 },   // minutes
@@ -18,6 +18,7 @@ const monitorSchema = new mongoose.Schema({
   position: { type: Number, default: 0 },
   maintenanceUntil: { type: Date, default: null },
   cardMetric: { type: String, default: null },
+  serviceUrl: { type: String, default: '' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Monitor', monitorSchema);

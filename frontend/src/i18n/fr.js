@@ -270,6 +270,7 @@ export default {
     enabled: 'Activé',
     category: 'Catégorie',
     categoryPlaceholder: 'Réseau, Apps…',
+    serviceUrl: 'URL du service (optionnel)',
     cardMetric: 'Métrique affichée sur la card',
     cardMetricDefault: 'Défaut (primaire)',
     cancel: 'Annuler',
@@ -348,6 +349,10 @@ export default {
       unraid: {
         apiKeyHint: 'Paramètres → Accès management → Clés API',
       },
+      speedtest: {
+        urlHint: 'URL de votre instance Speedtest Tracker',
+        apiKeyHint: 'Speedtest Tracker → Paramètres → Clés API',
+      },
       ssh: {
         user: 'Utilisateur',
         password: 'Mot de passe',
@@ -393,6 +398,7 @@ export default {
       hms:        'VPS actifs',
       docker:     'Containers actifs',
       unraid:     'Disque (%)',
+      speedtest:  'Download (Mbps)',
     },
   },
 };

@@ -1,6 +1,6 @@
 import React from 'react';
 import { siCloudflare, siAdguard, siSyncthing, siProxmox, siImmich, siPortainer } from 'simple-icons';
-import { Globe, Activity, Terminal, HeartPulse } from 'lucide-react';
+import { Globe, Activity, Terminal, HeartPulse, Gauge } from 'lucide-react';
 
 function SimpleIcon({ icon, size = 20 }) {
   return (
@@ -75,6 +75,7 @@ const FALLBACKS = {
   ping:       ({ size }) => <Activity size={size} color="#80cfa9" />,
   ssh:        ({ size }) => <Terminal size={size} color="#a7e2e3" />,
   heartbeat:  ({ size }) => <HeartPulse size={size} color="#f87171" />,
+  speedtest:  ({ size }) => <Gauge size={size} color="#a7e2e3" />,
 };
 
 function FileIcon({ type, size, onError }) {
@@ -104,19 +105,26 @@ function FaviconIcon({ url, size, onError }) {
   );
 }
 
-export default function ServiceIcon({ type, size = 20, url, faviconUrl }) {
+export default function ServiceIcon({ type, size = 20, url, faviconUrl, serviceUrl }) {
   const [useFavicon, setUseFavicon] = React.useState(true);
   const [useFallback, setUseFallback] = React.useState(false);
   const Fallback = FALLBACKS[type];
 
-  if (type === 'http' && useFavicon) {
-    const src = faviconUrl || (url ? (() => { try { return `${new URL(url).origin}/favicon.ico`; } catch {} })() : null);
-    if (src) return (
+  const faviconSrc = (() => {
+    if (faviconUrl) return faviconUrl;
+    for (const base of [serviceUrl, url]) {
+      if (!base) continue;
+      try { return `${new URL(base).origin}/favicon.ico`; } catch {}
+    }
+    return null;
+  })();
+
+  if (useFavicon && faviconSrc) {
+    return (
       <FaviconIcon
-        url={src}
+        url={faviconSrc}
         size={size}
         onError={() => setUseFavicon(false)}
-        direct
       />
     );
   }

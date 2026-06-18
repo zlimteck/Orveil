@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { monitors as monitorsApi, history as historyApi, settings as settingsApi } from '../api';
 import { useLang } from '../context/LangContext';
 import { useAuth } from '../context/AuthContext';
-import { extractValue } from '../utils/metricConfig';
+import { extractValue, getMetricLabel, formatMetricValue, getMetrics } from '../utils/metricConfig';
 import StatusBadge from '../components/StatusBadge';
 import ServiceIcon from '../components/ServiceIcon';
 import ServiceDetail from '../components/ServiceDetail';
@@ -378,6 +378,31 @@ function MetricsBlock({ monitor }) {
     </div>
   );
 
+  if (type === 'speedtest') return (
+    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted">
+      <div>
+        <p>↓ Download</p>
+        <p className="text-thistle font-semibold text-sm">{metrics.downloadMbps != null ? `${metrics.downloadMbps} Mbps` : '—'}</p>
+      </div>
+      <div>
+        <p>↑ Upload</p>
+        <p className="text-thistle font-semibold text-sm">{metrics.uploadMbps != null ? `${metrics.uploadMbps} Mbps` : '—'}</p>
+      </div>
+      {metrics.pingMs != null && (
+        <div>
+          <p>Ping</p>
+          <p className="text-frosted font-medium">{metrics.pingMs} ms</p>
+        </div>
+      )}
+      {metrics.jitterMs != null && (
+        <div>
+          <p>Jitter</p>
+          <p className="text-frosted font-medium">{metrics.jitterMs} ms</p>
+        </div>
+      )}
+    </div>
+  );
+
   return null;
 }
 
@@ -442,6 +467,7 @@ function SkeletonListRow() {
 }
 
 function CardContent({ monitor, hist, dailyHist, showGraphs, onSelect, t, dragging = false, dragHandleProps = {} }) {
+  const { lang } = useLang();
   const uptime = hist[monitor._id]?.uptime?.h24;
   const points = hist[monitor._id]?.points || [];
   const daily  = dailyHist[monitor._id] || null;
@@ -456,7 +482,7 @@ function CardContent({ monitor, hist, dailyHist, showGraphs, onSelect, t, draggi
         <div className="flex items-center gap-2 min-w-0">
           <span className="shrink-0 relative flex items-center justify-center w-5 h-5">
             <span className={dragHandleProps ? 'transition-opacity group-hover:opacity-0' : ''}>
-              <ServiceIcon type={monitor.type} size={20} url={monitor.config?.url} faviconUrl={monitor.metrics?.faviconUrl} />
+              <ServiceIcon type={monitor.type} size={20} url={monitor.config?.url} faviconUrl={monitor.metrics?.faviconUrl} serviceUrl={monitor.serviceUrl} />
             </span>
             {dragHandleProps && (
               <div {...dragHandleProps} onClick={e => e.stopPropagation()}
@@ -466,7 +492,15 @@ function CardContent({ monitor, hist, dailyHist, showGraphs, onSelect, t, draggi
             )}
           </span>
           <div className="min-w-0">
-            <p className="font-medium text-thistle text-sm truncate">{monitor.name}</p>
+            {monitor.serviceUrl ? (
+              <a href={monitor.serviceUrl} target="_blank" rel="noreferrer"
+                onClick={e => e.stopPropagation()}
+                className="font-medium text-thistle text-sm truncate block hover:text-periwinkle transition-colors">
+                {monitor.name}
+              </a>
+            ) : (
+              <p className="font-medium text-thistle text-sm truncate">{monitor.name}</p>
+            )}
             {monitor.description && <p className="text-xs text-muted truncate">{monitor.description}</p>}
           </div>
         </div>
@@ -490,7 +524,27 @@ function CardContent({ monitor, hist, dailyHist, showGraphs, onSelect, t, draggi
       <div className="flex-1 flex flex-col justify-end gap-2">
         <MetricsBlock monitor={monitor} />
         {showGraphs && points.length > 1 && (
-          hasNumeric ? <Sparkline points={points} cardMetric={cardMetric} /> : <StatusStrip points={points} />
+          hasNumeric ? (
+            <div>
+              <div className="flex items-center justify-between mb-0.5">
+                <span className="text-muted" style={{ fontSize: 10 }}>
+                  {cardMetric
+                    ? getMetricLabel(monitor.type, cardMetric, lang)
+                    : (getMetrics(monitor.type)[0]
+                        ? getMetricLabel(monitor.type, getMetrics(monitor.type)[0].key, lang)
+                        : null)}
+                </span>
+                <span className="font-medium text-thistle" style={{ fontSize: 10 }}>
+                  {(() => {
+                    const key = cardMetric || getMetrics(monitor.type)[0]?.key;
+                    const last = [...points].reverse().find(p => extractValue(p, cardMetric) != null);
+                    return last ? formatMetricValue(monitor.type, key, extractValue(last, cardMetric)) : '—';
+                  })()}
+                </span>
+              </div>
+              <Sparkline points={points} cardMetric={cardMetric} />
+            </div>
+          ) : <StatusStrip points={points} />
         )}
         {daily && <UptimeBar days={daily} />}
       </div>
@@ -516,6 +570,7 @@ function metricSummary(monitor) {
     case 'hms':        return Array.isArray(m.vps) ? `${m.vps.filter(v => v.state === 'running').length} VPS` : null;
     case 'heartbeat':  return m.lastPing ? timeAgoMs(m.lastPing) : null;
     case 'unraid':     return m.diskPct != null ? `${m.diskPct}% disque` : null;
+    case 'speedtest':  return m.downloadMbps != null ? `↓ ${m.downloadMbps} Mbps` : null;
     default:           return null;
   }
 }
@@ -529,7 +584,7 @@ function ListRow({ monitor, hist, onSelect, t }) {
       className={`flex items-center gap-3 px-3 py-2 rounded-xl border border-transparent hover:border-periwinkle/30 hover:bg-granite-3/40 cursor-pointer transition-all duration-150 select-none animate-fade-in-up ${!monitor.enabled ? 'opacity-50' : ''}`}
     >
       <span className="shrink-0">
-        <ServiceIcon type={monitor.type} size={18} url={monitor.config?.url} faviconUrl={monitor.metrics?.faviconUrl} />
+        <ServiceIcon type={monitor.type} size={18} url={monitor.config?.url} faviconUrl={monitor.metrics?.faviconUrl} serviceUrl={monitor.serviceUrl} />
       </span>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-thistle truncate">{monitor.name}</p>
