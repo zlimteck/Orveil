@@ -464,4 +464,17 @@ export default {
       speedtest:  'Download (Mbps)',
     },
   },
+  notFound: {
+    title: 'Page offline',
+    monitoring: "We've been monitoring this URL for",
+    neverOnline: 'It was never online. It will never be online.',
+    status: 'Status',
+    uptime: 'Uptime',
+    incident: 'Incident',
+    responseTime: 'Response time',
+    incidentOpened: 'An incident has been automatically opened.',
+    incidentClosed: 'And automatically closed.',
+    incidentReason: "Because we don't monitor pages that don't exist.",
+    back: 'Back to dashboard',
+  },
 };

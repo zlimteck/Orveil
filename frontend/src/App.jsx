@@ -14,6 +14,7 @@ import Settings from './pages/Settings';
 import ApiDocs from './pages/ApiDocs';
 import Login from './pages/Login';
 import StatusPage from './pages/StatusPage';
+import NotFound from './pages/NotFound';
 
 function AuthGuard() {
   const { token, loading } = useAuth();
@@ -39,6 +40,7 @@ export default function App() {
       <Routes>
         <Route path="/status" element={<StatusPage />} />
         <Route path="/login" element={<LoginGuard />} />
+        <Route path="*" element={<NotFound />} />
         <Route element={<AuthGuard />}>
           <Route element={<Layout />}>
             <Route index element={<Dashboard />} />
