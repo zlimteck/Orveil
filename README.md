@@ -9,7 +9,7 @@
   [![Platform](https://img.shields.io/badge/platform-amd64%20%7C%20arm64-lightgrey?style=flat-square)](https://hub.docker.com/r/zlimteck/notifhub)
 </div>
 
-![Dashboard](docs/screenshots/01-Dashboard.png)
+![Dashboard](docs/screenshots/1-Dashboard.png)
 
 
 ## Features
