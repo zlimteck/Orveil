@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { incidents as api } from '../api';
 import { useLang } from '../context/LangContext';
 import { AlertTriangle, CheckCircle, BellOff, Trash2, X } from 'lucide-react';
@@ -90,13 +90,24 @@ function IncidentRow({ incident: i, onAcknowledge, onDelete }) {
   );
 }
 
+const SELECT_STYLE = {
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23626273' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E")`,
+  backgroundRepeat: 'no-repeat',
+  backgroundPosition: 'right 0.4rem center',
+  backgroundSize: '1.1em 1.1em',
+};
+
 export default function Incidents() {
   const { t } = useLang();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filterService, setFilterService] = useState('');
+  const [filterPeriod, setFilterPeriod] = useState('');
+  const [filterDuration, setFilterDuration] = useState('');
+  const [sortMode, setSortMode] = useState('newest');
 
   async function load() {
-    api.list({ limit: 100 }).then(setData).catch(() => {}).finally(() => setLoading(false));
+    api.list({ limit: 500 }).then(setData).catch(() => {}).finally(() => setLoading(false));
   }
 
   useEffect(() => { load(); }, []);
@@ -111,17 +122,108 @@ export default function Incidents() {
     load();
   }
 
-  const open = data.filter(i => !i.resolvedAt);
-  const closed = data.filter(i => i.resolvedAt);
+  const serviceNames = useMemo(() => {
+    const names = [...new Set(data.map(i => i.monitorName))].sort();
+    return names;
+  }, [data]);
+
+  const filtered = useMemo(() => {
+    let result = [...data];
+
+    if (filterService) result = result.filter(i => i.monitorName === filterService);
+
+    if (filterPeriod) {
+      const cutoff = Date.now() - parseInt(filterPeriod) * 24 * 60 * 60 * 1000;
+      result = result.filter(i => new Date(i.startedAt).getTime() >= cutoff);
+    }
+
+    if (filterDuration) {
+      const minMs = parseInt(filterDuration) * 60 * 1000;
+      result = result.filter(i => {
+        const ms = i.resolvedAt
+          ? i.duration
+          : Date.now() - new Date(i.startedAt).getTime();
+        return ms != null && ms >= minMs;
+      });
+    }
+
+    result.sort((a, b) => {
+      if (sortMode === 'oldest') return new Date(a.startedAt) - new Date(b.startedAt);
+      if (sortMode === 'longest') {
+        const da = a.resolvedAt ? a.duration : Date.now() - new Date(a.startedAt).getTime();
+        const db = b.resolvedAt ? b.duration : Date.now() - new Date(b.startedAt).getTime();
+        return (db ?? 0) - (da ?? 0);
+      }
+      return new Date(b.startedAt) - new Date(a.startedAt);
+    });
+
+    return result;
+  }, [data, filterService, filterPeriod, filterDuration, sortMode]);
+
+  const open = filtered.filter(i => !i.resolvedAt);
+  const closed = filtered.filter(i => i.resolvedAt);
+  const hasFilters = filterService || filterPeriod || filterDuration || sortMode !== 'newest';
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-4">
       <div>
         <h1 className="text-xl md:text-2xl font-bold text-thistle">{t('incidents.title')}</h1>
         <p className="text-xs md:text-sm text-muted mt-0.5">{t('incidents.subtitle')(open.length, closed.length)}</p>
       </div>
 
+      <div className="flex flex-wrap gap-2">
+        <select
+          value={filterService}
+          onChange={e => setFilterService(e.target.value)}
+          className="select h-8 text-xs pr-7 pl-3 py-0 flex-1 min-w-32"
+          style={SELECT_STYLE}
+        >
+          <option value="">{t('incidents.filters.allServices')}</option>
+          {serviceNames.map(n => <option key={n} value={n}>{n}</option>)}
+        </select>
+
+        <select
+          value={filterPeriod}
+          onChange={e => setFilterPeriod(e.target.value)}
+          className="select h-8 text-xs pr-7 pl-3 py-0 flex-1 min-w-32"
+          style={SELECT_STYLE}
+        >
+          <option value="">{t('incidents.filters.allPeriods')}</option>
+          <option value="7">{t('incidents.filters.last7d')}</option>
+          <option value="30">{t('incidents.filters.last30d')}</option>
+        </select>
+
+        <select
+          value={filterDuration}
+          onChange={e => setFilterDuration(e.target.value)}
+          className="select h-8 text-xs pr-7 pl-3 py-0 flex-1 min-w-32"
+          style={SELECT_STYLE}
+        >
+          <option value="">{t('incidents.filters.allDurations')}</option>
+          <option value="5">{t('incidents.filters.gt5min')}</option>
+          <option value="30">{t('incidents.filters.gt30min')}</option>
+          <option value="60">{t('incidents.filters.gt1h')}</option>
+        </select>
+
+        <select
+          value={sortMode}
+          onChange={e => setSortMode(e.target.value)}
+          className="select h-8 text-xs pr-7 pl-3 py-0 flex-1 min-w-32"
+          style={SELECT_STYLE}
+        >
+          <option value="newest">{t('incidents.filters.sortNewest')}</option>
+          <option value="oldest">{t('incidents.filters.sortOldest')}</option>
+          <option value="longest">{t('incidents.filters.sortLongest')}</option>
+        </select>
+      </div>
+
       {loading && <p className="text-muted text-sm">{t('incidents.loading')}</p>}
+
+      {!loading && data.length > 0 && filtered.length === 0 && (
+        <div className="card text-center py-10">
+          <p className="text-thistle font-medium">{t('incidents.noResults')}</p>
+        </div>
+      )}
 
       {open.length > 0 && (
         <div className="space-y-2">
