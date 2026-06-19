@@ -32,7 +32,7 @@ async function check(config, lastState) {
     const notifications = [];
     if (lastState && diskPct > 90 && (lastState.diskPct ?? 0) <= 90) {
       notifications.push({
-        title: '⚠️ Stockage Immich critique',
+        title: 'Stockage Immich critique',
         message: `Disque à ${diskPct}% — ${storage.diskUse} utilisés / ${storage.diskSize}`,
         level: 'warning', type: 'status_change',
       });
@@ -50,16 +50,16 @@ async function check(config, lastState) {
     return { status: 'online', state, metrics, notifications };
   } catch (err) {
     return { status: 'error', state: lastState, metrics: null, notifications: [
-      { title: '❌ Immich — Erreur API', message: err.message, level: 'error', type: 'error' }
+      { title: 'Immich — Erreur API', message: err.message, level: 'error', type: 'error' }
     ]};
   }
 }
 
 async function report(config, state) {
-  if (!state) return { title: '📷 Immich', message: 'Aucune donnée.' };
+  if (!state) return { title: 'Immich', message: 'Aucune donnée.' };
   return {
-    title: '📷 Rapport Immich',
-    message: `📷 Photos : ${state.photos}\n🎬 Vidéos : ${state.videos}\n💾 Disque : ${state.diskPct}%`,
+    title: 'Rapport Immich',
+    message: `Photos : ${state.photos}\nVidéos : ${state.videos}\nDisque : ${state.diskPct}%`,
   };
 }
 

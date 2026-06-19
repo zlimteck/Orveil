@@ -137,7 +137,7 @@ async function report(config, state) {
   ];
   if (state.cpuPct != null) lines.push(`CPU : ${state.cpuPct}%`);
   if (state.ramPct != null) lines.push(`RAM : ${state.ramUsedGB} / ${state.ramTotalGB} GB (${state.ramPct}%)`);
-  if (state.tempAvg != null) lines.push(`Temp moy : ${state.tempAvg}°C${state.tempWarn > 0 ? ` ⚠️ ${state.tempWarn} warn` : ''}${state.tempCrit > 0 ? ` 🔴 ${state.tempCrit} crit` : ''}`);
+  if (state.tempAvg != null) lines.push(`Temp moy : ${state.tempAvg}°C${state.tempWarn > 0 ? ` ${state.tempWarn} warn` : ''}${state.tempCrit > 0 ? ` ${state.tempCrit} crit` : ''}`);
   lines.push(`Containers : ${state.containersRunning} actifs`);
   return { title: 'Rapport Unraid', message: lines.join('\n') };
 }

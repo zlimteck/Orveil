@@ -75,21 +75,21 @@ async function check(config, lastState) {
 
     const notifications = [];
     if (!wasOnline) notifications.push({
-      title: `🟢 SSH ${host} — Connecté`,
+      title: `SSH ${host} — Connecté`,
       message: `Uptime : ${metrics.uptime || '—'}`,
       level: 'success', type: 'status_change',
     });
     if (lastState && metrics.cpuPct > 90 && (lastState.cpuPct ?? 0) <= 90)
-      notifications.push({ title: `⚠️ CPU élevé — ${host}`, message: `CPU à ${metrics.cpuPct}%`, level: 'warning', type: 'status_change' });
+      notifications.push({ title: `CPU élevé — ${host}`, message: `CPU à ${metrics.cpuPct}%`, level: 'warning', type: 'status_change' });
     if (lastState && metrics.memPct > 90 && (lastState.memPct ?? 0) <= 90)
-      notifications.push({ title: `⚠️ RAM élevée — ${host}`, message: `RAM à ${metrics.memPct}%`, level: 'warning', type: 'status_change' });
+      notifications.push({ title: `RAM élevée — ${host}`, message: `RAM à ${metrics.memPct}%`, level: 'warning', type: 'status_change' });
     if (lastState && metrics.diskPct > 90 && (lastState.diskPct ?? 0) <= 90)
-      notifications.push({ title: `⚠️ Disque plein — ${host}`, message: `Disque à ${metrics.diskPct}%`, level: 'warning', type: 'status_change' });
+      notifications.push({ title: `Disque plein — ${host}`, message: `Disque à ${metrics.diskPct}%`, level: 'warning', type: 'status_change' });
 
     return { status: 'online', state: metrics, metrics, notifications };
   } catch (err) {
     const notifications = wasOnline ? [{
-      title: `🔴 SSH ${host} — Connexion échouée`,
+      title: `SSH ${host} — Connexion échouée`,
       message: err.message,
       level: 'error', type: 'status_change',
     }] : [];
@@ -98,10 +98,10 @@ async function check(config, lastState) {
 }
 
 async function report(config, state) {
-  if (!state) return { title: `🔒 SSH ${config.host}`, message: 'Inaccessible.' };
+  if (!state) return { title: `SSH ${config.host}`, message: 'Inaccessible.' };
   const cpu = state.cpuPct != null ? `\nCPU : ${state.cpuPct}%` : '';
   return {
-    title: `🔒 Rapport SSH — ${state.host}`,
+    title: `Rapport SSH — ${state.host}`,
     message: `Uptime : ${state.uptime || '—'}${cpu}\nRAM : ${state.memUsed}/${state.memTotal} MB (${state.memPct}%)\nDisque : ${state.diskUsed}/${state.diskSize} (${state.diskPct}%)`,
   };
 }

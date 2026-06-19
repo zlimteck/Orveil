@@ -51,12 +51,12 @@ async function check(config, lastState) {
         data = await fetchData(accessToken);
       } catch (e) {
         return { status: 'error', state: null, metrics: null, configUpdate: null, notifications: [
-          { title: '❌ AdGuard — Token invalide', message: `Impossible de rafraîchir le token: ${e.message}`, level: 'error', type: 'error' }
+          { title: 'AdGuard — Token invalide', message: `Impossible de rafraîchir le token: ${e.message}`, level: 'error', type: 'error' }
         ]};
       }
     } else {
       return { status: 'error', state: lastState, metrics: null, configUpdate: null, notifications: [
-        { title: '❌ AdGuard — Erreur API', message: err.message, level: 'error', type: 'error' }
+        { title: 'AdGuard — Erreur API', message: err.message, level: 'error', type: 'error' }
       ]};
     }
   }
@@ -66,13 +66,13 @@ async function check(config, lastState) {
   if (lastState !== null) {
     if (!data.protection_enabled && lastState.protection_enabled) {
       notifications.push({
-        title: '⚠️ AdGuard DNS — Protection désactivée',
+        title: 'AdGuard DNS — Protection désactivée',
         message: `La protection DNS AdGuard a été désactivée sur le serveur "${data.server_name}".`,
         level: 'warning', type: 'status_change',
       });
     } else if (data.protection_enabled && lastState.protection_enabled === false) {
       notifications.push({
-        title: '✅ AdGuard DNS — Protection réactivée',
+        title: 'AdGuard DNS — Protection réactivée',
         message: `La protection DNS AdGuard est de nouveau active sur "${data.server_name}".`,
         level: 'success', type: 'status_change',
       });
@@ -92,18 +92,18 @@ async function check(config, lastState) {
 }
 
 async function report(config, state) {
-  if (!state) return { title: '📊 AdGuard DNS', message: 'Aucune donnée disponible.' };
-  const prot = state.protection_enabled ? '✅ Activée' : '❌ Désactivée';
+  if (!state) return { title: 'AdGuard DNS', message: 'Aucune donnée disponible.' };
+  const prot = state.protection_enabled ? 'Activée' : 'Désactivée';
   const pct = state.limit_requests ? Math.round((state.used_requests / state.limit_requests) * 100) : 0;
-  const msg = `📊 Rapport AdGuard DNS — ${state.server_name}
+  const msg = `Rapport AdGuard DNS — ${state.server_name}
 
-🛡️ Protection : ${prot}
-📋 Règles utilisateur : ${state.user_rules_count}
-📝 Listes de filtres : ${state.filter_list_count}
-📱 Appareils : ${state.devices}
-📈 Requêtes : ${state.used_requests} / ${state.limit_requests} (${pct}%)`;
+Protection : ${prot}
+Règles utilisateur : ${state.user_rules_count}
+Listes de filtres : ${state.filter_list_count}
+Appareils : ${state.devices}
+Requêtes : ${state.used_requests} / ${state.limit_requests} (${pct}%)`;
 
-  return { title: '📊 Rapport AdGuard DNS', message: msg };
+  return { title: 'Rapport AdGuard DNS', message: msg };
 }
 
 module.exports = { check, report };

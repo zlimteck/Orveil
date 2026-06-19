@@ -84,13 +84,13 @@ async function check(config, lastState) {
       const wasHealthy = prev.status === 'active' || prev.status === 'healthy';
       if (isHealthy && !wasHealthy) {
         notifications.push({
-          title: `✅ Tunnel rétabli — ${tunnel.name}`,
+          title: `Tunnel rétabli — ${tunnel.name}`,
           message: `Le tunnel Cloudflare "${tunnel.name}" est de nouveau actif.`,
           level: 'success', type: 'status_change',
         });
       } else if (!isHealthy && wasHealthy) {
         notifications.push({
-          title: `❌ Tunnel hors ligne — ${tunnel.name}`,
+          title: `Tunnel hors ligne — ${tunnel.name}`,
           message: `Le tunnel Cloudflare "${tunnel.name}" est hors ligne (status: ${tunnel.status}).`,
           level: 'error', type: 'status_change',
         });
@@ -102,7 +102,7 @@ async function check(config, lastState) {
     for (const prevId of Object.keys(prevMap)) {
       if (!currentTunnelMap[prevId]) {
         notifications.push({
-          title: `⚠️ Tunnel disparu — ${prevMap[prevId].name}`,
+          title: `Tunnel disparu — ${prevMap[prevId].name}`,
           message: `Le tunnel "${prevMap[prevId].name}" n'est plus visible.`,
           level: 'warning', type: 'status_change',
         });
@@ -125,15 +125,14 @@ async function check(config, lastState) {
 
 async function report(config, state) {
   const tunnels = state?.tunnels || [];
-  let msg = `🌐 Rapport Cloudflare — ${tunnels.length} tunnel(s) actif(s)\n`;
+  let msg = `Rapport Cloudflare — ${tunnels.length} tunnel(s) actif(s)\n`;
   for (const t of tunnels) {
-    const icon = (t.status === 'active' || t.status === 'healthy') ? '✅' : '❌';
-    msg += `\n${icon} ${t.name}`;
+    msg += `\n${t.name} (${t.status})`;
     if (t.hostnames?.length) {
       msg += '\n' + t.hostnames.map(h => `  └ ${h}`).join('\n');
     }
   }
-  return { title: '🌐 Rapport Cloudflare', message: msg };
+  return { title: 'Rapport Cloudflare', message: msg };
 }
 
 module.exports = { check, report };

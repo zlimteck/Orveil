@@ -60,7 +60,7 @@ async function check(config, lastState) {
 async function report(config, state) {
   if (!state) return { title: 'Docker', message: 'Aucune donnée.' };
   const lines = (state.containers || [])
-    .map(c => `${c.state === 'running' ? '✅' : '⛔'} ${c.name}`)
+    .map(c => `${c.name} (${c.state})`)
     .join('\n');
   return {
     title: 'Rapport Docker',

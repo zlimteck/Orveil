@@ -36,12 +36,12 @@ async function check(config, lastState) {
   const notifications = [];
   if (lastState !== null) {
     if (!online && wasOnline) notifications.push({
-      title: `🔴 ${host} inaccessible`,
+      title: `${host} inaccessible`,
       message: `Port ${port} injoignable (${attempts}/${attempts} échecs)`,
       level: 'error', type: 'status_change',
     });
     if (online && !wasOnline) notifications.push({
-      title: `🟢 ${host} de retour`,
+      title: `${host} de retour`,
       message: `Latence : ${latency}ms — Port ${port}`,
       level: 'success', type: 'status_change',
     });
@@ -59,9 +59,9 @@ async function check(config, lastState) {
 
 async function report(config, state) {
   const msg = state
-    ? `🏓 ${state.host}:${state.port}\nLatence : ${state.latency ?? '—'}ms — Perte : ${state.loss}%`
+    ? `${state.host}:${state.port}\nLatence : ${state.latency ?? '—'}ms — Perte : ${state.loss}%`
     : 'Aucune donnée.';
-  return { title: `🏓 Rapport Ping — ${config.host}`, message: msg };
+  return { title: `Rapport Ping — ${config.host}`, message: msg };
 }
 
 module.exports = { check, report };

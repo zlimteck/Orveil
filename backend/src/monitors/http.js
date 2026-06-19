@@ -122,12 +122,12 @@ async function check(config, lastState) {
   const notifications = [];
   if (lastState !== null) {
     if (!ok && wasOk) notifications.push({
-      title: `🔴 ${url} — Hors ligne`,
+      title: `${url} — Hors ligne`,
       message: errMsg || 'Service inaccessible',
       level: 'error', type: 'status_change',
     });
     if (ok && !wasOk) notifications.push({
-      title: `🟢 ${url} — De retour`,
+      title: `${url} — De retour`,
       message: `Temps de réponse : ${responseTime}ms`,
       level: 'success', type: 'status_change',
     });
@@ -137,13 +137,13 @@ async function check(config, lastState) {
       const prevDays = lastState?.sslDaysLeft;
       if (sslInfo.daysLeft <= 0 && (prevDays === undefined || prevDays > 0)) {
         notifications.push({
-          title: `🔒 SSL expiré — ${parsedUrl?.hostname}`,
+          title: `SSL expiré — ${parsedUrl?.hostname}`,
           message: `Le certificat TLS a expiré.`,
           level: 'error', type: 'ssl_expiry',
         });
       } else if (sslInfo.daysLeft <= sslAlertDays && (prevDays === undefined || prevDays > sslAlertDays)) {
         notifications.push({
-          title: `⚠️ SSL expire bientôt — ${parsedUrl?.hostname}`,
+          title: `SSL expire bientôt — ${parsedUrl?.hostname}`,
           message: `Le certificat expire dans ${sslInfo.daysLeft} jour(s).`,
           level: 'warning', type: 'ssl_expiry',
         });
@@ -166,9 +166,9 @@ async function check(config, lastState) {
 async function report(config, state) {
   const { url } = config;
   const msg = state?.ok
-    ? `✅ ${url}\nStatut : ${state.statusCode} — ${state.responseTime}ms`
-    : `❌ ${url}\n${state?.errMsg || 'Inaccessible'}`;
-  return { title: `🌐 Rapport HTTP — ${url}`, message: msg };
+    ? `${url}\nStatut : ${state.statusCode} — ${state.responseTime}ms`
+    : `${url}\n${state?.errMsg || 'Inaccessible'}`;
+  return { title: `Rapport HTTP — ${url}`, message: msg };
 }
 
 module.exports = { check, report };

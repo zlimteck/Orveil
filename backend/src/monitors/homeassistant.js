@@ -68,7 +68,7 @@ async function check(config, lastState) {
 
     if (!wasOnline) {
       notifications.push({
-        title: '🟢 Home Assistant — En ligne',
+        title: 'Home Assistant — En ligne',
         message: `${url}${version ? ` · v${version}` : ''}`,
         level: 'success', type: 'status_change',
       });
@@ -80,13 +80,13 @@ async function check(config, lastState) {
         const prev = lastState.entityStates.find(e => e.entity_id === entity.entity_id);
         if (entity.state === 'unavailable' && prev && prev.state !== 'unavailable') {
           notifications.push({
-            title: `⚠️ Home Assistant — Entité indisponible`,
+            title: `Home Assistant — Entité indisponible`,
             message: `${entity.friendly_name} (${entity.entity_id}) est unavailable`,
             level: 'warning', type: 'status_change',
           });
         } else if (entity.state !== 'unavailable' && prev?.state === 'unavailable') {
           notifications.push({
-            title: `✅ Home Assistant — Entité restaurée`,
+            title: `Home Assistant — Entité restaurée`,
             message: `${entity.friendly_name} (${entity.entity_id}) : ${entity.state}${entity.unit ? ` ${entity.unit}` : ''}`,
             level: 'success', type: 'status_change',
           });
@@ -98,7 +98,7 @@ async function check(config, lastState) {
     return { status: hasUnavailable ? 'warning' : 'online', state: metrics, metrics, notifications };
   } catch (err) {
     const notifications = wasOnline ? [{
-      title: `🔴 Home Assistant — Inaccessible`,
+      title: `Home Assistant — Inaccessible`,
       message: `${url} · ${err.message}`,
       level: 'error', type: 'status_change',
     }] : [];
@@ -107,12 +107,12 @@ async function check(config, lastState) {
 }
 
 async function report(config, state) {
-  if (!state) return { title: '🏠 Home Assistant', message: 'Inaccessible.' };
+  if (!state) return { title: 'Home Assistant', message: 'Inaccessible.' };
   const lines = state.entityStates?.map(e =>
     `${e.friendly_name} : ${e.state}${e.unit ? ` ${e.unit}` : ''}`
   ) || [];
   return {
-    title: `🏠 Rapport Home Assistant${state.version ? ` v${state.version}` : ''}`,
+    title: `Rapport Home Assistant${state.version ? ` v${state.version}` : ''}`,
     message: lines.length ? lines.join('\n') : 'Aucune entité configurée.',
   };
 }

@@ -46,7 +46,7 @@ router.post('/mcp/regenerate', async (req, res) => {
 router.post('/test', async (req, res) => {
   try {
     const sent = await sendNotification({
-      title: '✅ Test NotifHub',
+      title: 'Test NotifHub',
       message: 'La notification de test a bien été reçue !',
       level: 'info',
       type: 'test',

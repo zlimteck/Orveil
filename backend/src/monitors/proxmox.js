@@ -53,9 +53,9 @@ async function check(config, lastState) {
     const notifications = [];
     if (lastState) {
       if (cpuPct > 90 && (lastState.cpuPct ?? 0) <= 90)
-        notifications.push({ title: `⚠️ CPU Proxmox élevé`, message: `CPU à ${cpuPct}% sur ${node}`, level: 'warning', type: 'status_change' });
+        notifications.push({ title: `CPU Proxmox élevé`, message: `CPU à ${cpuPct}% sur ${node}`, level: 'warning', type: 'status_change' });
       if (memPct > 90 && (lastState.memPct ?? 0) <= 90)
-        notifications.push({ title: `⚠️ RAM Proxmox saturée`, message: `RAM à ${memPct}% sur ${node}`, level: 'warning', type: 'status_change' });
+        notifications.push({ title: `RAM Proxmox saturée`, message: `RAM à ${memPct}% sur ${node}`, level: 'warning', type: 'status_change' });
     }
 
     const state = { cpuPct, memPct, vmRunning, lxcRunning };
@@ -69,15 +69,15 @@ async function check(config, lastState) {
     return { status: 'online', state, metrics, notifications };
   } catch (err) {
     return { status: 'error', state: lastState, metrics: null, notifications: [
-      { title: '❌ Proxmox — Erreur API', message: err.message, level: 'error', type: 'error' }
+      { title: 'Proxmox — Erreur API', message: err.message, level: 'error', type: 'error' }
     ]};
   }
 }
 
 async function report(config, state) {
-  if (!state) return { title: '🖥️ Proxmox', message: 'Aucune donnée.' };
+  if (!state) return { title: 'Proxmox', message: 'Aucune donnée.' };
   return {
-    title: `🖥️ Rapport Proxmox — ${config.node || 'pve'}`,
+    title: `Rapport Proxmox — ${config.node || 'pve'}`,
     message: `CPU : ${state.cpuPct}% | RAM : ${state.memPct}%\nVMs : ${state.vmRunning} actives | LXC : ${state.lxcRunning} actifs`,
   };
 }

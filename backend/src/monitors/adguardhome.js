@@ -48,7 +48,7 @@ async function check(config, lastState) {
 
     if (!wasOnline) {
       notifications.push({
-        title: `🟢 AdGuard Home — En ligne`,
+        title: `AdGuard Home — En ligne`,
         message: `${url} · ${totalQueries} requêtes · ${blockedPct}% bloquées`,
         level: 'success', type: 'status_change',
       });
@@ -57,13 +57,13 @@ async function check(config, lastState) {
     if (lastState !== null) {
       if (!protectionEnabled && lastState.protectionEnabled !== false) {
         notifications.push({
-          title: '⚠️ AdGuard Home — Protection désactivée',
+          title: 'AdGuard Home — Protection désactivée',
           message: `La protection DNS a été désactivée sur ${url}`,
           level: 'warning', type: 'status_change',
         });
       } else if (protectionEnabled && lastState.protectionEnabled === false) {
         notifications.push({
-          title: '✅ AdGuard Home — Protection réactivée',
+          title: 'AdGuard Home — Protection réactivée',
           message: `La protection DNS est de nouveau active sur ${url}`,
           level: 'success', type: 'status_change',
         });
@@ -74,7 +74,7 @@ async function check(config, lastState) {
     return { status: serviceStatus, state: metrics, metrics, notifications };
   } catch (err) {
     const notifications = wasOnline ? [{
-      title: `🔴 AdGuard Home — Inaccessible`,
+      title: `AdGuard Home — Inaccessible`,
       message: `${url} · ${err.message}`,
       level: 'error', type: 'status_change',
     }] : [];
@@ -83,10 +83,10 @@ async function check(config, lastState) {
 }
 
 async function report(config, state) {
-  if (!state) return { title: '🛡️ AdGuard Home', message: 'Inaccessible.' };
-  const prot = state.protectionEnabled ? '✅ Active' : '❌ Désactivée';
+  if (!state) return { title: 'AdGuard Home', message: 'Inaccessible.' };
+  const prot = state.protectionEnabled ? 'Active' : 'Désactivée';
   return {
-    title: `🛡️ Rapport AdGuard Home`,
+    title: `Rapport AdGuard Home`,
     message: `Protection : ${prot}\nRequêtes : ${state.totalQueries}\nBloquées : ${state.blocked} (${state.blockedPct}%)\nSafebrowsing : ${state.safebrowsing}\nParental : ${state.parental}`,
   };
 }

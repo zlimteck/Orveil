@@ -70,16 +70,16 @@ throw new Error(`URL incorrecte (HTML reçu, status ${endpointsRes.status}) — 
     return { status, state, metrics, notifications: [] };
   } catch (err) {
     return { status: 'error', state: lastState, metrics: null, notifications: [
-      { title: '❌ Portainer — Erreur API', message: err.message, level: 'error', type: 'error' }
+      { title: 'Portainer — Erreur API', message: err.message, level: 'error', type: 'error' }
     ]};
   }
 }
 
 async function report(config, state) {
-  if (!state) return { title: '🐳 Portainer', message: 'Aucune donnée.' };
+  if (!state) return { title: 'Portainer', message: 'Aucune donnée.' };
   return {
-    title: '🐳 Rapport Portainer',
-    message: `Environnements : ${state.environments}\n✅ Containers actifs : ${state.containersRunning}\n⛔ Arrêtés : ${state.containersStopped}`,
+    title: 'Rapport Portainer',
+    message: `Environnements : ${state.environments}\nContainers actifs : ${state.containersRunning}\nArrêtés : ${state.containersStopped}`,
   };
 }
 

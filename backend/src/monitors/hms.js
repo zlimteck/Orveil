@@ -60,14 +60,14 @@ async function check(config, lastState) {
       if (prev) {
         if (vps.cpu > 90 && prev.cpu <= 90) {
           notifications.push({
-            title: `⚠️ CPU élevé — ${vps.name}`,
+            title: `CPU élevé — ${vps.name}`,
             message: `CPU à ${vps.cpu}% sur ${vps.name} (${vps.ipv4 || vps.id})`,
             level: 'warning', type: 'status_change',
           });
         }
         if (vps.memory_pct > 90 && prev.memory_pct <= 90) {
           notifications.push({
-            title: `⚠️ Mémoire saturée — ${vps.name}`,
+            title: `Mémoire saturée — ${vps.name}`,
             message: `RAM à ${vps.memory_pct}% sur ${vps.name} (${vps.memory_used}/${vps.max_memory} MB)`,
             level: 'warning', type: 'status_change',
           });
@@ -78,7 +78,7 @@ async function check(config, lastState) {
       const prev = prevMap[err.id];
       if (prev && !prev.error) {
         notifications.push({
-          title: `❌ VPS inaccessible — ${err.name}`,
+          title: `VPS inaccessible — ${err.name}`,
           message: err.error,
           level: 'error', type: 'status_change',
         });
@@ -103,15 +103,15 @@ async function check(config, lastState) {
 
 async function report(config, state) {
   const vpsList = state?.vps || [];
-  let msg = `🖥️ Rapport VPS — ${vpsList.length} serveur(s)\n`;
+  let msg = `Rapport VPS — ${vpsList.length} serveur(s)\n`;
   for (const v of vpsList) {
-    msg += `\n🖥️ ${v.name} (${v.ipv4 || v.id})`;
+    msg += `\n${v.name} (${v.ipv4 || v.id})`;
     msg += `\n  État: ${v.state} | ${v.vcores} vCore | ${v.ram_gb} GB RAM | ${v.datacenter || ''}`;
   }
   if (state?.errors?.length) {
-    msg += `\n\n❌ Erreurs: ${state.errors.map(e => e.name).join(', ')}`;
+    msg += `\n\nErreurs: ${state.errors.map(e => e.name).join(', ')}`;
   }
-  return { title: '🖥️ Rapport VPS HMS', message: msg };
+  return { title: 'Rapport VPS HMS', message: msg };
 }
 
 module.exports = { check, report };

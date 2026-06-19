@@ -79,7 +79,7 @@ async function check(config, lastState) {
     }
   } catch (err) {
     return { status: 'error', state: lastState, metrics: null, notifications: [
-      { title: '❌ Syncthing — Erreur API', message: err.message, level: 'error', type: 'error' }
+      { title: 'Syncthing — Erreur API', message: err.message, level: 'error', type: 'error' }
     ]};
   }
 
@@ -104,13 +104,13 @@ async function check(config, lastState) {
       if (prev) {
         if (!dev.connected && prev.connected) {
           notifications.push({
-            title: `⚠️ Syncthing — Appareil déconnecté`,
+            title: `Syncthing — Appareil déconnecté`,
             message: `"${dev.name}" s'est déconnecté de Syncthing.`,
             level: 'warning', type: 'status_change',
           });
         } else if (dev.connected && !prev.connected) {
           notifications.push({
-            title: `✅ Syncthing — Appareil reconnecté`,
+            title: `Syncthing — Appareil reconnecté`,
             message: `"${dev.name}" est de nouveau connecté.`,
             level: 'success', type: 'status_change',
           });
@@ -122,7 +122,7 @@ async function check(config, lastState) {
       const prevF = lastState?.folders?.find(f => f.id === folder.id);
       if (prevF && folder.state === 'error' && prevF.state !== 'error') {
         notifications.push({
-          title: `❌ Syncthing — Erreur dossier`,
+          title: `Syncthing — Erreur dossier`,
           message: `Le dossier "${folder.label}" est en erreur.`,
           level: 'error', type: 'status_change',
         });
@@ -148,26 +148,26 @@ async function check(config, lastState) {
 }
 
 async function report(config, state) {
-  if (!state) return { title: '🔄 Syncthing', message: 'Aucune donnée disponible.' };
+  if (!state) return { title: 'Syncthing', message: 'Aucune donnée disponible.' };
 
   const devLines = (state.devices || []).map(d =>
-    `${d.connected ? '✅' : '❌'} ${d.name}`
+    `${d.name} (${d.connected ? 'connecté' : 'déconnecté'})`
   ).join('\n');
 
   const folderLines = (state.folders || []).map(f => {
     const synced = f.needBytes === 0 && f.state !== 'error';
-    return `${synced ? '✅' : '⚠️'} ${f.label} — ${f.state} (${f.inSyncFiles}/${f.globalFiles} fichiers)`;
+    return `${f.label} — ${f.state} (${f.inSyncFiles}/${f.globalFiles} fichiers)`;
   }).join('\n');
 
-  const msg = `🔄 Rapport Syncthing
+  const msg = `Rapport Syncthing
 
-📱 Appareils (${(state.devices || []).filter(d => d.connected).length}/${(state.devices || []).length} connectés) :
+Appareils (${(state.devices || []).filter(d => d.connected).length}/${(state.devices || []).length} connectés) :
 ${devLines || 'Aucun appareil'}
 
-📂 Dossiers :
+Dossiers :
 ${folderLines || 'Aucun dossier'}`;
 
-  return { title: '🔄 Rapport Syncthing', message: msg };
+  return { title: 'Rapport Syncthing', message: msg };
 }
 
 module.exports = { check, report };
