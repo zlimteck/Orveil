@@ -9,15 +9,8 @@
   [![Platform](https://img.shields.io/badge/platform-amd64%20%7C%20arm64-lightgrey?style=flat-square)](https://hub.docker.com/r/zlimteck/notifhub)
 </div>
 
-## Screenshots
+![Dashboard](docs/screenshots/01-Dashboard.png)
 
-| | |
-|---|---|
-| ![Dashboard](docs/screenshots/01-Dashboard.png) | ![Services](docs/screenshots/02-Services.png) |
-| ![Notifications](docs/screenshots/03-Notications.png) | ![New service](docs/screenshots/04-NewServices.png) |
-| ![Incidents](docs/screenshots/05-Incidents.png) | ![Statistics](docs/screenshots/06-Statistiques.png) |
-| ![Settings](docs/screenshots/07-Settings.png) | ![API](docs/screenshots/08-Api.png) |
-| ![Public status page](docs/screenshots/09-PublicStatusPage.png) | |
 
 ## Features
 
