@@ -178,8 +178,21 @@ The same API key also works as a Bearer token on all `/api` REST endpoints.
 | `MONGO_USER` | `notifhub` | MongoDB username |
 | `MONGO_PASS` | `notifhub_pass` | MongoDB password |
 | `JWT_SECRET` | `notifhub-change-me-in-production` | JWT signing secret — **change this** |
+| `ENCRYPTION_KEY` | *(none)* | AES-256-GCM key for encrypting sensitive monitor credentials at rest — **strongly recommended** |
 | `ADMIN_USERNAME` | `admin` | Admin account username |
 | `ADMIN_PASSWORD` | `notifhub` | Admin account password — **change this** |
+
+### Setting up encryption at rest
+
+Generate a key and add it to your `.env`:
+
+```bash
+echo "ENCRYPTION_KEY=$(openssl rand -hex 32)" >> .env
+```
+
+When set, all sensitive monitor fields (API keys, tokens, passwords, private keys) are encrypted in the database using AES-256-GCM before being stored. The encryption is transparent — credentials are decrypted automatically at runtime.
+
+> **Note:** If you add `ENCRYPTION_KEY` to an existing deployment, credentials saved before that point remain in plaintext until you re-save each monitor. New monitors and any monitor you edit after setting the key will be encrypted automatically.
 
 ## License
 

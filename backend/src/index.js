@@ -49,6 +49,10 @@ async function initAdmin() {
   }
 }
 
+if (!process.env.ENCRYPTION_KEY) {
+  console.warn('[Crypto] ⚠️  ENCRYPTION_KEY non définie — les tokens/mots de passe sont stockés en clair.');
+}
+
 connectDB().then(async () => {
   await initAdmin();
   app.listen(PORT, () => console.log(`Backend NotifHub sur :${PORT}`));

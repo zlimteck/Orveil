@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { encryptConfig, decryptConfig } = require('../utils/crypto');
 
 const monitorSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -23,5 +24,34 @@ const monitorSchema = new mongoose.Schema({
   serviceUrl: { type: String, default: '' },
   showOnStatusPage: { type: Boolean, default: true },
 }, { timestamps: true });
+
+// Encrypt sensitive config fields before any save
+monitorSchema.pre('save', function (next) {
+  if (this.isModified('config') && this.config) {
+    this.config = encryptConfig(this.config);
+  }
+  next();
+});
+
+// Encrypt when using findByIdAndUpdate / findOneAndUpdate
+monitorSchema.pre('findOneAndUpdate', function () {
+  const update = this.getUpdate();
+  const cfg = update?.config ?? update?.$set?.config;
+  if (cfg) {
+    const encrypted = encryptConfig(cfg);
+    if (update.config)      update.config          = encrypted;
+    if (update.$set?.config) update.$set.config     = encrypted;
+  }
+});
+
+// Decrypt after any document is loaded from DB
+monitorSchema.post('init', function () {
+  if (this.config) this.config = decryptConfig(this.config);
+});
+
+// Decrypt the document returned by findOneAndUpdate
+monitorSchema.post('findOneAndUpdate', function (doc) {
+  if (doc?.config) doc.config = decryptConfig(doc.config);
+});
 
 module.exports = mongoose.model('Monitor', monitorSchema);
