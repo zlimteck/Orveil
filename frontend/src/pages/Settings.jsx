@@ -55,7 +55,7 @@ function ChangePassword() {
 export default function Settings() {
   const { t } = useLang();
   const toast = useToast();
-  const [form, setForm] = useState({ appriseUrls: [], appriseApiUrl: 'http://apprise:8000', weeklyReport: { enabled: false, dayOfWeek: 1, hour: 8 }, showGraphs: true, statusPage: { title: '' } });
+  const [form, setForm] = useState({ appriseUrls: [], appriseApiUrl: 'http://apprise:8000', weeklyReport: { enabled: false, dayOfWeek: 1, hour: 8 }, showGraphs: true, statusPage: { title: '', description: '', logoUrl: '', accentColor: '', footerText: '' } });
   const [urlsText, setUrlsText] = useState('');
   const [testing, setTesting] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -70,7 +70,7 @@ export default function Settings() {
           appriseApiUrl: s.appriseApiUrl || 'http://apprise:8000',
           weeklyReport: s.weeklyReport || { enabled: false, dayOfWeek: 1, hour: 8 },
           showGraphs: s.showGraphs !== false,
-          statusPage: s.statusPage || { title: '' },
+          statusPage: s.statusPage || { title: '', description: '', logoUrl: '', accentColor: '', footerText: '' },
         });
         setUrlsText((s.appriseUrls || []).join('\n'));
         setMcpApiKey(s.mcpApiKey || '');
@@ -245,11 +245,50 @@ export default function Settings() {
           <Globe size={14} className="text-periwinkle" /> {t('settings.statusPage.title')}
         </h2>
         <p className="text-xs text-muted">{t('settings.statusPage.hint')}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="label">{t('settings.statusPage.pageTitle')}</label>
+            <input className="input" value={form.statusPage?.title || ''}
+              placeholder="System Status"
+              onChange={e => setForm(f => ({ ...f, statusPage: { ...f.statusPage, title: e.target.value } }))} />
+          </div>
+          <div>
+            <label className="label">{t('settings.statusPage.accentColor')}</label>
+            <div className="flex gap-2 items-center">
+              <input
+                type="color"
+                value={form.statusPage?.accentColor || '#60a5fa'}
+                onChange={e => setForm(f => ({ ...f, statusPage: { ...f.statusPage, accentColor: e.target.value } }))}
+                className="h-9 w-12 rounded-lg border border-border bg-surface cursor-pointer p-0.5"
+              />
+              <input className="input flex-1" value={form.statusPage?.accentColor || ''}
+                placeholder="#60a5fa"
+                onChange={e => setForm(f => ({ ...f, statusPage: { ...f.statusPage, accentColor: e.target.value } }))} />
+              {form.statusPage?.accentColor && (
+                <button type="button" onClick={() => setForm(f => ({ ...f, statusPage: { ...f.statusPage, accentColor: '' } }))}
+                  className="text-muted hover:text-thistle text-xs shrink-0">✕</button>
+              )}
+            </div>
+          </div>
+        </div>
         <div>
-          <label className="label">{t('settings.statusPage.pageTitle')}</label>
-          <input className="input" value={form.statusPage?.title || ''}
-            placeholder="System Status"
-            onChange={e => setForm(f => ({ ...f, statusPage: { ...f.statusPage, title: e.target.value } }))} />
+          <label className="label">{t('settings.statusPage.pageDescription')}</label>
+          <input className="input" value={form.statusPage?.description || ''}
+            placeholder="All systems operational"
+            onChange={e => setForm(f => ({ ...f, statusPage: { ...f.statusPage, description: e.target.value } }))} />
+        </div>
+        <div>
+          <label className="label">{t('settings.statusPage.logoUrl')}</label>
+          <input className="input" value={form.statusPage?.logoUrl || ''}
+            placeholder="https://example.com/logo.png"
+            onChange={e => setForm(f => ({ ...f, statusPage: { ...f.statusPage, logoUrl: e.target.value } }))} />
+          <p className="text-xs text-muted mt-1">{t('settings.statusPage.logoUrlHint')}</p>
+        </div>
+        <div>
+          <label className="label">{t('settings.statusPage.footerText')}</label>
+          <input className="input" value={form.statusPage?.footerText || ''}
+            placeholder="Powered by Acme Inc."
+            onChange={e => setForm(f => ({ ...f, statusPage: { ...f.statusPage, footerText: e.target.value } }))} />
         </div>
         <div className="bg-granite-3/60 border border-border rounded-xl px-3 py-2 flex items-center gap-2 text-xs">
           <Globe size={12} className="text-muted shrink-0" />

@@ -24,7 +24,13 @@ router.put('/', async (req, res) => {
     update['weeklyReport.hour']      = weeklyReport.hour      ?? 8;
   }
   if (showGraphs !== undefined) update.showGraphs = showGraphs;
-  if (statusPage !== undefined) update['statusPage.title'] = statusPage.title ?? '';
+  if (statusPage !== undefined) {
+    update['statusPage.title']       = statusPage.title       ?? '';
+    update['statusPage.description'] = statusPage.description ?? '';
+    update['statusPage.logoUrl']     = statusPage.logoUrl     ?? '';
+    update['statusPage.accentColor'] = statusPage.accentColor ?? '';
+    update['statusPage.footerText']  = statusPage.footerText  ?? '';
+  }
   const s = await Settings.findOneAndUpdate(
     { key: 'global' },
     update,

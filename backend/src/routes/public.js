@@ -12,7 +12,12 @@ router.get('/status', async (req, res) => {
       Settings.findOne({ key: 'global' }, 'statusPage').lean(),
     ]);
 
-    const title = settings?.statusPage?.title || 'System Status';
+    const sp = settings?.statusPage || {};
+    const title       = sp.title       || 'System Status';
+    const description = sp.description || '';
+    const logoUrl     = sp.logoUrl     || '';
+    const accentColor = sp.accentColor || '';
+    const footerText  = sp.footerText  || '';
 
     const now = Date.now();
     const since24h = new Date(now - 24 * 3600 * 1000);
@@ -74,7 +79,7 @@ router.get('/status', async (req, res) => {
     ]);
 
     res.json({
-      title,
+      title, description, logoUrl, accentColor, footerText,
       monitors: safeMonitors,
       openIncidents,
       recentIncidents: resolvedIncidents,

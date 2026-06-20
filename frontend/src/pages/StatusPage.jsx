@@ -3,7 +3,7 @@ import { publicStatus } from '../api';
 import { useLang } from '../context/LangContext';
 import ServiceIcon from '../components/ServiceIcon';
 
-function UptimeBar({ days }) {
+function UptimeBar({ days, accent }) {
   if (!days?.length) return null;
   return (
     <div className="flex gap-px" style={{ height: 24 }}>
@@ -13,33 +13,48 @@ function UptimeBar({ days }) {
           title={uptime != null ? `${uptime}%` : '–'}
           className={`flex-1 rounded-sm ${
             uptime == null ? 'bg-granite/30' :
-            uptime >= 99   ? 'bg-celadon/60' :
-            uptime >= 90   ? 'bg-amber-400/60' :
+            uptime >= 90   ? '' :
+            uptime >= 75   ? 'bg-amber-400/60' :
             'bg-red-400/60'
           }`}
+          style={uptime != null && uptime >= 90 ? { backgroundColor: accent ? `${accent}99` : 'rgb(52 211 153 / 0.6)' } : undefined}
         />
       ))}
     </div>
   );
 }
 
-function StatusDot({ status }) {
+function StatusDot({ status, accent }) {
+  const isOnline = status === 'online';
   const cls =
-    status === 'online'  ? 'bg-celadon' :
     status === 'warning' ? 'bg-amber-400' :
     ['error', 'offline'].includes(status) ? 'bg-red-400' :
+    isOnline ? (accent ? '' : 'bg-celadon') :
     'bg-granite';
-  return <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${cls}`} />;
+  return (
+    <span
+      className={`inline-block w-2 h-2 rounded-full shrink-0 ${cls}`}
+      style={isOnline && accent ? { backgroundColor: accent } : undefined}
+    />
+  );
 }
 
-function StatusLabel({ status, t }) {
+function StatusLabel({ status, t, accent }) {
+  const isOnline = status === 'online';
   const cls =
-    status === 'online'  ? 'text-celadon' :
     status === 'warning' ? 'text-amber-400' :
     ['error','offline'].includes(status) ? 'text-red-400' :
+    isOnline ? (accent ? '' : 'text-celadon') :
     'text-muted';
   const key = ['error','offline'].includes(status) ? status : (status || 'unknown');
-  return <span className={`text-xs font-medium ${cls}`}>{t(`statusPage.status.${key}`)}</span>;
+  return (
+    <span
+      className={`text-xs font-medium ${cls}`}
+      style={isOnline && accent ? { color: accent } : undefined}
+    >
+      {t(`statusPage.status.${key}`)}
+    </span>
+  );
 }
 
 function duration(ms) {
@@ -105,8 +120,9 @@ export default function StatusPage() {
     </div>
   );
 
-  const { title, monitors, openIncidents, recentIncidents, updatedAt } = data;
+  const { title, description, logoUrl, accentColor, footerText, monitors, openIncidents, recentIncidents, updatedAt } = data;
   const overall = overallStatus(monitors, openIncidents);
+  const accent = accentColor || null;
 
   const bannerCls =
     overall === 'operational' ? 'border-celadon/30 bg-celadon/5' :
@@ -139,20 +155,40 @@ export default function StatusPage() {
 
   return (
     <div className="min-h-screen bg-surface">
+      {accent && <div style={{ height: 3, background: accent }} />}
       {/* Header */}
       <div className="border-b border-border">
-        <div className="max-w-3xl mx-auto px-4 py-5 flex items-center justify-between">
-          <h1 className="text-lg font-bold text-thistle">{title || 'System Status'}</h1>
-          <span className="text-xs text-muted">{t('statusPage.updatedAgo')} {timeAgo(fetchedAt)}</span>
+        <div className="max-w-3xl mx-auto px-4 py-5 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            {logoUrl && (
+              <img src={logoUrl} alt="logo" className="h-8 w-8 object-contain shrink-0 rounded" />
+            )}
+            <div className="min-w-0">
+              <h1 className="text-lg font-bold truncate" style={accent ? { color: accent } : undefined}>
+                {title || 'System Status'}
+              </h1>
+              {description && <p className="text-xs text-muted mt-0.5 truncate">{description}</p>}
+            </div>
+          </div>
+          <span className="text-xs text-muted shrink-0">{t('statusPage.updatedAgo')} {timeAgo(fetchedAt)}</span>
         </div>
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
 
         {/* Banner */}
-        <div className={`rounded-xl border px-5 py-4 flex items-center gap-3 ${bannerCls}`}>
-          <StatusDot status={overall === 'operational' ? 'online' : overall === 'degraded' ? 'warning' : 'error'} />
-          <span className={`font-semibold ${bannerTextCls}`}>{bannerLabel}</span>
+        <div
+          className={`rounded-xl border px-5 py-4 flex items-center gap-3 ${overall === 'operational' && accent ? '' : bannerCls}`}
+          style={overall === 'operational' && accent ? {
+            borderColor: `${accent}4D`,
+            backgroundColor: `${accent}0D`,
+          } : undefined}
+        >
+          <StatusDot status={overall === 'operational' ? 'online' : overall === 'degraded' ? 'warning' : 'error'} accent={accent} />
+          <span
+            className={`font-semibold ${overall === 'operational' && accent ? '' : bannerTextCls}`}
+            style={overall === 'operational' && accent ? { color: accent } : undefined}
+          >{bannerLabel}</span>
           {uptimeGlobal != null && (
             <span className="ml-auto text-xs text-muted">{uptimeGlobal}% {t('statusPage.uptimeLabel')}</span>
           )}
@@ -185,16 +221,19 @@ export default function StatusPage() {
                       <ServiceIcon type={m.type} size={16} serviceUrl={m.serviceUrl} faviconUrl={m.faviconUrl} />
                       <span className="font-medium text-sm text-thistle flex-1 truncate">{m.name}</span>
                       {m.uptime?.h24 != null && (
-                        <span className={`text-xs ${m.uptime.h24 >= 99 ? 'text-celadon' : m.uptime.h24 >= 95 ? 'text-amber-400' : 'text-red-400'}`}>
+                        <span
+                          className={`text-xs ${m.uptime.h24 >= 99 ? (accent ? '' : 'text-celadon') : m.uptime.h24 >= 95 ? 'text-amber-400' : 'text-red-400'}`}
+                          style={m.uptime.h24 >= 99 && accent ? { color: accent } : undefined}
+                        >
                           {m.uptime.h24}%
                         </span>
                       )}
-                      <StatusDot status={m.status} />
-                      <StatusLabel status={m.status} t={t} />
+                      <StatusDot status={m.status} accent={accent} />
+                      <StatusLabel status={m.status} t={t} accent={accent} />
                     </div>
                     {m.days?.length > 0 && (
                       <div className="space-y-0.5">
-                        <UptimeBar days={m.days} />
+                        <UptimeBar days={m.days} accent={accent} />
                         <div className="flex justify-between text-xs text-muted/50" style={{ fontSize: 9 }}>
                           <span>{t('statusPage.days90')}</span>
                           <span>{t('statusPage.today')}</span>
@@ -215,7 +254,7 @@ export default function StatusPage() {
             <div className="card divide-y divide-border p-0 overflow-hidden">
               {recentIncidents.map(i => (
                 <div key={i._id} className="px-4 py-3 flex items-center gap-3 text-sm">
-                  <span className="text-celadon text-xs">✓</span>
+                  <span className="text-xs" style={{ color: accent || 'rgb(52 211 153)' }}>✓</span>
                   <span className="text-thistle flex-1">{i.monitorName}</span>
                   <span className="text-muted text-xs">{t('statusPage.resolvedIn')} {duration(i.duration)}</span>
                   <span className="text-muted/50 text-xs shrink-0">
@@ -228,7 +267,7 @@ export default function StatusPage() {
         )}
 
         <p className="text-center text-xs text-muted/40 pt-2 border-t border-border">
-          {t('statusPage.poweredBy')} NotifHub
+          {footerText || `${t('statusPage.poweredBy')} NotifHub`}
         </p>
       </div>
     </div>

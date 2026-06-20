@@ -144,6 +144,11 @@ export default {
       title: 'Page de statut publique',
       hint: 'Accessible sans connexion. Partagez cette URL avec vos utilisateurs.',
       pageTitle: 'Titre de la page',
+      pageDescription: 'Description (optionnelle)',
+      logoUrl: 'URL du logo (optionnelle)',
+      logoUrlHint: 'Lien direct vers une image (PNG, SVG…)',
+      accentColor: "Couleur d'accent",
+      footerText: 'Texte de pied de page (optionnel)',
       url: 'URL publique',
     },
     weeklyReport: {

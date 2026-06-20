@@ -144,6 +144,11 @@ export default {
       title: 'Public status page',
       hint: 'Accessible without login. Share this URL with your users.',
       pageTitle: 'Page title',
+      pageDescription: 'Description (optional)',
+      logoUrl: 'Logo URL (optional)',
+      logoUrlHint: 'Direct link to an image (PNG, SVG…)',
+      accentColor: 'Accent color',
+      footerText: 'Footer text (optional)',
       url: 'Public URL',
     },
     weeklyReport: {

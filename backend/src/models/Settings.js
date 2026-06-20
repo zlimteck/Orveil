@@ -12,7 +12,11 @@ const settingsSchema = new mongoose.Schema({
   },
   showGraphs: { type: Boolean, default: true },
   statusPage: {
-    title: { type: String, default: '' },
+    title:       { type: String, default: '' },
+    description: { type: String, default: '' },
+    logoUrl:     { type: String, default: '' },
+    accentColor: { type: String, default: '' },
+    footerText:  { type: String, default: '' },
   },
   mcpApiKey: { type: String, default: () => require('crypto').randomBytes(24).toString('hex') },
 });
