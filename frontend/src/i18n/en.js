@@ -79,6 +79,7 @@ export default {
     severityBreakdown: 'By severity',
     severity: { P1: 'Critical', P2: 'High', P3: 'Medium', P4: 'Low' },
     uptimeTitle: 'Uptime per service (30d)',
+    heatmapTitle: 'Incident heatmap by hour / day (90d)',
     noData: 'No data yet',
     notifications: 'Notifications sent',
   },
@@ -271,6 +272,15 @@ export default {
     duration: 'Duration',
     ongoing: (d) => `Ongoing for ${d}`,
     severityClick: 'Click to change severity',
+    severity: {
+      P1: 'service unreachable (offline)',
+      P2: 'error response',
+      P3: 'degraded / warning',
+    },
+    warRoom: 'War room',
+    warRoomHint: 'Active incidents only · sorted by severity · auto-refresh 30s',
+    warRoomEmpty: 'All clear',
+    warRoomEmptyHint: 'No active incidents right now.',
     filters: {
       allServices: 'All services',
       allSeverities: 'All severities',

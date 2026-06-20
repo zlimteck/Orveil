@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { incidents as api } from '../api';
 import { useLang } from '../context/LangContext';
-import { AlertTriangle, CheckCircle, BellOff, Trash2, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle, BellOff, Trash2, X, Siren } from 'lucide-react';
 
 const SEVERITIES = ['P1','P2','P3','P4'];
 const SEV_STYLE = {
@@ -128,12 +128,19 @@ export default function Incidents() {
   const [filterDuration, setFilterDuration] = useState('');
   const [filterSeverity, setFilterSeverity] = useState('');
   const [sortMode, setSortMode] = useState('newest');
+  const [warRoom, setWarRoom] = useState(false);
 
-  async function load() {
+  const load = useCallback(() => {
     api.list({ limit: 500 }).then(setData).catch(() => {}).finally(() => setLoading(false));
-  }
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!warRoom) return;
+    const id = setInterval(load, 30000);
+    return () => clearInterval(id);
+  }, [warRoom, load]);
 
   async function handleAcknowledge(id) {
     await api.acknowledge(id);
@@ -189,15 +196,61 @@ export default function Incidents() {
     return result;
   }, [data, filterService, filterPeriod, filterDuration, sortMode]);
 
+  const SEV_ORDER = { P1: 0, P2: 1, P3: 2, P4: 3 };
+  const warRoomData = useMemo(() =>
+    data.filter(i => !i.resolvedAt).sort((a, b) => (SEV_ORDER[a.severity || 'P3'] ?? 3) - (SEV_ORDER[b.severity || 'P3'] ?? 3)),
+  [data]);
+
   const open = filtered.filter(i => !i.resolvedAt);
   const closed = filtered.filter(i => i.resolvedAt);
   const hasFilters = filterService || filterPeriod || filterDuration || filterSeverity || sortMode !== 'newest';
 
+  if (warRoom) {
+    return (
+      <div className="p-4 md:p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-red-400 flex items-center gap-2">
+              <Siren size={22} className="shrink-0" />
+              {t('incidents.warRoom')}
+            </h1>
+            <p className="text-xs text-muted mt-0.5">{t('incidents.warRoomHint')}</p>
+          </div>
+          <button onClick={() => setWarRoom(false)} className="btn-ghost px-3 py-1.5 rounded-lg text-xs text-muted hover:text-thistle border border-border">
+            ← {t('incidents.title')}
+          </button>
+        </div>
+
+        {warRoomData.length === 0 ? (
+          <div className="card text-center py-16">
+            <CheckCircle size={32} className="text-celadon mx-auto mb-3" />
+            <p className="text-thistle font-medium">{t('incidents.warRoomEmpty')}</p>
+            <p className="text-sm text-muted mt-1">{t('incidents.warRoomEmptyHint')}</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {warRoomData.map(i => (
+              <IncidentRow key={i._id} incident={i} onAcknowledge={handleAcknowledge} onDelete={handleDelete} onSeverityChange={handleSeverityChange} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 md:p-6 space-y-4">
-      <div>
-        <h1 className="text-xl md:text-2xl font-bold text-thistle">{t('incidents.title')}</h1>
-        <p className="text-xs md:text-sm text-muted mt-0.5">{t('incidents.subtitle')(open.length, closed.length)}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl md:text-2xl font-bold text-thistle">{t('incidents.title')}</h1>
+          <p className="text-xs md:text-sm text-muted mt-0.5">{t('incidents.subtitle')(open.length, closed.length)}</p>
+        </div>
+        {open.length > 0 && (
+          <button onClick={() => setWarRoom(true)} className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-400 bg-red-900/20 border border-red-900/40 hover:bg-red-900/30 transition-colors">
+            <Siren size={13} />
+            {t('incidents.warRoom')}
+          </button>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -254,6 +307,19 @@ export default function Incidents() {
           <option value="oldest">{t('incidents.filters.sortOldest')}</option>
           <option value="longest">{t('incidents.filters.sortLongest')}</option>
         </select>
+      </div>
+
+      <div className="flex flex-wrap gap-x-4 gap-y-1">
+        {[
+          { sev: 'P1', label: t('incidents.severity.P1'), style: SEV_STYLE.P1 },
+          { sev: 'P2', label: t('incidents.severity.P2'), style: SEV_STYLE.P2 },
+          { sev: 'P3', label: t('incidents.severity.P3'), style: SEV_STYLE.P3 },
+        ].map(({ sev, label, style }) => (
+          <span key={sev} className="flex items-center gap-1.5 text-xs text-muted">
+            <span className={`text-xs px-1.5 py-0.5 rounded border font-semibold ${style}`}>{sev}</span>
+            {label}
+          </span>
+        ))}
       </div>
 
       {loading && <p className="text-muted text-sm">{t('incidents.loading')}</p>}

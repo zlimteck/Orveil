@@ -95,12 +95,22 @@ export default function Layout() {
   useEffect(() => setSidebarOpen(false), [location.pathname]);
 
   useEffect(() => {
+    const token = localStorage.getItem('nh_token');
+
     function fetchIncidents() {
       incidentsApi.list({ open: true, limit: 100 }).then(data => setOpenIncidents(data.length)).catch(() => {});
     }
     fetchIncidents();
     const timer = setInterval(fetchIncidents, 60000);
-    return () => clearInterval(timer);
+
+    const es = new EventSource(`/api/events?token=${token}`);
+    es.addEventListener('monitor', (e) => {
+      const data = JSON.parse(e.data);
+      if (data.status === 'online') fetchIncidents();
+    });
+    es.onerror = () => {};
+
+    return () => { clearInterval(timer); es.close(); };
   }, []);
 
   const nav = [

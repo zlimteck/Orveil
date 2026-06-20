@@ -19,28 +19,41 @@ router.get('/', async (req, res) => {
     const online = monitors.filter(m => m.status === 'online').length;
     const alerting = monitors.filter(m => ['error', 'offline', 'warning'].includes(m.status)).length;
 
-    // Uptime per monitor (based on snapshots from last 30 days)
-    const since = new Date(Date.now() - 30 * 24 * 3600 * 1000);
+    // Uptime per monitor (based on snapshots from last 30 days) + 7-day trend
+    const now = Date.now();
+    const since = new Date(now - 30 * 24 * 3600 * 1000);
+    const week1 = new Date(now - 7 * 24 * 3600 * 1000);
+    const week2 = new Date(now - 14 * 24 * 3600 * 1000);
     const snapshots = await MetricSnapshot.find({ ts: { $gte: since } });
 
-    const monitorUptime = {};
-    const monitorTotal = {};
+    const monitorUptime = {}, monitorTotal = {};
+    const recentUp = {}, recentTotal = {}, priorUp = {}, priorTotal = {};
+
     for (const s of snapshots) {
       const id = s.monitorId.toString();
       monitorTotal[id] = (monitorTotal[id] || 0) + 1;
       if (s.status === 'online') monitorUptime[id] = (monitorUptime[id] || 0) + 1;
+      if (s.ts >= week1) {
+        recentTotal[id] = (recentTotal[id] || 0) + 1;
+        if (s.status === 'online') recentUp[id] = (recentUp[id] || 0) + 1;
+      } else if (s.ts >= week2) {
+        priorTotal[id] = (priorTotal[id] || 0) + 1;
+        if (s.status === 'online') priorUp[id] = (priorUp[id] || 0) + 1;
+      }
     }
 
-    const uptimeByMonitor = monitors.map(m => ({
-      id: m._id,
-      name: m.name,
-      type: m.type,
-      status: m.status,
-      enabled: m.enabled,
-      uptime: monitorTotal[m._id] > 0
-        ? Math.round((monitorUptime[m._id] || 0) / monitorTotal[m._id] * 100)
-        : null,
-    })).sort((a, b) => (a.uptime ?? 101) - (b.uptime ?? 101));
+    const uptimeByMonitor = monitors.map(m => {
+      const id = m._id.toString();
+      const uptime = monitorTotal[id] > 0
+        ? Math.round((monitorUptime[id] || 0) / monitorTotal[id] * 100)
+        : null;
+      const recentPct = recentTotal[id] > 0 ? (recentUp[id] || 0) / recentTotal[id] * 100 : null;
+      const priorPct  = priorTotal[id]  > 0 ? (priorUp[id]  || 0) / priorTotal[id]  * 100 : null;
+      const trend = recentPct != null && priorPct != null
+        ? Math.round((recentPct - priorPct) * 10) / 10
+        : null;
+      return { id: m._id, name: m.name, type: m.type, status: m.status, enabled: m.enabled, uptime, trend };
+    }).sort((a, b) => (a.uptime ?? 101) - (b.uptime ?? 101));
 
     // Incidents summary
     const openIncidents = incidents.filter(i => !i.resolvedAt).length;
