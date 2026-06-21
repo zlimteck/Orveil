@@ -22,7 +22,7 @@ const TYPE_DEFAULTS = {
   hms:        { checkInterval: 5,  reportInterval: 0,  config: { hmsToken: '', vpsList: [{ id: '', name: '' }] } },
   ultracc:    { checkInterval: 5,  reportInterval: 0,  config: { apiUrl: '', ultraToken: '' } },
   syncthing:  { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', folderIds: [], rejectUnauthorized: true } },
-  http:       { checkInterval: 5,  reportInterval: 0,  config: { url: '', method: 'GET', body: '', expectedStatus: 200, keyword: '', timeout: 10000, sslAlertDays: 30, responseTimeThreshold: 0, bearerToken: '', basicUser: '', basicPass: '', customHeaderName: '', customHeaderValue: '', rejectUnauthorized: true } },
+  http:       { checkInterval: 5,  reportInterval: 0,  config: { url: '', method: 'GET', body: '', expectedStatus: 200, acceptedStatusCodes: '', keyword: '', keywordMode: 'present', timeout: 10000, sslAlertDays: 30, responseTimeThreshold: 0, bearerToken: '', basicUser: '', basicPass: '', customHeaderName: '', customHeaderValue: '', rejectUnauthorized: true } },
   ping:       { checkInterval: 2,  reportInterval: 0,  config: { host: '', port: 80, attempts: 3 } },
   proxmox:    { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiToken: '', node: 'pve', rejectUnauthorized: false } },
   immich:     { checkInterval: 30, reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
@@ -34,6 +34,9 @@ const TYPE_DEFAULTS = {
   speedtest:      { checkInterval: 60, reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
   homeassistant:  { checkInterval: 5,  reportInterval: 24, config: { url: '', token: '', entities: [], rejectUnauthorized: true } },
   jellyfin:       { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
+  dns:            { checkInterval: 5,  reportInterval: 0,  config: { hostname: '', recordType: 'A', expectedValue: '' } },
+  mysql:          { checkInterval: 5,  reportInterval: 0,  config: { host: '', port: 3306, user: '', password: '', database: '' } },
+  redis:          { checkInterval: 5,  reportInterval: 0,  config: { host: '', port: 6379, password: '' } },
 };
 
 const TYPE_LABELS = {
@@ -55,6 +58,9 @@ const TYPE_LABELS = {
   speedtest:     'Speedtest Tracker',
   homeassistant: 'Home Assistant',
   jellyfin:      'Jellyfin',
+  dns:           'DNS',
+  mysql:         'MySQL',
+  redis:         'Redis',
 };
 
 function Field({ label, value, onChange, placeholder, type = 'text', hint }) {
@@ -314,6 +320,8 @@ function ConfigFields({ type, config, onChange, t }) {
         </div>
         <Field label={t('form.fields.http.expectedStatus')} value={config.expectedStatus} onChange={v => set('expectedStatus', +v)} type="number" placeholder="200" />
       </div>
+      <Field label="Codes HTTP acceptés (optionnel)" value={config.acceptedStatusCodes || ''} onChange={v => set('acceptedStatusCodes', v)}
+        placeholder="200,201,302" hint="Liste de codes séparés par virgule. Remplace le champ 'Status attendu' si renseigné." />
       {['POST','PUT','PATCH'].includes(config.method) && (
         <div className="flex flex-col gap-1">
           <label className="text-xs text-muted uppercase tracking-wider">{t('form.fields.http.body')}</label>
@@ -327,8 +335,21 @@ function ConfigFields({ type, config, onChange, t }) {
         <Field label={t('form.fields.http.sslAlertDays')} value={config.sslAlertDays ?? 30} onChange={v => set('sslAlertDays', +v)} type="number" placeholder="30" hint={t('form.fields.http.sslAlertDaysHint')} />
         <Field label={t('form.fields.http.responseTimeThreshold')} value={config.responseTimeThreshold ?? 0} onChange={v => set('responseTimeThreshold', +v)} type="number" placeholder="0" hint={t('form.fields.http.responseTimeThresholdHint')} />
       </div>
-      <Field label={t('form.fields.http.keyword')} value={config.keyword} onChange={v => set('keyword', v)}
-        placeholder={t('form.fields.http.keywordPlaceholder')} hint={t('form.fields.http.keywordHint')} />
+      <div className="space-y-1.5">
+        <Field label={t('form.fields.http.keyword')} value={config.keyword} onChange={v => set('keyword', v)}
+          placeholder={t('form.fields.http.keywordPlaceholder')} hint={t('form.fields.http.keywordHint')} />
+        {config.keyword && (
+          <div className="flex gap-2">
+            {[['present', 'Doit être présent'], ['absent', 'Doit être absent']].map(([val, lbl]) => (
+              <button key={val} type="button"
+                onClick={() => set('keywordMode', val)}
+                className={`text-xs px-3 py-1 rounded-full border transition-colors ${config.keywordMode === val || (!config.keywordMode && val === 'present') ? 'bg-periwinkle/20 text-periwinkle border-periwinkle/40' : 'text-muted border-border hover:text-thistle'}`}>
+                {lbl}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       <Field label={t('form.fields.http.bearerToken')} value={config.bearerToken} onChange={v => set('bearerToken', v)}
         placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" hint={t('form.fields.http.bearerTokenHint')} />
       <div className="grid grid-cols-2 gap-3">
@@ -482,6 +503,48 @@ function ConfigFields({ type, config, onChange, t }) {
         placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
         hint={t('form.fields.jellyfin.apiKeyHint')} />
       <TlsToggle config={config} set={set} t={t} />
+    </>
+  );
+
+  if (type === 'dns') return (
+    <>
+      <Field label="Hostname" value={config.hostname} onChange={v => set('hostname', v)} placeholder="example.com" />
+      <div className="space-y-1">
+        <label className="label">Type de record</label>
+        <select className="select" value={config.recordType} onChange={e => set('recordType', e.target.value)}>
+          {['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS'].map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+      </div>
+      <Field label="Valeur attendue (optionnel)" value={config.expectedValue} onChange={v => set('expectedValue', v)}
+        placeholder="93.184.216.34" hint="Si renseigné, passe en warning si la valeur n'est pas trouvée dans les records." />
+    </>
+  );
+
+  if (type === 'mysql') return (
+    <>
+      <div className="grid grid-cols-3 gap-3">
+        <div className="col-span-2">
+          <Field label="Hôte" value={config.host} onChange={v => set('host', v)} placeholder="192.168.1.10" />
+        </div>
+        <Field label="Port" value={config.port} onChange={v => set('port', +v)} type="number" placeholder="3306" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Utilisateur" value={config.user} onChange={v => set('user', v)} placeholder="root" />
+        <Field label="Mot de passe" value={config.password} onChange={v => set('password', v)} type="password" placeholder="••••••••" />
+      </div>
+      <Field label="Base de données (optionnel)" value={config.database} onChange={v => set('database', v)} placeholder="mydb" />
+    </>
+  );
+
+  if (type === 'redis') return (
+    <>
+      <div className="grid grid-cols-3 gap-3">
+        <div className="col-span-2">
+          <Field label="Hôte" value={config.host} onChange={v => set('host', v)} placeholder="192.168.1.10" />
+        </div>
+        <Field label="Port" value={config.port} onChange={v => set('port', +v)} type="number" placeholder="6379" />
+      </div>
+      <Field label="Mot de passe (optionnel)" value={config.password} onChange={v => set('password', v)} type="password" placeholder="••••••••" />
     </>
   );
 

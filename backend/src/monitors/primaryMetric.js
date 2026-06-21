@@ -22,6 +22,9 @@ function primaryMetric(type, metrics) {
       const key = Object.keys(metrics).find(k => k.startsWith('entity__'));
       return key ? metrics[key] : (metrics.activeEntities ?? null);
     }
+    case 'dns':        return metrics.responseTime ?? null;
+    case 'mysql':      return metrics.responseTime ?? null;
+    case 'redis':      return metrics.responseTime ?? null;
     default:           return null;
   }
 }

@@ -19,7 +19,8 @@ function checkSSLCert(hostname, port = 443) {
       if (!cert || !cert.valid_to) return resolve(null);
       const expiresAt = new Date(cert.valid_to);
       const daysLeft = Math.floor((expiresAt - Date.now()) / (1000 * 60 * 60 * 24));
-      resolve({ expiresAt: expiresAt.toISOString(), daysLeft });
+      const issuer = cert.issuer?.O || cert.issuer?.CN || null;
+      resolve({ expiresAt: expiresAt.toISOString(), daysLeft, issuer });
     });
     socket.on('error', () => { socket.destroy(); resolve(null); });
     socket.setTimeout(5000, () => { socket.destroy(); resolve(null); });
@@ -29,10 +30,16 @@ function checkSSLCert(hostname, port = 443) {
 async function check(config, lastState) {
   const {
     url, method = 'GET', body,
-    expectedStatus = 200, keyword, timeout = 10000, rejectUnauthorized = true,
+    expectedStatus = 200, keyword, keywordMode = 'present', acceptedStatusCodes = '',
+    timeout = 10000, rejectUnauthorized = true,
     bearerToken, basicUser, basicPass, customHeaderName, customHeaderValue,
     sslAlertDays = 30, responseTimeThreshold = 0,
   } = config;
+
+  // Parse accepted status codes — "200,201,302" → [200, 201, 302]
+  const acceptedCodes = acceptedStatusCodes
+    ? String(acceptedStatusCodes).split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
+    : [];
 
   if (!url) return { status: 'error', state: null, metrics: null, notifications: [
     { title: 'Config manquante — HTTP', message: 'URL requise', level: 'error', type: 'status_change' }
@@ -87,11 +94,18 @@ async function check(config, lastState) {
     responseTime = Date.now() - start;
     statusCode = res.status;
     const resBody = typeof res.data === 'string' ? res.data : JSON.stringify(res.data);
-    const statusOk = res.status === expectedStatus;
-    const keywordOk = keyword ? resBody.includes(keyword) : true;
+    const statusOk = acceptedCodes.length ? acceptedCodes.includes(res.status) : res.status === expectedStatus;
+    const keywordFound = keyword ? resBody.includes(keyword) : null;
+    const keywordOk = keyword
+      ? (keywordMode === 'absent' ? !keywordFound : keywordFound)
+      : true;
     ok = statusOk && keywordOk;
-    if (!statusOk) errMsg = `Status ${res.status} (attendu ${expectedStatus})`;
-    else if (!keywordOk) errMsg = `Mot-clé "${keyword}" absent de la réponse`;
+    if (!statusOk) errMsg = acceptedCodes.length
+      ? `Status ${res.status} (attendu : ${acceptedCodes.join(', ')})`
+      : `Status ${res.status} (attendu ${expectedStatus})`;
+    else if (!keywordOk) errMsg = keywordMode === 'absent'
+      ? `Mot-clé "${keyword}" trouvé dans la réponse`
+      : `Mot-clé "${keyword}" absent de la réponse`;
 
     // Extract favicon — try current response first, fall back to site root
     if (httpMethod === 'get') {

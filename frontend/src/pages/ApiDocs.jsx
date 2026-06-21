@@ -40,6 +40,9 @@ function buildSections(t) {
         { method: 'GET',    path: '/api/monitors/unraid',                 descKey: 'monitorsByType' },
         { method: 'GET',    path: '/api/monitors/speedtest',              descKey: 'monitorsByType' },
         { method: 'GET',    path: '/api/monitors/jellyfin',               descKey: 'monitorsByType' },
+        { method: 'GET',    path: '/api/monitors/dns',                    descKey: 'monitorsByType' },
+        { method: 'GET',    path: '/api/monitors/mysql',                  descKey: 'monitorsByType' },
+        { method: 'GET',    path: '/api/monitors/redis',                  descKey: 'monitorsByType' },
         { method: 'POST',   path: '/api/monitors',                        descKey: 'monitorsCreate' },
         { method: 'POST',   path: '/api/monitors/test',                   descKey: 'monitorsTest', body: '{ "type": "http", "config": { "url": "…" } }' },
         { method: 'POST',   path: '/api/monitors/:id/test',               descKey: 'monitorsTestById' },
@@ -74,6 +77,7 @@ function buildSections(t) {
       key: 'public',
       routes: [
         { method: 'GET', path: '/api/public/status', descKey: 'publicStatus' },
+        { method: 'GET', path: '/api/badge/:id',     descKey: 'badgeGet' },
       ],
     },
     {

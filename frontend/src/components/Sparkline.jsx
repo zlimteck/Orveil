@@ -68,6 +68,16 @@ export default function Sparkline({ points = [], color = '#c9d7f8', height = 56,
   }
   if (current.length >= 2) segments.push(current);
 
+  // Dashed bridges connecting end of one segment to start of next
+  const bridges = segments.slice(0, -1).map((seg, i) => {
+    const last = seg[seg.length - 1];
+    const first = segments[i + 1][0];
+    return {
+      x1: toX(last.vi),  y1: toY(last.p.value),
+      x2: toX(first.vi), y2: toY(first.p.value),
+    };
+  });
+
   const gradId = `sg-${color.replace('#', '')}-${H}`;
 
   // Y ticks
@@ -135,7 +145,7 @@ export default function Sparkline({ points = [], color = '#c9d7f8', height = 56,
           style={{ width: PAD_LEFT - 4, top: PAD_TOP, bottom: PAD_BOTTOM }}>
           {yTicks.map(({ val }, i) => (
             <span key={i} className="block text-right leading-none"
-              style={{ fontSize: 9, color: 'currentColor', opacity: 0.4 }}>
+              style={{ fontSize: 9, color: 'currentColor', opacity: 0.25 }}>
               {formatVal(val)}
             </span>
           ))}
@@ -186,7 +196,7 @@ export default function Sparkline({ points = [], color = '#c9d7f8', height = 56,
         {/* Grid lines */}
         {yTicks.map(({ y }, i) => (
           <line key={i} x1={0} y1={y} x2={innerW} y2={y}
-            stroke="currentColor" strokeOpacity="0.07" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+            stroke="currentColor" strokeOpacity="0.04" strokeWidth="1" vectorEffect="non-scaling-stroke" />
         ))}
 
         {/* X-axis time labels */}
@@ -223,6 +233,13 @@ export default function Sparkline({ points = [], color = '#c9d7f8', height = 56,
             </g>
           );
         })}
+
+        {/* Dashed bridges through null gaps */}
+        {bridges.map((b, i) => (
+          <line key={i} x1={b.x1} y1={b.y1} x2={b.x2} y2={b.y2}
+            stroke={color} strokeWidth="1.5" strokeDasharray="4,4"
+            strokeOpacity="0.35" vectorEffect="non-scaling-stroke" />
+        ))}
 
         {/* Error/warning dots */}
         {errorCoords.map(([x, y, status], i) => (

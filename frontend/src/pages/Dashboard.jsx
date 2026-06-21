@@ -305,14 +305,23 @@ function MetricsBlock({ monitor }) {
         )}
       </div>
       {metrics.sslInfo && (
-        <div className={`flex items-center gap-1 text-xs ${
+        <div className={`text-xs ${
           metrics.sslStatus === 'expired'  ? 'text-red-400' :
           metrics.sslStatus === 'expiring' ? 'text-amber-400' : 'text-muted'
         }`}>
-          <span>SSL ·{' '}
+          <span>
+            SSL ·{' '}
             {metrics.sslStatus === 'expired'
               ? t('metrics.sslExpired')
               : `${metrics.sslInfo.daysLeft}j`}
+            {metrics.sslInfo.expiresAt && (
+              <span className="text-muted/60">
+                {' '}· exp. {new Date(metrics.sslInfo.expiresAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </span>
+            )}
+            {metrics.sslInfo.issuer && (
+              <span className="text-muted/50"> · {metrics.sslInfo.issuer}</span>
+            )}
           </span>
         </div>
       )}

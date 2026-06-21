@@ -255,6 +255,7 @@ export default {
       settingsImport:          'Importe monitors et paramètres depuis un export JSON',
       settingsMcpRegenerate:   'Régénère la clé API MCP / REST',
       publicStatus:            'Statut public de tous les services (sans auth)',
+      badgeGet:                'Badge SVG dynamique du statut d\'un service (sans auth) — intégrable dans un README ou une doc',
       haEntities:              'Liste les entités Home Assistant disponibles (proxy)',
       statsGet:                'Statistiques globales — uptime + statut SLA par monitor, incidents, MTTR, MTTD, répartition par sévérité, notifications',
     },

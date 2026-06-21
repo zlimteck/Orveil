@@ -15,7 +15,7 @@
 ## Features
 
 - **Unified dashboard** — status overview of all your services at a glance, grid or list view
-- **18 monitor types** — HTTP/HTTPS, Ping/TCP, SSH, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Home Assistant, Portainer, Docker, Syncthing, Immich, HostMyServers, Ultra.cc, Heartbeat, Unraid, Speedtest Tracker, Jellyfin
+- **21 monitor types** — HTTP/HTTPS, Ping/TCP, SSH, DNS, MySQL, Redis, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Home Assistant, Portainer, Docker, Syncthing, Immich, HostMyServers, Ultra.cc, Heartbeat, Unraid, Speedtest Tracker, Jellyfin
 - **Public status page** — shareable `/status` page (no login required) with uptime bars, open incidents, and 90-day history per service; toggle visibility per service
 - **Search & sort** — filter cards by name, sort by status / name / manual order
 - **Drag & drop reordering** — manually reorder cards in grid view
@@ -28,6 +28,7 @@
 - **Maintenance windows** — per-service maintenance mode (30 min to 8 h presets or custom) — no alerts or incidents during the window
 - **Monitor dependencies** — link a monitor to a parent; down alerts are suppressed when the parent is also down
 - **Backup & restore** — export all monitors and settings as JSON; import on another instance (Settings page)
+- **Status badges** — embeddable SVG badge per service (`/api/badge/:id`) with live status color; Markdown and HTML snippets available in the service detail modal
 - **Metric graphs** — sparkline graphs on dashboard cards and in service detail; smooth Bézier curves, incident overlays, and user annotations pinned to the timeline
 - **Apprise notifications** — Pushover, Telegram, Discord, Slack, email, and [100+ more](https://github.com/caronc/apprise/wiki)
 - **Weekly report** — optional weekly Apprise summary (services in error, average uptime)
@@ -71,8 +72,11 @@ Default credentials: `admin` / `orveil`
 
 | Type | What it checks |
 |------|----------------|
-| **HTTP** | HTTP/HTTPS endpoint — status code, keyword match, Bearer/Basic/custom auth, multiple methods (GET/POST/PUT…), SSL certificate expiry |
-| **Ping** | ICMP ping or TCP port reachability |
+| **HTTP** | HTTP/HTTPS endpoint — status code or custom accepted codes list, keyword present/absent match, Bearer/Basic/custom auth, multiple methods (GET/POST/PUT…), SSL certificate expiry with issuer and exact date displayed on the card, response time threshold |
+| **Ping** | ICMP ping or TCP port reachability — latency and packet loss |
+| **DNS** | DNS record resolution (A, AAAA, CNAME, MX, TXT, NS) — optionally assert expected value |
+| **MySQL** | Ping a MySQL/MariaDB server and retrieve version via `mysql2` |
+| **Redis** | PING a Redis instance and retrieve version via `ioredis` |
 | **SSH** | CPU / RAM via SSH (password or private key) |
 | **Heartbeat** | Cron job / script monitor — alerts if no ping received within expected interval |
 | **Docker** | Container count and status via Docker socket |

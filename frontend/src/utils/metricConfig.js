@@ -91,6 +91,15 @@ const CONFIG = {
     { key: 'pingMs',       fr: 'Ping',      en: 'Ping',     unit: 'ms' },
     { key: 'jitterMs',     fr: 'Jitter',    en: 'Jitter',   unit: 'ms' },
   ],
+  dns: [
+    { key: 'responseTime', fr: 'Temps de résolution', en: 'Resolution time', unit: 'ms' },
+  ],
+  mysql: [
+    { key: 'responseTime', fr: 'Temps de réponse', en: 'Response time', unit: 'ms' },
+  ],
+  redis: [
+    { key: 'responseTime', fr: 'Temps de réponse', en: 'Response time', unit: 'ms' },
+  ],
 };
 
 function haEntityMetrics(config) {

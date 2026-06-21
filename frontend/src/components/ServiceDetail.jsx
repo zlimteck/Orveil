@@ -168,6 +168,7 @@ export default function ServiceDetail({ monitor, onClose }) {
             { key: 'metrics',     label: lang === 'fr' ? 'Métriques' : 'Metrics' },
             { key: 'incidents',   label: lang === 'fr' ? 'Incidents' : 'Incidents', badge: incidents.filter(i => !i.resolvedAt).length },
             { key: 'annotations', label: lang === 'fr' ? 'Annotations' : 'Annotations', badge: annotations.length },
+            { key: 'badge',       label: 'Badge' },
           ].map(({ key, label, badge }) => (
             <button
               key={key}
@@ -209,14 +210,12 @@ export default function ServiceDetail({ monitor, onClose }) {
 
               {/* Sparklines — one per metric (or fallback primary) */}
               {graphs.map(g => (
-                <div key={g.key}>
+                <div key={g.key} className="pt-4 border-t border-border/50">
                   <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">{g.label}</p>
-                  <div className="bg-surface rounded-lg px-3 pt-3 pb-2">
-                    <Sparkline points={g.pts} color={sparkColor} height={110} showLabels incidents={incidents} annotations={annotations} />
-                    <div className="flex justify-between text-xs text-muted mt-1">
-                      <span>{period === 24 ? '−24h' : `−${t('modal.period7d')}`}</span>
-                      <span>{t('modal.now')}</span>
-                    </div>
+                  <Sparkline points={g.pts} color={sparkColor} height={110} showLabels incidents={incidents} annotations={annotations} />
+                  <div className="flex justify-between text-xs text-muted/50 mt-1">
+                    <span>{period === 24 ? '−24h' : `−${t('modal.period7d')}`}</span>
+                    <span>{t('modal.now')}</span>
                   </div>
                 </div>
               ))}
@@ -226,8 +225,43 @@ export default function ServiceDetail({ monitor, onClose }) {
                   <p className="text-xs text-muted italic">{t('modal.noData')}</p>
                 </div>
               )}
+
             </>
           )}
+
+          {tab === 'badge' && (() => {
+            const badgeUrl = `${window.location.origin}/api/badge/${monitor._id}`;
+            const mdSnippet = `![${monitor.name}](${badgeUrl})`;
+            const htmlSnippet = `<img src="${badgeUrl}" alt="${monitor.name}" />`;
+            return (
+              <div className="space-y-5">
+                <div>
+                  <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">{lang === 'fr' ? 'Aperçu' : 'Preview'}</p>
+                  <img src={badgeUrl} alt="badge" />
+                </div>
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-muted uppercase tracking-wider">Markdown</p>
+                  <div className="flex items-center gap-2">
+                    <input readOnly value={mdSnippet} className="input text-xs font-mono flex-1 text-muted h-8" />
+                    <button type="button" onClick={() => navigator.clipboard.writeText(mdSnippet)}
+                      className="btn-ghost px-3 py-1.5 text-xs shrink-0">{lang === 'fr' ? 'Copier' : 'Copy'}</button>
+                  </div>
+                  <p className="text-xs font-semibold text-muted uppercase tracking-wider">HTML</p>
+                  <div className="flex items-center gap-2">
+                    <input readOnly value={htmlSnippet} className="input text-xs font-mono flex-1 text-muted h-8" />
+                    <button type="button" onClick={() => navigator.clipboard.writeText(htmlSnippet)}
+                      className="btn-ghost px-3 py-1.5 text-xs shrink-0">{lang === 'fr' ? 'Copier' : 'Copy'}</button>
+                  </div>
+                  <p className="text-xs font-semibold text-muted uppercase tracking-wider">URL</p>
+                  <div className="flex items-center gap-2">
+                    <input readOnly value={badgeUrl} className="input text-xs font-mono flex-1 text-muted h-8" />
+                    <button type="button" onClick={() => navigator.clipboard.writeText(badgeUrl)}
+                      className="btn-ghost px-3 py-1.5 text-xs shrink-0">{lang === 'fr' ? 'Copier' : 'Copy'}</button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {tab === 'incidents' && (
             <div>
