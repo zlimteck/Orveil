@@ -68,7 +68,7 @@ async function runCheck(monitor) {
     const severity = result.status === 'offline' ? 'P1' : result.status === 'error' ? 'P2' : 'P3';
     Incident.findOneAndUpdate(
       { monitorId: monitor._id, resolvedAt: null },
-      { $setOnInsert: { monitorId: monitor._id, monitorName: monitor.name, monitorType: monitor.type, triggerStatus: result.status, severity, startedAt: new Date() } },
+      { $setOnInsert: { monitorId: monitor._id, monitorName: monitor.name, monitorType: monitor.type, triggerStatus: result.status, severity, reason: update.lastError || null, startedAt: new Date() } },
       { upsert: true, new: false }
     ).catch(() => {});
   } else if (result.status === 'online') {

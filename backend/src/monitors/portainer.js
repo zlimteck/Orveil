@@ -6,7 +6,7 @@ async function check(config, lastState) {
   const { apiUrl, apiKey, rejectUnauthorized = true } = config;
 
   if (!apiUrl || !apiKey) return { status: 'error', state: null, metrics: null, notifications: [
-    { title: 'Config manquante — Portainer', message: 'URL et clé API requises', level: 'error', type: 'error' }
+    { title: 'Config manquante — Portainer', message: 'URL et clé API requises', level: 'error', type: 'status_change' }
   ]};
 
   const base = apiUrl.replace(/\/$/, '');
@@ -70,7 +70,7 @@ throw new Error(`URL incorrecte (HTML reçu, status ${endpointsRes.status}) — 
     return { status, state, metrics, notifications: [] };
   } catch (err) {
     return { status: 'error', state: lastState, metrics: null, notifications: [
-      { title: 'Portainer — Erreur API', message: err.message, level: 'error', type: 'error' }
+      { title: 'Portainer — Erreur API', message: err.message, level: 'error', type: 'status_change' }
     ]};
   }
 }

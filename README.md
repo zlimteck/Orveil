@@ -20,12 +20,15 @@
 - **Search & sort** — filter cards by name, sort by status / name / manual order
 - **Drag & drop reordering** — manually reorder cards in grid view
 - **Category grouping** — assign a category to each service to group cards on the dashboard
-- **Incident tracking** — automatic incident open/close with duration history; P1–P4 severity (auto-assigned, manually overridable); MTTR and severity breakdown on the Stats page
+- **Incident tracking** — automatic incident open/close with duration history; P1–P4 severity (auto-assigned, manually overridable); failure reason displayed inline; incidents grouped by date
+- **War room** — dedicated full-screen view of all active incidents sorted by severity, with auto-refresh every 30 s
+- **Post-mortem reports** — attach a structured post-mortem (summary, root cause, impact, resolution, lessons learned) to any resolved incident
+- **SLA tracking** — set a target uptime % per monitor; met/breached indicator displayed on the Stats page
+- **Statistics** — 30-day global view: uptime per service with trend, SLA status, incident count, MTTR, MTTD, severity breakdown, notification log, incident heatmap by day/hour
 - **Maintenance windows** — per-service maintenance mode (30 min to 8 h presets or custom) — no alerts or incidents during the window
 - **Monitor dependencies** — link a monitor to a parent; down alerts are suppressed when the parent is also down
-- **Statistics** — 30-day global view: uptime per service, incident count, MTTR, severity breakdown, notifications sent
 - **Backup & restore** — export all monitors and settings as JSON; import on another instance (Settings page)
-- **Metric graphs** — optional sparkline graphs on dashboard cards (toggle in settings)
+- **Metric graphs** — sparkline graphs on dashboard cards and in service detail; smooth Bézier curves, incident overlays, and user annotations pinned to the timeline
 - **Apprise notifications** — Pushover, Telegram, Discord, Slack, email, and [100+ more](https://github.com/caronc/apprise/wiki)
 - **Weekly report** — optional weekly Apprise summary (services in error, average uptime)
 - **Manual notifications** — send a message to all channels directly from the UI

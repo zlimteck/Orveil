@@ -32,7 +32,7 @@ async function check(config, lastState) {
 
   if (!hmsToken || !vpsList?.length) {
     return { status: 'error', state: null, metrics: null, notifications: [
-      { title: 'Config manquante — HMS', message: 'HMS Token et au moins un VPS requis', level: 'error', type: 'error' }
+      { title: 'Config manquante — HMS', message: 'HMS Token et au moins un VPS requis', level: 'error', type: 'status_change' }
     ]};
   }
 

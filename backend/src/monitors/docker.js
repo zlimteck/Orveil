@@ -52,7 +52,7 @@ async function check(config, lastState) {
   } catch (err) {
     return {
       status: 'error', state: lastState, metrics: null,
-      notifications: [{ title: 'Docker — Erreur socket', message: err.message, level: 'error', type: 'error' }],
+      notifications: [{ title: 'Docker — Erreur socket', message: err.message, level: 'error', type: 'status_change' }],
     };
   }
 }

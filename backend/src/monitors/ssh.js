@@ -64,7 +64,7 @@ function parseOutput(out) {
 async function check(config, lastState) {
   const { host } = config;
   if (!host || !config.username) return { status: 'error', state: null, metrics: null, notifications: [
-    { title: 'Config manquante — SSH', message: 'Hôte et nom d\'utilisateur requis', level: 'error', type: 'error' }
+    { title: 'Config manquante — SSH', message: 'Hôte et nom d\'utilisateur requis', level: 'error', type: 'status_change' }
   ]};
 
   const wasOnline = lastState !== null;

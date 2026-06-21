@@ -3,6 +3,7 @@ import { X, Plus, Trash2, Wifi, RefreshCw } from 'lucide-react';
 import { useLang } from '../context/LangContext';
 import { useToast } from '../context/ToastContext';
 import { monitors as monitorsApi } from '../api';
+import Portal from './Portal';
 import { getMetrics } from '../utils/metricConfig';
 import ServiceIcon from './ServiceIcon';
 
@@ -514,7 +515,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
     name: '', type: 'cloudflare', description: '', category: '',
     enabled: true, checkInterval: 1, reportInterval: 6,
     cardMetric: null, serviceUrl: '', showOnStatusPage: true,
-    dependsOn: [],
+    slaTarget: '', dependsOn: [],
     config: TYPE_DEFAULTS.cloudflare.config,
   });
 
@@ -531,6 +532,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
         cardMetric: monitor.cardMetric || null,
         serviceUrl: monitor.serviceUrl || '',
         showOnStatusPage: monitor.showOnStatusPage !== false,
+        slaTarget: monitor.slaTarget != null ? String(monitor.slaTarget) : '',
         dependsOn: monitor.dependsOn?.map(id => String(id)) || [],
         config: monitor.config || {},
       });
@@ -553,7 +555,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
   };
 
   return (
-    <div className="modal-backdrop fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm">
+    <Portal><div className="modal-backdrop fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm">
       <div className="modal-panel bg-card border border-border w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl max-h-[92dvh] overflow-y-auto shadow-2xl">
         <div className="sm:hidden flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 bg-slate-600 rounded-full" />
@@ -564,7 +566,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
           <button onClick={onClose} className="btn-ghost p-1.5 rounded-lg"><X size={16} /></button>
         </div>
 
-        <form onSubmit={e => { e.preventDefault(); onSave(form); }} className="p-5 space-y-4">
+        <form onSubmit={e => { e.preventDefault(); onSave({ ...form, slaTarget: form.slaTarget !== '' ? parseFloat(form.slaTarget) : null }); }} className="p-5 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <Field label={t('form.name')} value={form.name}
               onChange={v => setForm(f => ({ ...f, name: v }))} placeholder={t('form.namePlaceholder')} />
@@ -659,6 +661,17 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
             <span className="text-sm text-thistle">{t('form.showOnStatusPage')}</span>
           </label>
 
+          <div>
+            <label className="label">{t('form.slaTarget')}</label>
+            <input
+              className="input"
+              type="number" min="0" max="100" step="0.1"
+              placeholder={t('form.slaTargetHint')}
+              value={form.slaTarget}
+              onChange={e => setForm(f => ({ ...f, slaTarget: e.target.value }))}
+            />
+          </div>
+
           {getMetrics(form.type, form.config).length > 0 && (
             <div>
               <label className="label">{t('form.cardMetric')}</label>
@@ -687,6 +700,6 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
           </div>
         </form>
       </div>
-    </div>
+    </div></Portal>
   );
 }

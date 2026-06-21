@@ -168,7 +168,9 @@ export default function Layout() {
         </header>
 
         <main className="flex-1 overflow-auto">
-          <Outlet />
+          <div key={location.pathname} className="animate-fade-in">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

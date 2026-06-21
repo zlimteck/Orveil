@@ -6,7 +6,7 @@ async function check(config, lastState) {
   const { apiUrl, apiKey, rejectUnauthorized = true } = config;
 
   if (!apiUrl || !apiKey) return { status: 'error', state: null, metrics: null, notifications: [
-    { title: 'Config manquante — Immich', message: 'URL et clé API requises', level: 'error', type: 'error' }
+    { title: 'Config manquante — Immich', message: 'URL et clé API requises', level: 'error', type: 'status_change' }
   ]};
 
   const base = apiUrl.replace(/\/$/, '');
@@ -50,7 +50,7 @@ async function check(config, lastState) {
     return { status: 'online', state, metrics, notifications };
   } catch (err) {
     return { status: 'error', state: lastState, metrics: null, notifications: [
-      { title: 'Immich — Erreur API', message: err.message, level: 'error', type: 'error' }
+      { title: 'Immich — Erreur API', message: err.message, level: 'error', type: 'status_change' }
     ]};
   }
 }

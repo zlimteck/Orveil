@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { incidents as api } from '../api';
 import { useLang } from '../context/LangContext';
-import { AlertTriangle, CheckCircle, BellOff, Trash2, X, Siren } from 'lucide-react';
+import { AlertTriangle, CheckCircle, BellOff, Trash2, X, Siren, FileText } from 'lucide-react';
+import Portal from '../components/Portal';
 
 const SEVERITIES = ['P1','P2','P3','P4'];
 const SEV_STYLE = {
@@ -19,7 +20,76 @@ function duration(ms) {
   return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}min`;
 }
 
-function IncidentRow({ incident: i, onAcknowledge, onDelete, onSeverityChange }) {
+const PM_FIELDS = ['summary', 'rootCause', 'impact', 'resolution', 'lessons'];
+
+function PostmortemModal({ incident, onClose, onSaved }) {
+  const { t, lang } = useLang();
+  const locale = lang === 'fr' ? 'fr-FR' : 'en-GB';
+  const pm = incident.postmortem || {};
+  const [form, setForm] = useState({
+    summary:    pm.summary    || '',
+    rootCause:  pm.rootCause  || '',
+    impact:     pm.impact     || '',
+    resolution: pm.resolution || '',
+    lessons:    pm.lessons    || '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  async function handleSave(e) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const updated = await api.savePostmortem(incident._id, form);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+      onSaved(updated);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const labelKey = { summary: 'postmortemSummary', rootCause: 'postmortemRootCause', impact: 'postmortemImpact', resolution: 'postmortemResolution', lessons: 'postmortemLessons' };
+
+  return (
+    <Portal><div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="card w-full max-w-xl max-h-[90vh] overflow-y-auto flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-border shrink-0">
+          <div>
+            <h2 className="font-semibold text-thistle flex items-center gap-2">
+              <FileText size={15} className="text-periwinkle" />
+              {t('incidents.postmortem')} — {incident.monitorName}
+            </h2>
+            {pm.updatedAt && (
+              <p className="text-xs text-muted mt-0.5">{t('incidents.postmortemUpdated')} : {new Date(pm.updatedAt).toLocaleString(locale)}</p>
+            )}
+          </div>
+          <button onClick={onClose} className="p-1 text-muted hover:text-thistle transition-colors"><X size={16} /></button>
+        </div>
+        <form onSubmit={handleSave} className="p-5 space-y-4">
+          {PM_FIELDS.map(field => (
+            <div key={field}>
+              <label className="label">{t(`incidents.${labelKey[field]}`)}</label>
+              <textarea
+                className="input resize-none h-20 text-sm"
+                value={form[field]}
+                onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
+              />
+            </div>
+          ))}
+          <div className="flex justify-end gap-3 pt-1">
+            <button type="button" onClick={onClose} className="btn-ghost">{t('form.cancel')}</button>
+            <button type="submit" disabled={saving} className="btn-primary">
+              {saved ? `✓ ${t('incidents.postmortemSaved')}` : saving ? '…' : t('incidents.postmortemSave')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div></Portal>
+  );
+}
+
+function IncidentRow({ incident: i, onAcknowledge, onDelete, onSeverityChange, onPostmortem }) {
   const { t, lang } = useLang();
   const [confirming, setConfirming] = useState(false);
   const resolved = !!i.resolvedAt;
@@ -71,9 +141,21 @@ function IncidentRow({ incident: i, onAcknowledge, onDelete, onSeverityChange })
               {t('incidents.ongoing')(duration(Date.now() - new Date(i.startedAt)))}
             </span>
           )}
+          {i.reason && (
+            <span className="text-muted truncate max-w-xs" title={i.reason}>— {i.reason}</span>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-1 shrink-0 self-center">
+        {resolved && (
+          <button
+            onClick={() => onPostmortem(i)}
+            title={i.postmortem?.updatedAt ? t('incidents.postmortemView') : t('incidents.postmortemAdd')}
+            className={`p-2 rounded-lg transition-colors ${i.postmortem?.updatedAt ? 'text-periwinkle hover:text-thistle' : 'text-muted hover:text-periwinkle'}`}
+          >
+            <FileText size={14} />
+          </button>
+        )}
         {!resolved && !acknowledged && (
           <button
             onClick={() => onAcknowledge(i._id)}
@@ -120,7 +202,7 @@ const SELECT_STYLE = {
 };
 
 export default function Incidents() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterService, setFilterService] = useState('');
@@ -129,6 +211,7 @@ export default function Incidents() {
   const [filterSeverity, setFilterSeverity] = useState('');
   const [sortMode, setSortMode] = useState('newest');
   const [warRoom, setWarRoom] = useState(false);
+  const [pmIncident, setPmIncident] = useState(null);
 
   const load = useCallback(() => {
     api.list({ limit: 500 }).then(setData).catch(() => {}).finally(() => setLoading(false));
@@ -155,6 +238,11 @@ export default function Incidents() {
   async function handleSeverityChange(id, severity) {
     await api.setSeverity(id, severity);
     load();
+  }
+
+  function handlePostmortemSaved(updated) {
+    setData(d => d.map(i => i._id === updated._id ? updated : i));
+    if (pmIncident?._id === updated._id) setPmIncident(updated);
   }
 
   const serviceNames = useMemo(() => {
@@ -205,12 +293,33 @@ export default function Incidents() {
   const closed = filtered.filter(i => i.resolvedAt);
   const hasFilters = filterService || filterPeriod || filterDuration || filterSeverity || sortMode !== 'newest';
 
+  // Group closed incidents by day
+  const closedByDay = useMemo(() => {
+    const groups = [];
+    const seen = {};
+    for (const i of closed) {
+      const d = new Date(i.startedAt);
+      const now = new Date();
+      const isToday = d.toDateString() === now.toDateString();
+      const isYesterday = d.toDateString() === new Date(now - 86400000).toDateString();
+      const label = isToday
+        ? (lang === 'fr' ? "Aujourd'hui" : 'Today')
+        : isYesterday
+        ? (lang === 'fr' ? 'Hier' : 'Yesterday')
+        : d.toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
+      if (!seen[label]) { seen[label] = true; groups.push({ label, items: [] }); }
+      groups[groups.length - 1].items.push(i);
+    }
+    return groups;
+  }, [closed, lang]);
+
   if (warRoom) {
+    const hasP1 = warRoomData.some(i => (i.severity || 'P3') === 'P1');
     return (
-      <div className="p-4 md:p-6 space-y-4">
+      <div className={`min-h-screen p-4 md:p-6 space-y-4 transition-colors duration-500 ${hasP1 ? 'bg-red-950/20' : 'bg-black/10'}`}>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-red-400 flex items-center gap-2">
+            <h1 className={`text-xl md:text-2xl font-bold text-red-400 flex items-center gap-2 ${hasP1 ? 'animate-pulse' : ''}`}>
               <Siren size={22} className="shrink-0" />
               {t('incidents.warRoom')}
             </h1>
@@ -230,16 +339,20 @@ export default function Incidents() {
         ) : (
           <div className="space-y-2">
             {warRoomData.map(i => (
-              <IncidentRow key={i._id} incident={i} onAcknowledge={handleAcknowledge} onDelete={handleDelete} onSeverityChange={handleSeverityChange} />
+              <div key={i._id} className={(i.severity || 'P3') === 'P1' ? 'ring-1 ring-red-500/50 rounded-xl shadow-lg shadow-red-900/30' : ''}>
+                <IncidentRow incident={i} onAcknowledge={handleAcknowledge} onDelete={handleDelete} onSeverityChange={handleSeverityChange} onPostmortem={setPmIncident} />
+              </div>
             ))}
           </div>
         )}
+        {pmIncident && <PostmortemModal incident={pmIncident} onClose={() => setPmIncident(null)} onSaved={handlePostmortemSaved} />}
       </div>
     );
   }
 
   return (
     <div className="p-4 md:p-6 space-y-4">
+      {pmIncident && <PostmortemModal incident={pmIncident} onClose={() => setPmIncident(null)} onSaved={handlePostmortemSaved} />}
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-thistle">{t('incidents.title')}</h1>
@@ -322,7 +435,20 @@ export default function Incidents() {
         ))}
       </div>
 
-      {loading && <p className="text-muted text-sm">{t('incidents.loading')}</p>}
+      {loading && (
+        <div className="space-y-2">
+          {[0,1,2,3].map(i => (
+            <div key={i} className="card flex items-start gap-3 py-3 px-4">
+              <div className="skeleton w-4 h-4 rounded-full mt-0.5 shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="flex gap-2"><div className="skeleton h-3.5 w-28 rounded" /><div className="skeleton h-3.5 w-10 rounded" /><div className="skeleton h-3.5 w-6 rounded" /></div>
+                <div className="flex gap-3"><div className="skeleton h-2.5 w-36 rounded" /><div className="skeleton h-2.5 w-24 rounded" /></div>
+              </div>
+              <div className="skeleton w-6 h-6 rounded-lg shrink-0" />
+            </div>
+          ))}
+        </div>
+      )}
 
       {!loading && data.length > 0 && filtered.length === 0 && (
         <div className="card text-center py-10">
@@ -333,14 +459,22 @@ export default function Incidents() {
       {open.length > 0 && (
         <div className="space-y-2">
           <h2 className="text-xs font-semibold text-muted uppercase tracking-wider">{t('incidents.open')}</h2>
-          {open.map(i => <IncidentRow key={i._id} incident={i} onAcknowledge={handleAcknowledge} onDelete={handleDelete} onSeverityChange={handleSeverityChange} />)}
+          {open.map(i => <IncidentRow key={i._id} incident={i} onAcknowledge={handleAcknowledge} onDelete={handleDelete} onSeverityChange={handleSeverityChange} onPostmortem={setPmIncident} />)}
         </div>
       )}
 
-      {closed.length > 0 && (
-        <div className="space-y-2">
+      {closedByDay.length > 0 && (
+        <div className="space-y-4">
           <h2 className="text-xs font-semibold text-muted uppercase tracking-wider">{t('incidents.resolved')}</h2>
-          {closed.map(i => <IncidentRow key={i._id} incident={i} onAcknowledge={handleAcknowledge} onDelete={handleDelete} onSeverityChange={handleSeverityChange} />)}
+          {closedByDay.map(group => (
+            <div key={group.label} className="space-y-2">
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted/70 font-medium whitespace-nowrap">{group.label}</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+              {group.items.map(i => <IncidentRow key={i._id} incident={i} onAcknowledge={handleAcknowledge} onDelete={handleDelete} onSeverityChange={handleSeverityChange} onPostmortem={setPmIncident} />)}
+            </div>
+          ))}
         </div>
       )}
 

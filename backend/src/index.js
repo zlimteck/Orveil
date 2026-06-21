@@ -29,8 +29,9 @@ app.use('/api/monitors',  require('./routes/monitors'));
 app.use('/api/logs',      require('./routes/logs'));
 app.use('/api/settings',  require('./routes/settings'));
 app.use('/api/history',   require('./routes/history'));
-app.use('/api/incidents', require('./routes/incidents'));
-app.use('/api/stats',    require('./routes/stats'));
+app.use('/api/incidents',   require('./routes/incidents'));
+app.use('/api/annotations', require('./routes/annotations'));
+app.use('/api/stats',       require('./routes/stats'));
 
 // SPA fallback
 app.get('*', (req, res) => res.sendFile(path.join(publicDir, 'index.html')));

@@ -14,7 +14,7 @@ async function check(config, lastState) {
   const { url, token, entities = [] } = config;
   if (!url || !token) return {
     status: 'error', state: null, metrics: null, notifications: [
-      { title: 'Config manquante — Home Assistant', message: 'URL et token requis', level: 'error', type: 'error' },
+      { title: 'Config manquante — Home Assistant', message: 'URL et token requis', level: 'error', type: 'status_change' },
     ],
   };
 

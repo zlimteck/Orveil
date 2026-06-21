@@ -67,10 +67,17 @@ export const incidents = {
   acknowledge: (id) => api.post(`/incidents/${id}/acknowledge`).then(r => r.data),
   setSeverity: (id, severity) => api.patch(`/incidents/${id}/severity`, { severity }).then(r => r.data),
   delete: (id) => api.delete(`/incidents/${id}`).then(r => r.data),
+  savePostmortem: (id, data) => api.patch(`/incidents/${id}/postmortem`, data).then(r => r.data),
 };
 
 export const stats = {
   get: () => api.get('/stats').then(r => r.data),
+};
+
+export const annotations = {
+  list: (monitorId, since) => api.get('/annotations', { params: { monitorId, since } }).then(r => r.data),
+  create: (data) => api.post('/annotations', data).then(r => r.data),
+  delete: (id) => api.delete(`/annotations/${id}`).then(r => r.data),
 };
 
 export const publicStatus = {

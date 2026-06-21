@@ -31,6 +31,13 @@ function TrendBadge({ trend }) {
   return <span className="text-xs font-mono text-muted w-14 text-right shrink-0">→</span>;
 }
 
+function SlaBadge({ slaMet, slaTarget }) {
+  if (slaMet === null || slaTarget == null) return <span className="hidden sm:block w-20 shrink-0" />;
+  return slaMet
+    ? <span className="hidden sm:block text-xs font-mono text-celadon w-20 text-right shrink-0" title={`SLA ${slaTarget}%`}>✓ {slaTarget}%</span>
+    : <span className="hidden sm:block text-xs font-mono text-red-400 w-20 text-right shrink-0" title={`SLA ${slaTarget}%`}>✗ {slaTarget}%</span>;
+}
+
 function UptimeRow({ monitor }) {
   const uptime = monitor.uptime;
   const color = uptime == null ? 'bg-granite/30' : uptime >= 99 ? 'bg-celadon/70' : uptime >= 90 ? 'bg-amber-400/70' : 'bg-red-400/70';
@@ -46,6 +53,7 @@ function UptimeRow({ monitor }) {
         {uptime != null ? `${uptime}%` : '—'}
       </span>
       <TrendBadge trend={monitor.trend} />
+      <SlaBadge slaMet={monitor.slaMet} slaTarget={monitor.slaTarget} />
     </div>
   );
 }
@@ -130,7 +138,14 @@ export default function Stats() {
     incidentsApi.list({ limit: 1000 }).then(setAllIncidents).catch(() => {});
   }, []);
 
-  if (loading) return <div className="p-6 text-muted text-sm">{t('stats.loading')}</div>;
+  if (loading) return (
+    <div className="p-4 md:p-6 space-y-6 animate-fade-in-up">
+      <div><div className="skeleton h-7 w-40 rounded mb-1" /><div className="skeleton h-3.5 w-56 rounded" /></div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">{[0,1,2,3].map(i => <div key={i} className="card flex items-center gap-3 py-3 px-4"><div className="skeleton w-5 h-5 rounded" /><div className="space-y-1.5"><div className="skeleton h-2.5 w-14 rounded" /><div className="skeleton h-6 w-10 rounded" /></div></div>)}</div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">{[0,1,2,3].map(i => <div key={i} className="card flex items-center gap-3 py-3 px-4"><div className="skeleton w-5 h-5 rounded" /><div className="space-y-1.5"><div className="skeleton h-2.5 w-14 rounded" /><div className="skeleton h-6 w-10 rounded" /></div></div>)}</div>
+      <div className="card px-4 divide-y divide-border">{[0,1,2,3,4].map(i => <div key={i} className="flex items-center gap-3 py-2.5"><div className="skeleton flex-1 h-3 rounded" /><div className="skeleton w-32 h-2 rounded-full" /><div className="skeleton w-10 h-3 rounded" /><div className="skeleton w-14 h-3 rounded" /></div>)}</div>
+    </div>
+  );
   if (!data)   return <div className="p-6 text-red-400 text-sm">Erreur de chargement</div>;
   const past90 = new Date(Date.now() - 90 * 24 * 3600 * 1000);
   const heatmapIncidents = allIncidents.filter(i => new Date(i.startedAt) >= past90);
@@ -162,7 +177,7 @@ export default function Stats() {
           <StatCard icon={AlertTriangle} label={t('stats.open')} value={incidents.open} color={incidents.open > 0 ? 'text-red-400' : 'text-muted'} />
           <StatCard icon={CheckCircle} label={t('stats.resolved')} value={incidents.resolved} color="text-celadon" />
           <StatCard icon={TrendingUp} label="MTTR" value={duration(incidents.mttr)} />
-          <StatCard icon={TrendingUp} label={t('stats.avgDuration')} value={duration(incidents.avgDuration)} color="text-muted" />
+          <StatCard icon={TrendingUp} label={t('stats.mttd')} value={duration(incidents.mttd)} color="text-periwinkle" />
         </div>
 
         {totalSev > 0 && (

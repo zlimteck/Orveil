@@ -13,21 +13,55 @@ import {
 import { SortableContext, useSortable, arrayMove, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+function smoothCardPath(coords) {
+  if (coords.length < 2) return '';
+  const t = 0.18;
+  let d = `M ${coords[0][0]},${coords[0][1]}`;
+  for (let i = 0; i < coords.length - 1; i++) {
+    const p0 = coords[Math.max(0, i - 1)];
+    const p1 = coords[i];
+    const p2 = coords[i + 1];
+    const p3 = coords[Math.min(coords.length - 1, i + 2)];
+    const cp1x = p1[0] + (p2[0] - p0[0]) * t;
+    const cp1y = p1[1] + (p2[1] - p0[1]) * t;
+    const cp2x = p2[0] - (p3[0] - p1[0]) * t;
+    const cp2y = p2[1] - (p3[1] - p1[1]) * t;
+    d += ` C ${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2[0]},${p2[1]}`;
+  }
+  return d;
+}
+
 function Sparkline({ points, cardMetric }) {
   const vals = (points || []).map(p => extractValue(p, cardMetric)).filter(v => v != null);
   if (vals.length < 2) return null;
   const min = Math.min(...vals);
   const max = Math.max(...vals);
   const range = max - min || 1;
-  const W = 200, H = 28;
+  const W = 200, H = 32;
+  const PAD_TOP = 4, PAD_BOTTOM = 2;
+  const innerH = H - PAD_TOP - PAD_BOTTOM;
   const pts = (points || []).filter(p => extractValue(p, cardMetric) != null);
   const coords = pts.map((p, i) => {
     const v = extractValue(p, cardMetric);
-    return `${(i / (pts.length - 1)) * W},${H - 2 - ((v - min) / range) * (H - 6)}`;
-  }).join(' ');
+    return [
+      (i / (pts.length - 1)) * W,
+      PAD_TOP + innerH - ((v - min) / range) * innerH,
+    ];
+  });
+  const linePath = smoothCardPath(coords);
+  const areaPath = linePath + ` L ${coords[coords.length - 1][0]},${H} L ${coords[0][0]},${H} Z`;
+  const gradId = `cg-${cardMetric || 'default'}`;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full text-periwinkle/50" style={{ height: 28 }} preserveAspectRatio="none">
-      <polyline points={coords} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full text-periwinkle/50" style={{ height: H }} preserveAspectRatio="none">
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="currentColor" stopOpacity="0.25" />
+          <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={areaPath} fill={`url(#${gradId})`} />
+      <path d={linePath} fill="none" stroke="currentColor" strokeWidth="1.5"
+        strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }
@@ -512,7 +546,7 @@ function CardContent({ monitor, hist, dailyHist, showGraphs, onSelect, t, draggi
   return (
     <div
       onClick={() => !dragging && onSelect(monitor)}
-      className={`group card flex flex-col gap-2.5 cursor-pointer hover:border-periwinkle/40 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200 select-none h-full animate-fade-in-up ${!monitor.enabled ? 'opacity-50' : ''} ${dragging ? 'shadow-2xl border-periwinkle/40' : ''}`}
+      className={`group card flex flex-col gap-2.5 cursor-pointer hover:border-periwinkle/40 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200 select-none h-full animate-fade-in-up ${!monitor.enabled ? 'opacity-50' : ['error','offline'].includes(monitor.status) ? 'border-red-900/60' : monitor.status === 'warning' ? 'border-amber-900/50' : ''} ${dragging ? 'shadow-2xl border-periwinkle/40' : ''}`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
@@ -816,8 +850,10 @@ export default function Dashboard() {
         )}
 
         {!loading && monitors.length === 0 && (
-          <div className="card text-center py-10">
-            <p className="text-muted text-sm">{t('dashboard.empty')}</p>
+          <div className="card text-center py-16">
+            <Radio size={36} className="text-muted/40 mx-auto mb-3" />
+            <p className="text-thistle font-medium">{t('dashboard.empty')}</p>
+            <p className="text-sm text-muted mt-1">{t('dashboard.emptyHint')}</p>
           </div>
         )}
 

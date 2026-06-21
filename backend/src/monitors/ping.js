@@ -14,7 +14,7 @@ async function check(config, lastState) {
   const { host, port = 80, attempts = 3 } = config;
 
   if (!host) return { status: 'error', state: null, metrics: null, notifications: [
-    { title: 'Config manquante — Ping', message: 'Hôte requis', level: 'error', type: 'error' }
+    { title: 'Config manquante — Ping', message: 'Hôte requis', level: 'error', type: 'status_change' }
   ]};
 
   const results = [];

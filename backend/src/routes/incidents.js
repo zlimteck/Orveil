@@ -36,6 +36,18 @@ router.post('/:id/acknowledge', async (req, res) => {
   res.json(incident);
 });
 
+// PATCH /api/incidents/:id/postmortem
+router.patch('/:id/postmortem', async (req, res) => {
+  const { summary, rootCause, impact, resolution, lessons } = req.body;
+  const incident = await Incident.findByIdAndUpdate(
+    req.params.id,
+    { postmortem: { summary, rootCause, impact, resolution, lessons, updatedAt: new Date() } },
+    { new: true }
+  );
+  if (!incident) return res.status(404).json({ error: 'Incident introuvable' });
+  res.json(incident);
+});
+
 // DELETE /api/incidents/:id
 router.delete('/:id', async (req, res) => {
   await Incident.findByIdAndDelete(req.params.id);

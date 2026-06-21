@@ -52,7 +52,9 @@ router.get('/', async (req, res) => {
       const trend = recentPct != null && priorPct != null
         ? Math.round((recentPct - priorPct) * 10) / 10
         : null;
-      return { id: m._id, name: m.name, type: m.type, status: m.status, enabled: m.enabled, uptime, trend };
+      const slaTarget = m.slaTarget ?? null;
+      const slaMet = slaTarget != null && uptime != null ? uptime >= slaTarget : null;
+      return { id: m._id, name: m.name, type: m.type, status: m.status, enabled: m.enabled, uptime, trend, slaTarget, slaMet };
     }).sort((a, b) => (a.uptime ?? 101) - (b.uptime ?? 101));
 
     // Incidents summary
@@ -65,6 +67,12 @@ router.get('/', async (req, res) => {
 
     // MTTR = avgDuration (alias)
     const mttr = avgDuration;
+
+    // MTTD = mean time from startedAt to acknowledgedAt (for acknowledged incidents)
+    const acknowledged = incidents.filter(i => i.acknowledgedAt);
+    const mttd = acknowledged.length
+      ? Math.round(acknowledged.reduce((s, i) => s + (new Date(i.acknowledgedAt) - new Date(i.startedAt)), 0) / acknowledged.length)
+      : null;
 
     // Severity breakdown
     const severityCount = { P1: 0, P2: 0, P3: 0, P4: 0 };
@@ -97,7 +105,7 @@ router.get('/', async (req, res) => {
 
     res.json({
       monitors: { total, enabled, online, alerting },
-      incidents: { open: openIncidents, resolved: resolvedIncidents, avgDuration, mttr, severityCount, mttrBySeverity },
+      incidents: { open: openIncidents, resolved: resolvedIncidents, avgDuration, mttr, mttd, severityCount, mttrBySeverity },
       incidentsByDay,
       uptimeByMonitor,
       logsByLevel,

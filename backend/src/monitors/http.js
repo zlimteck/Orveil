@@ -35,7 +35,7 @@ async function check(config, lastState) {
   } = config;
 
   if (!url) return { status: 'error', state: null, metrics: null, notifications: [
-    { title: 'Config manquante — HTTP', message: 'URL requise', level: 'error', type: 'error' }
+    { title: 'Config manquante — HTTP', message: 'URL requise', level: 'error', type: 'status_change' }
   ]};
 
   const start = Date.now();

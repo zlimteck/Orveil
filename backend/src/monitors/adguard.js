@@ -33,7 +33,7 @@ async function check(config, lastState) {
   let { accessToken, refreshTok } = config;
   if (!accessToken && !refreshTok) {
     return { status: 'error', state: null, metrics: null, configUpdate: null, notifications: [
-      { title: 'Config manquante — AdGuard', message: 'Access token ou refresh token requis', level: 'error', type: 'error' }
+      { title: 'Config manquante — AdGuard', message: 'Access token ou refresh token requis', level: 'error', type: 'status_change' }
     ]};
   }
 
@@ -51,12 +51,12 @@ async function check(config, lastState) {
         data = await fetchData(accessToken);
       } catch (e) {
         return { status: 'error', state: null, metrics: null, configUpdate: null, notifications: [
-          { title: 'AdGuard — Token invalide', message: `Impossible de rafraîchir le token: ${e.message}`, level: 'error', type: 'error' }
+          { title: 'AdGuard — Token invalide', message: `Impossible de rafraîchir le token: ${e.message}`, level: 'error', type: 'status_change' }
         ]};
       }
     } else {
       return { status: 'error', state: lastState, metrics: null, configUpdate: null, notifications: [
-        { title: 'AdGuard — Erreur API', message: err.message, level: 'error', type: 'error' }
+        { title: 'AdGuard — Erreur API', message: err.message, level: 'error', type: 'status_change' }
       ]};
     }
   }

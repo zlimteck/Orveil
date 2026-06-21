@@ -6,7 +6,7 @@ async function check(config, lastState) {
 
   if (!apiUrl || !apiKey) return {
     status: 'error', state: null, metrics: null,
-    notifications: [{ title: 'Config manquante — Speedtest Tracker', message: 'URL et clé API requises', level: 'error', type: 'error' }],
+    notifications: [{ title: 'Config manquante — Speedtest Tracker', message: 'URL et clé API requises', level: 'error', type: 'status_change' }],
   };
 
   const base = apiUrl.replace(/\/$/, '');
@@ -54,7 +54,7 @@ async function check(config, lastState) {
     console.error('[speedtest]', err.message);
     return {
       status: 'error', state: lastState, metrics: null,
-      notifications: [{ title: 'Speedtest Tracker — Erreur API', message: err.message, level: 'error', type: 'error' }],
+      notifications: [{ title: 'Speedtest Tracker — Erreur API', message: err.message, level: 'error', type: 'status_change' }],
     };
   }
 }

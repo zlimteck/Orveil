@@ -8,7 +8,7 @@ async function check(config, lastState) {
   const tlsReject = rejectUnauthorized === true;
 
   if (!apiUrl || !apiToken) return { status: 'error', state: null, metrics: null, notifications: [
-    { title: 'Config manquante — Proxmox', message: 'URL et token API requis', level: 'error', type: 'error' }
+    { title: 'Config manquante — Proxmox', message: 'URL et token API requis', level: 'error', type: 'status_change' }
   ]};
 
   const http = axios.create({
@@ -69,7 +69,7 @@ async function check(config, lastState) {
     return { status: 'online', state, metrics, notifications };
   } catch (err) {
     return { status: 'error', state: lastState, metrics: null, notifications: [
-      { title: 'Proxmox — Erreur API', message: err.message, level: 'error', type: 'error' }
+      { title: 'Proxmox — Erreur API', message: err.message, level: 'error', type: 'status_change' }
     ]};
   }
 }

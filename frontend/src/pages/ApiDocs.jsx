@@ -58,9 +58,10 @@ function buildSections(t) {
       key: 'incidents',
       routes: [
         { method: 'GET',    path: '/api/incidents',                 descKey: 'incidentsList', params: '?limit=500' },
-        { method: 'PATCH',  path: '/api/incidents/:id/severity',   descKey: 'incidentsSeverity', body: '{ "severity": "P1" }' },
-        { method: 'POST',   path: '/api/incidents/:id/acknowledge', descKey: 'incidentsAcknowledge' },
-        { method: 'DELETE', path: '/api/incidents/:id',             descKey: 'incidentsDelete' },
+        { method: 'PATCH',  path: '/api/incidents/:id/severity',    descKey: 'incidentsSeverity', body: '{ "severity": "P1" }' },
+        { method: 'POST',   path: '/api/incidents/:id/acknowledge',  descKey: 'incidentsAcknowledge' },
+        { method: 'PATCH',  path: '/api/incidents/:id/postmortem',   descKey: 'incidentsPostmortem', body: '{ "summary": "", "rootCause": "", "impact": "", "resolution": "", "lessons": "" }' },
+        { method: 'DELETE', path: '/api/incidents/:id',              descKey: 'incidentsDelete' },
       ],
     },
     {

@@ -5,10 +5,10 @@ export default function StatusBadge({ status = 'unknown', dotOnly = false }) {
   const { t } = useLang();
 
   const STATUS = {
-    online:  { dot: 'bg-celadon animate-pulse',   text: 'text-celadon',   key: 'status.online' },
-    offline: { dot: 'bg-red-400',                 text: 'text-red-400',   key: 'status.offline' },
+    online:  { dot: 'bg-celadon',                 text: 'text-celadon',   key: 'status.online' },
+    offline: { dot: 'bg-red-400 animate-pulse',   text: 'text-red-400',   key: 'status.offline' },
     warning: { dot: 'bg-amber-400 animate-pulse', text: 'text-amber-400', key: 'status.warning' },
-    error:   { dot: 'bg-red-400',                 text: 'text-red-300',   key: 'status.error' },
+    error:   { dot: 'bg-red-400 animate-pulse',   text: 'text-red-300',   key: 'status.error' },
     unknown: { dot: 'bg-granite',                 text: 'text-muted',     key: 'status.unknown' },
   };
 

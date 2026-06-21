@@ -18,7 +18,7 @@ async function check(config, lastState) {
   const { url, username } = config;
   if (!url || !username) return {
     status: 'error', state: null, metrics: null, notifications: [
-      { title: 'Config manquante — AdGuard Home', message: 'URL et identifiants requis', level: 'error', type: 'error' },
+      { title: 'Config manquante — AdGuard Home', message: 'URL et identifiants requis', level: 'error', type: 'status_change' },
     ],
   };
 

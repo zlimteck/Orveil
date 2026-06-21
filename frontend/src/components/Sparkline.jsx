@@ -1,32 +1,60 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-export default function Sparkline({ points = [], color = '#c9d7f8', height = 56, showLabels = false }) {
+function smoothPath(coords) {
+  if (coords.length < 2) return '';
+  const t = 0.18;
+  let d = `M ${coords[0][0]},${coords[0][1]}`;
+  for (let i = 0; i < coords.length - 1; i++) {
+    const p0 = coords[Math.max(0, i - 1)];
+    const p1 = coords[i];
+    const p2 = coords[i + 1];
+    const p3 = coords[Math.min(coords.length - 1, i + 2)];
+    const cp1x = p1[0] + (p2[0] - p0[0]) * t;
+    const cp1y = p1[1] + (p2[1] - p0[1]) * t;
+    const cp2x = p2[0] - (p3[0] - p1[0]) * t;
+    const cp2y = p2[1] - (p3[1] - p1[1]) * t;
+    d += ` C ${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2[0]},${p2[1]}`;
+  }
+  return d;
+}
+
+function smoothArea(coords, bottomY) {
+  if (coords.length < 2) return '';
+  return smoothPath(coords) + ` L ${coords[coords.length - 1][0]},${bottomY} L ${coords[0][0]},${bottomY} Z`;
+}
+
+const formatVal = v => {
+  if (v == null) return '—';
+  if (v >= 1000) return `${(v / 1000).toFixed(1)}k`;
+  if (v % 1 === 0) return `${v}`;
+  return v.toFixed(1);
+};
+
+export default function Sparkline({ points = [], color = '#c9d7f8', height = 56, showLabels = false, incidents = [], annotations = [] }) {
+  const [tooltip, setTooltip] = useState(null);
+
   const values = points.map(p => p.value).filter(v => v != null);
   if (values.length < 2) return null;
 
-  const W = 300, H = height;
-  const PAD_LEFT = showLabels ? 36 : 4;
-  const PAD_RIGHT = 4;
-  const PAD_TOP = 6;
-  const PAD_BOTTOM = showLabels ? 18 : 4;
+  const W = 400, H = height;
+  const PAD_LEFT = showLabels ? 38 : 4;
+  const PAD_RIGHT = 6;
+  const PAD_TOP = 10;
+  const PAD_BOTTOM = showLabels ? 22 : 4;
   const innerW = W - PAD_LEFT - PAD_RIGHT;
   const innerH = H - PAD_TOP - PAD_BOTTOM;
 
   const dataMin = Math.min(...values);
   const dataMax = Math.max(...values);
-
-  // When all values are equal, build a scale from 0 to max (or 0 to 1 if max=0)
-  // to avoid showing nonsensical negative labels
   const min = dataMax === dataMin ? 0 : dataMin;
   const max = dataMax === dataMin ? (dataMax > 0 ? dataMax * 1.5 : 1) : dataMax;
   const range = max - min || 1;
 
-  // Index-based x positioning: data always fills the full width regardless of time gaps
   const valid = points.filter(p => p.value != null);
   const toX = vi => valid.length <= 1 ? 0 : (vi / (valid.length - 1)) * innerW;
   const toY = v => PAD_TOP + innerH - ((v - min) / range) * innerH;
 
-  // Build segments: groups of consecutive valid points (null values create visual gaps)
+  // Segments (handle null gaps)
   const segments = [];
   let current = [];
   let vi = 0;
@@ -40,37 +68,102 @@ export default function Sparkline({ points = [], color = '#c9d7f8', height = 56,
   }
   if (current.length >= 2) segments.push(current);
 
-  const gradId = `sg-${color.replace('#', '')}-${height}`;
+  const gradId = `sg-${color.replace('#', '')}-${H}`;
 
-  const gridLines = 3;
-  const yTicks = Array.from({ length: gridLines }, (_, i) => {
-    const frac = i / (gridLines - 1);
-    const val = max - frac * range;
-    const y = PAD_TOP + frac * innerH;
-    return { y, val };
+  // Y ticks
+  const yTicks = Array.from({ length: 3 }, (_, i) => {
+    const frac = i / 2;
+    return { val: max - frac * range, y: PAD_TOP + frac * innerH };
   });
 
-  const formatVal = v => {
-    if (v >= 1000) return `${(v / 1000).toFixed(1)}k`;
-    if (v % 1 === 0) return `${v}`;
-    return v.toFixed(1);
-  };
-
+  // Error dots
   const errorCoords = valid
     .map((p, vi) => ({ p, vi }))
-    .filter(({ p }) => p.status === 'error' || p.status === 'offline' || p.status === 'warning')
+    .filter(({ p }) => ['error', 'offline', 'warning'].includes(p.status))
     .map(({ p, vi }) => [toX(vi), toY(p.value), p.status]);
 
+  // Time range
+  const tFirst = valid.length > 0 ? new Date(valid[0].ts).getTime() : null;
+  const tLast  = valid.length > 0 ? new Date(valid[valid.length - 1].ts).getTime() : null;
+  const tRange = tFirst && tLast && tLast > tFirst ? tLast - tFirst : null;
+  const tsToX  = ts => tRange ? Math.max(0, Math.min(innerW, ((new Date(ts).getTime() - tFirst) / tRange) * innerW)) : null;
+
+  // X-axis time labels (4 ticks)
+  const xTicks = showLabels && tRange ? [0, 1, 2, 3].map(i => {
+    const frac = i / 3;
+    const ts = new Date(tFirst + frac * tRange);
+    const label = ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return { x: frac * innerW, label };
+  }) : [];
+
+  // Incident shading
+  const incidentRects = tRange ? incidents.map(inc => {
+    const x1 = tsToX(inc.startedAt);
+    const x2 = tsToX(inc.resolvedAt || Date.now());
+    if (x1 == null || x2 == null || x2 <= x1) return null;
+    return { x: x1, w: Math.max(x2 - x1, 2), key: inc._id };
+  }).filter(Boolean) : [];
+
+  // Annotation lines
+  const annotationLines = tRange ? annotations.map(a => {
+    const x = tsToX(a.ts);
+    return x != null ? { x, label: a.label, id: a._id } : null;
+  }).filter(Boolean) : [];
+
+  // Hover tooltip
+  function handleMouseMove(e) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const xFrac = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const idx = Math.round(xFrac * (valid.length - 1));
+    const pt = valid[Math.max(0, Math.min(valid.length - 1, idx))];
+    if (!pt) return;
+    setTooltip({
+      value: pt.value,
+      ts: pt.ts,
+      status: pt.status,
+      xPct: xFrac * 100,
+      x: toX(idx),
+      y: toY(pt.value),
+    });
+  }
+
   return (
-    <div className="relative w-full" style={{ height }}>
-      {/* Y-axis labels — outside SVG to avoid stretch */}
+    <div className="relative w-full select-none" style={{ height }}>
+      {/* Y-axis labels */}
       {showLabels && (
-        <div className="absolute top-0 bottom-0 left-0 flex flex-col justify-between py-1.5" style={{ width: PAD_LEFT - 4 }}>
+        <div className="absolute top-0 left-0 flex flex-col justify-between pointer-events-none"
+          style={{ width: PAD_LEFT - 4, top: PAD_TOP, bottom: PAD_BOTTOM }}>
           {yTicks.map(({ val }, i) => (
-            <span key={i} className="block text-right leading-none" style={{ fontSize: 9, color: 'currentColor', opacity: 0.4 }}>
+            <span key={i} className="block text-right leading-none"
+              style={{ fontSize: 9, color: 'currentColor', opacity: 0.4 }}>
               {formatVal(val)}
             </span>
           ))}
+        </div>
+      )}
+
+      {/* Tooltip */}
+      {tooltip && (
+        <div
+          className="pointer-events-none absolute z-10 px-2 py-1 rounded text-xs bg-surface border border-border shadow-lg whitespace-nowrap"
+          style={{
+            left: `clamp(0%, ${tooltip.xPct}%, calc(100% - 120px))`,
+            top: 0,
+            transform: 'translateX(-50%)',
+          }}
+        >
+          <span className="font-mono font-semibold text-thistle">{formatVal(tooltip.value)}</span>
+          {tooltip.ts && (
+            <span className="text-muted ml-1.5">
+              {new Date(tooltip.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
+          {['error', 'offline'].includes(tooltip.status) && (
+            <span className="ml-1.5 text-red-400">●</span>
+          )}
+          {tooltip.status === 'warning' && (
+            <span className="ml-1.5 text-amber-400">●</span>
+          )}
         </div>
       )}
 
@@ -79,11 +172,14 @@ export default function Sparkline({ points = [], color = '#c9d7f8', height = 56,
         className="absolute top-0 right-0"
         style={{ left: showLabels ? PAD_LEFT : 0, height, width: showLabels ? `calc(100% - ${PAD_LEFT}px)` : '100%' }}
         preserveAspectRatio="none"
+        onMouseMove={handleMouseMove}
+        onMouseLeave={() => setTooltip(null)}
       >
         <defs>
           <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.2" />
-            <stop offset="100%" stopColor={color} stopOpacity="0.01" />
+            <stop offset="0%"   stopColor={color} stopOpacity="0.35" />
+            <stop offset="70%"  stopColor={color} stopOpacity="0.07" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
           </linearGradient>
         </defs>
 
@@ -93,25 +189,57 @@ export default function Sparkline({ points = [], color = '#c9d7f8', height = 56,
             stroke="currentColor" strokeOpacity="0.07" strokeWidth="1" vectorEffect="non-scaling-stroke" />
         ))}
 
-        {/* Area fill + line per segment (null values create visual breaks) */}
+        {/* X-axis time labels */}
+        {xTicks.map(({ x, label }, i) => (
+          <text key={i} x={x} y={H - 4} fontSize="8" textAnchor={i === 0 ? 'start' : i === 3 ? 'end' : 'middle'}
+            fill="currentColor" opacity="0.35">{label}</text>
+        ))}
+
+        {/* Incident shaded regions */}
+        {incidentRects.map(r => (
+          <rect key={r.key} x={r.x} y={PAD_TOP} width={r.w} height={innerH}
+            fill="rgba(248,113,113,0.10)" />
+        ))}
+
+        {/* Annotation vertical lines */}
+        {annotationLines.map(a => (
+          <g key={a.id}>
+            <line x1={a.x} y1={PAD_TOP} x2={a.x} y2={PAD_TOP + innerH}
+              stroke="#a78bfa" strokeWidth="1.5" strokeDasharray="3,3" vectorEffect="non-scaling-stroke" />
+            <text x={a.x + 3} y={PAD_TOP + 9} fontSize="8" fill="#a78bfa" opacity="0.9">
+              {a.label.length > 18 ? a.label.slice(0, 17) + '…' : a.label}
+            </text>
+          </g>
+        ))}
+
+        {/* Area fill + smooth line per segment */}
         {segments.map((seg, si) => {
           const coords = seg.map(({ p, vi }) => [toX(vi), toY(p.value)]);
-          const lineStr = coords.map(([x, y]) => `${x},${y}`).join(' ');
-          const areaStr = `${coords[0][0]},${PAD_TOP + innerH} ` + lineStr + ` ${coords[coords.length - 1][0]},${PAD_TOP + innerH}`;
           return (
             <g key={si}>
-              <polygon points={areaStr} fill={`url(#${gradId})`} />
-              <polyline points={lineStr} fill="none" stroke={color}
-                strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+              <path d={smoothArea(coords, PAD_TOP + innerH)} fill={`url(#${gradId})`} />
+              <path d={smoothPath(coords)} fill="none" stroke={color}
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
             </g>
           );
         })}
 
         {/* Error/warning dots */}
         {errorCoords.map(([x, y, status], i) => (
-          <circle key={i} cx={x} cy={y} r="2.5"
-            fill={status === 'warning' ? '#fbbf24' : '#f87171'} />
+          <circle key={i} cx={x} cy={y} r="3"
+            fill={status === 'warning' ? '#fbbf24' : '#f87171'}
+            stroke="rgba(0,0,0,0.3)" strokeWidth="0.5" />
         ))}
+
+        {/* Hover crosshair + dot */}
+        {tooltip && (
+          <g>
+            <line x1={tooltip.x} y1={PAD_TOP} x2={tooltip.x} y2={PAD_TOP + innerH}
+              stroke="currentColor" strokeOpacity="0.2" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+            <circle cx={tooltip.x} cy={tooltip.y} r="3.5"
+              fill={color} stroke="rgba(0,0,0,0.4)" strokeWidth="1" />
+          </g>
+        )}
       </svg>
     </div>
   );

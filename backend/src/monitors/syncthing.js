@@ -43,7 +43,7 @@ async function check(config, lastState) {
 
   if (!apiUrl || !apiKey) {
     return { status: 'error', state: null, metrics: null, notifications: [
-      { title: 'Config manquante — Syncthing', message: 'URL API et clé API requis', level: 'error', type: 'error' }
+      { title: 'Config manquante — Syncthing', message: 'URL API et clé API requis', level: 'error', type: 'status_change' }
     ]};
   }
 
@@ -79,7 +79,7 @@ async function check(config, lastState) {
     }
   } catch (err) {
     return { status: 'error', state: lastState, metrics: null, notifications: [
-      { title: 'Syncthing — Erreur API', message: err.message, level: 'error', type: 'error' }
+      { title: 'Syncthing — Erreur API', message: err.message, level: 'error', type: 'status_change' }
     ]};
   }
 

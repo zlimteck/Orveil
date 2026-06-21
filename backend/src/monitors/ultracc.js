@@ -26,7 +26,7 @@ async function check(config, lastState) {
 
   if (!apiUrl || !ultraToken) {
     return { status: 'error', state: null, metrics: null, notifications: [
-      { title: 'Config manquante — Ultra.cc', message: 'URL API et token requis', level: 'error', type: 'error' }
+      { title: 'Config manquante — Ultra.cc', message: 'URL API et token requis', level: 'error', type: 'status_change' }
     ]};
   }
 
@@ -57,7 +57,7 @@ async function check(config, lastState) {
       return cachedResult(lastState);
     }
     return { status: 'error', state: lastState, metrics: null, notifications: [
-      { title: 'Ultra.cc — Erreur API', message: err.message, level: 'error', type: 'error' }
+      { title: 'Ultra.cc — Erreur API', message: err.message, level: 'error', type: 'status_change' }
     ]};
   }
 

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, AlertTriangle, CheckCircle } from 'lucide-react';
-import { history as historyApi, incidents as incidentsApi } from '../api';
+import { X, AlertTriangle, CheckCircle, Tag, Trash2 } from 'lucide-react';
+import { history as historyApi, incidents as incidentsApi, annotations as annotationsApi } from '../api';
 import { useLang } from '../context/LangContext';
+import Portal from './Portal';
 import { getMetrics } from '../utils/metricConfig';
 import ServiceIcon from './ServiceIcon';
 import StatusBadge from './StatusBadge';
@@ -30,12 +31,36 @@ export default function ServiceDetail({ monitor, onClose }) {
   const { t, lang } = useLang();
   const [hist, setHist] = useState(null);
   const [incidents, setIncidents] = useState([]);
+  const [annotations, setAnnotations] = useState([]);
   const [period, setPeriod] = useState(24);
+  const [tab, setTab] = useState('metrics');
+  const [annLabel, setAnnLabel] = useState('');
+  const [addingAnn, setAddingAnn] = useState(false);
+
+  const loadAnnotations = () => {
+    const since = Date.now() - period * 3600 * 1000;
+    annotationsApi.list(monitor._id, since).then(setAnnotations).catch(() => {});
+  };
 
   useEffect(() => {
     historyApi.monitor(monitor._id, period).then(setHist).catch(() => {});
-    incidentsApi.list({ monitorId: monitor._id, limit: 10 }).then(setIncidents).catch(() => {});
+    incidentsApi.list({ monitorId: monitor._id, limit: 50 }).then(setIncidents).catch(() => {});
+    loadAnnotations();
   }, [monitor._id, period]);
+
+  async function handleAddAnnotation(e) {
+    e.preventDefault();
+    if (!annLabel.trim()) return;
+    await annotationsApi.create({ monitorId: monitor._id, label: annLabel.trim() });
+    setAnnLabel('');
+    setAddingAnn(false);
+    loadAnnotations();
+  }
+
+  async function handleDeleteAnnotation(id) {
+    await annotationsApi.delete(id);
+    loadAnnotations();
+  }
 
   const sparkColor = monitor.status === 'online' ? '#c9d7f8' : monitor.status === 'warning' ? '#fbbf24' : '#f87171';
   const locale = lang === 'fr' ? 'fr-FR' : 'en-GB';
@@ -64,17 +89,17 @@ export default function ServiceDetail({ monitor, onClose }) {
   })();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm"
+    <Portal><div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm"
       onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="bg-card border border-border w-full sm:max-w-xl rounded-t-2xl sm:rounded-2xl max-h-[90dvh] overflow-y-auto shadow-2xl">
+      <div className="bg-card border border-border w-full sm:max-w-xl rounded-t-2xl sm:rounded-2xl h-[90dvh] sm:h-[82dvh] flex flex-col shadow-2xl overflow-hidden">
 
         {/* Drag handle mobile */}
-        <div className="sm:hidden flex justify-center pt-3 pb-1">
+        <div className="sm:hidden flex justify-center pt-3 pb-1 shrink-0">
           <div className="w-10 h-1 bg-slate-600 rounded-full" />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
           <div className="flex items-center gap-2.5">
             <ServiceIcon type={monitor.type} size={20} url={monitor.config?.url} faviconUrl={monitor.metrics?.faviconUrl} serviceUrl={monitor.serviceUrl} />
             <div>
@@ -88,68 +113,149 @@ export default function ServiceDetail({ monitor, onClose }) {
           </div>
         </div>
 
-        <div className="p-5 space-y-5">
-          {/* Uptime */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold text-muted uppercase tracking-wider">{t('modal.availability')}</p>
-              <div className="flex gap-1">
-                {[24, 168].map(h => (
-                  <button key={h} onClick={() => setPeriod(h)}
-                    className={`text-xs px-2 py-0.5 rounded ${period === h ? 'bg-periwinkle/20 text-periwinkle' : 'text-muted hover:text-thistle'}`}>
-                    {h === 24 ? '24h' : t('modal.period7d')}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="flex justify-around">
-              <UptimeBadge value={hist?.uptime?.h24} label={t('modal.label24h')} />
-              <UptimeBadge value={hist?.uptime?.d7}  label={t('modal.label7d')} />
-            </div>
-          </div>
+        {/* Tabs */}
+        <div className="flex border-b border-border px-5 gap-1 shrink-0">
+          {[
+            { key: 'metrics',     label: lang === 'fr' ? 'Métriques' : 'Metrics' },
+            { key: 'incidents',   label: lang === 'fr' ? 'Incidents' : 'Incidents', badge: incidents.filter(i => !i.resolvedAt).length },
+            { key: 'annotations', label: lang === 'fr' ? 'Annotations' : 'Annotations', badge: annotations.length },
+          ].map(({ key, label, badge }) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className={`text-xs font-medium py-2.5 px-1 border-b-2 transition-colors flex items-center gap-1.5 ${
+                tab === key ? 'border-periwinkle text-periwinkle' : 'border-transparent text-muted hover:text-thistle'
+              }`}
+            >
+              {label}
+              {badge > 0 && (
+                <span className={`text-xs px-1 rounded-full font-semibold ${tab === key ? 'bg-periwinkle/20 text-periwinkle' : 'bg-granite/30 text-muted'}`}>{badge}</span>
+              )}
+            </button>
+          ))}
+        </div>
 
-          {/* Sparklines — one per metric (or fallback primary) */}
-          {graphs.map(g => (
-            <div key={g.key}>
-              <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">{g.label}</p>
-              <div className="bg-surface rounded-lg px-3 pt-3 pb-2">
-                <Sparkline points={g.pts} color={sparkColor} height={75} showLabels />
-                <div className="flex justify-between text-xs text-muted mt-1">
-                  <span>{period === 24 ? '−24h' : `−${t('modal.period7d')}`}</span>
-                  <span>{t('modal.now')}</span>
+        <div className="p-5 space-y-5 flex-1 overflow-y-auto">
+          {tab === 'metrics' && (
+            <>
+              {/* Uptime */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-muted uppercase tracking-wider">{t('modal.availability')}</p>
+                  <div className="flex gap-1">
+                    {[24, 168].map(h => (
+                      <button key={h} onClick={() => setPeriod(h)}
+                        className={`text-xs px-2 py-0.5 rounded ${period === h ? 'bg-periwinkle/20 text-periwinkle' : 'text-muted hover:text-thistle'}`}>
+                        {h === 24 ? '24h' : t('modal.period7d')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex justify-around">
+                  <UptimeBadge value={hist?.uptime?.h24} label={t('modal.label24h')} />
+                  <UptimeBadge value={hist?.uptime?.d7}  label={t('modal.label7d')} />
                 </div>
               </div>
-            </div>
-          ))}
 
-          {graphs.length === 0 && hist !== null && (
-            <p className="text-xs text-muted italic text-center py-4">{t('modal.noData')}</p>
-          )}
-
-          {/* Incidents récents */}
-          {incidents.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">{t('modal.incidents')}</p>
-              <div className="space-y-1.5">
-                {incidents.map(i => (
-                  <div key={i._id} className="flex items-start gap-2.5 bg-surface rounded-lg px-3 py-2">
-                    <span className={`mt-0.5 shrink-0 ${i.resolvedAt ? 'text-celadon' : 'text-red-400'}`}>
-                      {i.resolvedAt ? <CheckCircle size={14} /> : <AlertTriangle size={14} />}
-                    </span>
-                    <div className="text-xs text-muted min-w-0">
-                      <p className="text-thistle">{new Date(i.startedAt).toLocaleString(locale)}</p>
-                      {i.resolvedAt
-                        ? <p>{t('modal.resolved')} <span className="text-thistle">{duration(i.duration)}</span></p>
-                        : <p className="text-red-400">{t('modal.ongoing')}</p>
-                      }
+              {/* Sparklines — one per metric (or fallback primary) */}
+              {graphs.map(g => (
+                <div key={g.key}>
+                  <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">{g.label}</p>
+                  <div className="bg-surface rounded-lg px-3 pt-3 pb-2">
+                    <Sparkline points={g.pts} color={sparkColor} height={110} showLabels incidents={incidents} annotations={annotations} />
+                    <div className="flex justify-between text-xs text-muted mt-1">
+                      <span>{period === 24 ? '−24h' : `−${t('modal.period7d')}`}</span>
+                      <span>{t('modal.now')}</span>
                     </div>
                   </div>
-                ))}
+                </div>
+              ))}
+
+              {graphs.length === 0 && hist !== null && (
+                <div className="text-center py-8">
+                  <p className="text-xs text-muted italic">{t('modal.noData')}</p>
+                </div>
+              )}
+            </>
+          )}
+
+          {tab === 'incidents' && (
+            <div>
+              {incidents.length === 0 ? (
+                <div className="text-center py-10">
+                  <CheckCircle size={28} className="text-celadon mx-auto mb-2" />
+                  <p className="text-sm text-thistle font-medium">{lang === 'fr' ? 'Aucun incident' : 'No incidents'}</p>
+                  <p className="text-xs text-muted mt-1">{lang === 'fr' ? 'Ce service fonctionne parfaitement.' : 'This service is running smoothly.'}</p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {incidents.map(i => (
+                    <div key={i._id} className="flex items-start gap-2.5 bg-surface rounded-lg px-3 py-2">
+                      <span className={`mt-0.5 shrink-0 ${i.resolvedAt ? 'text-celadon' : 'text-red-400'}`}>
+                        {i.resolvedAt ? <CheckCircle size={14} /> : <AlertTriangle size={14} />}
+                      </span>
+                      <div className="text-xs text-muted min-w-0">
+                        <p className="text-thistle">{new Date(i.startedAt).toLocaleString(locale)}</p>
+                        {i.resolvedAt
+                          ? <p>{t('modal.resolved')} <span className="text-thistle">{duration(i.duration)}</span></p>
+                          : <p className="text-red-400">{t('modal.ongoing')}</p>
+                        }
+                        {i.reason && <p className="text-muted/70 truncate">{i.reason}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === 'annotations' && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-muted uppercase tracking-wider">{t('modal.annotationAdd')}</p>
+                <button
+                  onClick={() => setAddingAnn(a => !a)}
+                  className="text-xs px-2 py-0.5 rounded text-periwinkle bg-periwinkle/10 border border-periwinkle/20 hover:bg-periwinkle/20 transition-colors"
+                >
+                  + {t('modal.annotationSave')}
+                </button>
               </div>
+              {addingAnn && (
+                <form onSubmit={handleAddAnnotation} className="flex gap-2 mb-3">
+                  <input
+                    autoFocus
+                    className="input text-xs flex-1 h-8"
+                    placeholder={t('modal.annotationLabelPlaceholder')}
+                    value={annLabel}
+                    onChange={e => setAnnLabel(e.target.value)}
+                  />
+                  <button type="submit" className="btn-primary text-xs px-3 h-8">{t('modal.annotationSave')}</button>
+                  <button type="button" onClick={() => setAddingAnn(false)} className="btn-ghost text-xs px-2 h-8"><X size={12} /></button>
+                </form>
+              )}
+              {annotations.length > 0 ? (
+                <div className="space-y-1">
+                  {annotations.map(a => (
+                    <div key={a._id} className="flex items-center gap-2 bg-surface rounded-lg px-3 py-1.5">
+                      <Tag size={11} className="text-periwinkle shrink-0" />
+                      <span className="text-xs text-thistle flex-1">{a.label}</span>
+                      <span className="text-xs text-muted">{new Date(a.ts).toLocaleString(locale)}</span>
+                      <button onClick={() => handleDeleteAnnotation(a._id)} className="text-muted hover:text-red-400 transition-colors ml-1"><Trash2 size={11} /></button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                !addingAnn && (
+                  <div className="text-center py-8">
+                    <Tag size={24} className="text-muted/40 mx-auto mb-2" />
+                    <p className="text-xs text-muted italic">{t('modal.annotationNone')}</p>
+                  </div>
+                )
+              )}
             </div>
           )}
         </div>
       </div>
-    </div>
+    </div></Portal>
   );
 }

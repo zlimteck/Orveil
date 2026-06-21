@@ -24,6 +24,7 @@ const monitorSchema = new mongoose.Schema({
   serviceUrl: { type: String, default: '' },
   showOnStatusPage: { type: Boolean, default: true },
   dependsOn: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Monitor' }],
+  slaTarget: { type: Number, default: null }, // % uptime target, e.g. 99.9
 }, { timestamps: true });
 
 // Encrypt sensitive config fields before any save

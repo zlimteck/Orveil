@@ -26,7 +26,7 @@ async function check(config, lastState) {
 
   if (!apiUrl || !apiKey) return {
     status: 'error', state: null, metrics: null,
-    notifications: [{ title: 'Config manquante — Unraid', message: 'URL et clé API requises', level: 'error', type: 'error' }],
+    notifications: [{ title: 'Config manquante — Unraid', message: 'URL et clé API requises', level: 'error', type: 'status_change' }],
   };
 
   const base = apiUrl.replace(/\/$/, '');
@@ -123,7 +123,7 @@ async function check(config, lastState) {
     console.error('[unraid]', message);
     return {
       status: 'error', state: lastState, metrics: null,
-      notifications: [{ title: 'Unraid — Erreur API', message: err.message, level: 'error', type: 'error' }],
+      notifications: [{ title: 'Unraid — Erreur API', message: err.message, level: 'error', type: 'status_change' }],
     };
   }
 }

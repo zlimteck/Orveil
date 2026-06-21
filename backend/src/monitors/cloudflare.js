@@ -50,7 +50,7 @@ async function check(config, lastState) {
   const { apiToken, accountId } = config;
   if (!apiToken || !accountId) {
     return { status: 'error', state: null, metrics: null, notifications: [
-      { title: 'Config manquante — Cloudflare', message: 'API Token et Account ID requis', level: 'error', type: 'error' }
+      { title: 'Config manquante — Cloudflare', message: 'API Token et Account ID requis', level: 'error', type: 'status_change' }
     ]};
   }
 
