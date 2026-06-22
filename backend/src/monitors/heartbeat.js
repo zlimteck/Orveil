@@ -1,4 +1,7 @@
-async function check(config, lastState) {
+const i18n = require('../i18n');
+
+async function check(config, lastState, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
   const { expectedEvery = 60 } = config; // minutes
 
   if (!lastState?.lastPing) {
@@ -19,17 +22,9 @@ async function check(config, lastState) {
   const wasOnline = lastState?.wasOnline !== false;
 
   if (late && wasOnline) {
-    notifications.push({
-      title: `💔 Heartbeat manqué`,
-      message: `Aucun ping reçu depuis ${Math.round(minutesSince)} min (attendu toutes les ${expectedEvery} min).`,
-      level: 'error', type: 'status_change',
-    });
+    notifications.push({ ...L.heartbeatMissed(Math.round(minutesSince), expectedEvery), level: 'error', type: 'status_change' });
   } else if (!late && !wasOnline) {
-    notifications.push({
-      title: `💚 Heartbeat rétabli`,
-      message: `Ping reçu après une interruption.`,
-      level: 'success', type: 'status_change',
-    });
+    notifications.push({ ...L.heartbeatRestored(), level: 'success', type: 'status_change' });
   }
 
   return {
@@ -40,13 +35,11 @@ async function check(config, lastState) {
   };
 }
 
-async function report(config, state) {
+async function report(config, state, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
   const { expectedEvery = 60 } = config;
-  const last = state?.lastPing ? new Date(state.lastPing).toLocaleString('fr-FR') : 'jamais';
-  return {
-    title: '💓 Rapport Heartbeat',
-    message: `Dernier ping : ${last}\nFréquence attendue : toutes les ${expectedEvery} min`,
-  };
+  const last = state?.lastPing ? new Date(state.lastPing).toLocaleString() : 'never';
+  return L.heartbeatReport(last, expectedEvery);
 }
 
 module.exports = { check, report };

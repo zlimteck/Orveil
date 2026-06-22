@@ -482,6 +482,16 @@ function MetricsBlock({ monitor }) {
     </div>
   );
 
+  if (type === 'ollama') return (
+    <div className="space-y-1 text-xs text-muted">
+      <div className="flex items-center gap-2">
+        <span>{metrics.modelsCount ?? '—'} modèle{metrics.modelsCount !== 1 ? 's' : ''}</span>
+        {metrics.responseTime != null && <><span>·</span><span>{metrics.responseTime}ms</span></>}
+      </div>
+      {metrics.version && <p className="text-muted/60">v{metrics.version}</p>}
+    </div>
+  );
+
   return null;
 }
 

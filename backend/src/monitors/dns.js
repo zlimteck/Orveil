@@ -1,4 +1,5 @@
 const dns = require('node:dns/promises');
+const i18n = require('../i18n');
 
 const RESOLVERS = {
   A:     (h) => dns.resolve4(h),
@@ -9,15 +10,16 @@ const RESOLVERS = {
   NS:    (h) => dns.resolveNs(h),
 };
 
-async function check(config) {
+async function check(config, lastState, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
   const { hostname, recordType = 'A', expectedValue } = config;
 
   if (!hostname) return {
     status: 'error',
     state: null,
     metrics: null,
-    lastError: 'Hostname requis',
-    notifications: [{ title: 'Config manquante — DNS', message: 'Hostname requis', level: 'error', type: 'status_change' }],
+    lastError: 'Hostname required',
+    notifications: [{ ...L.missingConfig('DNS', 'Hostname required'), level: 'error', type: 'status_change' }],
   };
 
   const resolver = RESOLVERS[recordType];
@@ -25,8 +27,8 @@ async function check(config) {
     status: 'error',
     state: null,
     metrics: null,
-    lastError: `Type DNS inconnu : ${recordType}`,
-    notifications: [{ title: 'DNS — Type inconnu', message: `Type ${recordType} non supporté`, level: 'error', type: 'status_change' }],
+    lastError: `Unknown DNS type: ${recordType}`,
+    notifications: [{ ...L.dnsUnknownType(recordType), level: 'error', type: 'status_change' }],
   };
 
   const start = Date.now();
@@ -43,7 +45,7 @@ async function check(config) {
       const match = records.some(r => r.toLowerCase().includes(expected));
       if (!match) {
         status = 'warning';
-        lastError = `Valeur attendue "${expectedValue}" non trouvée — obtenu : ${resolved}`;
+        lastError = `Expected value "${expectedValue}" not found — got: ${resolved}`;
       }
     }
 
@@ -52,26 +54,15 @@ async function check(config) {
       lastError,
       state: { hostname, recordType, resolved, responseTime },
       metrics: { responseTime },
-      notifications: status !== 'online' ? [{
-        title: `DNS ${hostname} — Valeur inattendue`,
-        message: lastError,
-        level: 'warning',
-        type: 'status_change',
-      }] : [],
+      notifications: status !== 'online' ? [{ ...L.dnsUnexpectedValue(hostname, expectedValue, resolved), level: 'warning', type: 'status_change' }] : [],
     };
   } catch (err) {
-    const lastError = `Résolution DNS échouée : ${err.message}`;
     return {
       status: 'offline',
-      lastError,
+      lastError: `DNS resolution failed: ${err.message}`,
       state: { hostname, recordType, resolved: null },
       metrics: null,
-      notifications: [{
-        title: `DNS ${hostname} — Échec`,
-        message: lastError,
-        level: 'error',
-        type: 'status_change',
-      }],
+      notifications: [{ ...L.dnsFailed(hostname, err.message), level: 'error', type: 'status_change' }],
     };
   }
 }

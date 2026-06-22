@@ -1,11 +1,15 @@
 const axios = require('axios');
 const https = require('https');
 const cfHeaders = require('./cfHeaders');
+const { getProxyAgents } = require('./proxyAgent');
+const i18n = require('../i18n');
 
-function makeClient(rejectUnauthorized = false, extraHeaders = {}) {
+function makeClient(rejectUnauthorized = false, extraHeaders = {}, proxy = null) {
+  const proxyAgents = getProxyAgents(proxy);
   return axios.create({
     timeout: 10000,
-    httpsAgent: new https.Agent({ rejectUnauthorized }),
+    httpsAgent: proxyAgents?.httpsAgent || new https.Agent({ rejectUnauthorized }),
+    ...(proxyAgents && { httpAgent: proxyAgents.httpAgent }),
     headers: extraHeaders,
   });
 }
@@ -38,16 +42,17 @@ async function getFolderStatus(http, apiUrl, apiKey, folderId) {
   return res.data;
 }
 
-async function check(config, lastState) {
-  const { apiUrl, apiKey, folderIds = [], rejectUnauthorized = false } = config;
+async function check(config, lastState, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
+  const { apiUrl, apiKey, folderIds = [], rejectUnauthorized = false, proxy } = config;
 
   if (!apiUrl || !apiKey) {
     return { status: 'error', state: null, metrics: null, notifications: [
-      { title: 'Config manquante — Syncthing', message: 'URL API et clé API requis', level: 'error', type: 'status_change' }
+      { ...L.missingConfig('Syncthing', 'API URL and API key required'), level: 'error', type: 'status_change' }
     ]};
   }
 
-  const http = makeClient(rejectUnauthorized, cfHeaders(config));
+  const http = makeClient(rejectUnauthorized, cfHeaders(config), proxy);
   let cfg, connections, sysStatus, folders = [];
 
   try {
@@ -79,7 +84,7 @@ async function check(config, lastState) {
     }
   } catch (err) {
     return { status: 'error', state: lastState, metrics: null, notifications: [
-      { title: 'Syncthing — Erreur API', message: err.message, level: 'error', type: 'status_change' }
+      { ...L.apiError('Syncthing', err.message), level: 'error', type: 'status_change' }
     ]};
   }
 
@@ -88,7 +93,7 @@ async function check(config, lastState) {
   const hostDevice = myID ? { id: myID, name: deviceMap[myID] || 'Host', connected: true, isHost: true } : null;
   const peers = Object.entries(connections).map(([id, det]) => ({
     id,
-    name: deviceMap[id] || 'Inconnu',
+    name: deviceMap[id] || 'Unknown',
     connected: det.connected,
   }));
   const devices = hostDevice ? [hostDevice, ...peers] : peers;
@@ -103,17 +108,9 @@ async function check(config, lastState) {
       const prev = prevDeviceMap[dev.id];
       if (prev) {
         if (!dev.connected && prev.connected) {
-          notifications.push({
-            title: `Syncthing — Appareil déconnecté`,
-            message: `"${dev.name}" s'est déconnecté de Syncthing.`,
-            level: 'warning', type: 'status_change',
-          });
+          notifications.push({ ...L.syncthingDeviceDisconnected(dev.name), level: 'warning', type: 'status_change' });
         } else if (dev.connected && !prev.connected) {
-          notifications.push({
-            title: `Syncthing — Appareil reconnecté`,
-            message: `"${dev.name}" est de nouveau connecté.`,
-            level: 'success', type: 'status_change',
-          });
+          notifications.push({ ...L.syncthingDeviceReconnected(dev.name), level: 'success', type: 'status_change' });
         }
       }
     }
@@ -121,11 +118,7 @@ async function check(config, lastState) {
     for (const folder of folders) {
       const prevF = lastState?.folders?.find(f => f.id === folder.id);
       if (prevF && folder.state === 'error' && prevF.state !== 'error') {
-        notifications.push({
-          title: `Syncthing — Erreur dossier`,
-          message: `Le dossier "${folder.label}" est en erreur.`,
-          level: 'error', type: 'status_change',
-        });
+        notifications.push({ ...L.syncthingFolderError(folder.label), level: 'error', type: 'status_change' });
       }
     }
   }
@@ -147,27 +140,10 @@ async function check(config, lastState) {
   return { status, state, metrics, notifications };
 }
 
-async function report(config, state) {
-  if (!state) return { title: 'Syncthing', message: 'Aucune donnée disponible.' };
-
-  const devLines = (state.devices || []).map(d =>
-    `${d.name} (${d.connected ? 'connecté' : 'déconnecté'})`
-  ).join('\n');
-
-  const folderLines = (state.folders || []).map(f => {
-    const synced = f.needBytes === 0 && f.state !== 'error';
-    return `${f.label} — ${f.state} (${f.inSyncFiles}/${f.globalFiles} fichiers)`;
-  }).join('\n');
-
-  const msg = `Rapport Syncthing
-
-Appareils (${(state.devices || []).filter(d => d.connected).length}/${(state.devices || []).length} connectés) :
-${devLines || 'Aucun appareil'}
-
-Dossiers :
-${folderLines || 'Aucun dossier'}`;
-
-  return { title: 'Rapport Syncthing', message: msg };
+async function report(config, state, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
+  if (!state) return { title: 'Syncthing', message: 'No data available.' };
+  return L.syncthingReport(state);
 }
 
 module.exports = { check, report };

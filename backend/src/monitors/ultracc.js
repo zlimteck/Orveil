@@ -1,7 +1,7 @@
 const axios = require('axios');
 const cfHeaders = require('./cfHeaders');
-
-const http = axios.create({ timeout: 15000 });
+const { getProxyAgents } = require('./proxyAgent');
+const i18n = require('../i18n');
 
 const COOLDOWN_MS = 60 * 1000;
 const lastCall = {};
@@ -21,12 +21,13 @@ function cachedResult(lastState) {
   };
 }
 
-async function check(config, lastState) {
-  const { apiUrl, ultraToken } = config;
+async function check(config, lastState, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
+  const { apiUrl, ultraToken, proxy } = config;
 
   if (!apiUrl || !ultraToken) {
     return { status: 'error', state: null, metrics: null, notifications: [
-      { title: 'Config manquante — Ultra.cc', message: 'URL API et token requis', level: 'error', type: 'status_change' }
+      { ...L.missingConfig('Ultra.cc', 'API URL and token required'), level: 'error', type: 'status_change' }
     ]};
   }
 
@@ -38,11 +39,16 @@ async function check(config, lastState) {
 
   let data;
   try {
+    const proxyAgents = getProxyAgents(proxy);
+    const http = axios.create({
+      timeout: 15000,
+      ...(proxyAgents && { httpsAgent: proxyAgents.httpsAgent, httpAgent: proxyAgents.httpAgent }),
+    });
     const res = await http.get(apiUrl, {
       headers: { Authorization: ultraToken, ...cfHeaders(config) },
     });
     const info = res.data?.service_stats_info;
-    if (!info) throw new Error('Réponse API mal formatée');
+    if (!info) throw new Error('Malformed API response');
 
     data = {
       total_storage:     info.total_storage_value,
@@ -52,30 +58,22 @@ async function check(config, lastState) {
     };
   } catch (err) {
     if (err.response?.status === 429) {
-      console.warn('[Ultra.cc] Rate limit atteint — retour du cache');
+      console.warn('[Ultra.cc] Rate limit reached — returning cached result');
       lastCall[apiUrl] = now + 60 * 1000;
       return cachedResult(lastState);
     }
     return { status: 'error', state: lastState, metrics: null, notifications: [
-      { title: 'Ultra.cc — Erreur API', message: err.message, level: 'error', type: 'status_change' }
+      { ...L.apiError('Ultra.cc', err.message), level: 'error', type: 'status_change' }
     ]};
   }
 
   const notifications = [];
   if (lastState) {
     if (data.free_storage < 50 && lastState.free_storage >= 50) {
-      notifications.push({
-        title: 'Stockage bas — Ultra.cc',
-        message: `Espace libre : ${data.free_storage} GB sur ${data.total_storage} GB`,
-        level: 'warning', type: 'status_change',
-      });
+      notifications.push({ ...L.ultraccLowStorage(data.free_storage, data.total_storage), level: 'warning', type: 'status_change' });
     }
     if (data.traffic_available < 10 && lastState.traffic_available >= 10) {
-      notifications.push({
-        title: 'Trafic bas — Ultra.cc',
-        message: `Trafic disponible : ${data.traffic_available}% — Reset : ${data.traffic_reset}`,
-        level: 'warning', type: 'status_change',
-      });
+      notifications.push({ ...L.ultraccLowTraffic(data.traffic_available, data.traffic_reset), level: 'warning', type: 'status_change' });
     }
   }
 
@@ -92,12 +90,10 @@ async function check(config, lastState) {
   };
 }
 
-async function report(config, state) {
-  if (!state) return { title: 'Ultra.cc', message: 'Aucune donnée disponible.' };
-  return {
-    title: 'Rapport Ultra.cc',
-    message: `Stockage : ${state.free_storage} GB libres / ${state.total_storage} GB\nTrafic disponible : ${state.traffic_available}%\nReset trafic : ${state.traffic_reset}`,
-  };
+async function report(config, state, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
+  if (!state) return { title: 'Ultra.cc', message: 'No data available.' };
+  return L.ultraccReport(state);
 }
 
 module.exports = { check, report };

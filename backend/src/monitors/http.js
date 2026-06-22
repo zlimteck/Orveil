@@ -2,6 +2,8 @@ const axios = require('axios');
 const https = require('https');
 const tls = require('tls');
 const cfHeaders = require('./cfHeaders');
+const { getProxyAgents } = require('./proxyAgent');
+const i18n = require('../i18n');
 
 function extractFavicon(html, base) {
   if (!html || typeof html !== 'string') return null;
@@ -27,14 +29,17 @@ function checkSSLCert(hostname, port = 443) {
   });
 }
 
-async function check(config, lastState) {
+async function check(config, lastState, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
   const {
     url, method = 'GET', body,
     expectedStatus = 200, keyword, keywordMode = 'present', acceptedStatusCodes = '',
     timeout = 10000, rejectUnauthorized = true,
     bearerToken, basicUser, basicPass, customHeaderName, customHeaderValue,
-    sslAlertDays = 30, responseTimeThreshold = 0,
+    sslAlertDays = 30, responseTimeThreshold = 0, proxy,
   } = config;
+
+  const proxyAgents = getProxyAgents(proxy);
 
   // Parse accepted status codes — "200,201,302" → [200, 201, 302]
   const acceptedCodes = acceptedStatusCodes
@@ -42,7 +47,7 @@ async function check(config, lastState) {
     : [];
 
   if (!url) return { status: 'error', state: null, metrics: null, notifications: [
-    { title: 'Config manquante — HTTP', message: 'URL requise', level: 'error', type: 'status_change' }
+    { ...L.missingConfig('HTTP', 'URL required'), level: 'error', type: 'status_change' }
   ]};
 
   const start = Date.now();
@@ -87,7 +92,8 @@ async function check(config, lastState) {
       data: parsedBody,
       timeout,
       validateStatus: () => true,
-      httpsAgent: new https.Agent({ rejectUnauthorized }),
+      httpsAgent: proxyAgents?.httpsAgent || new https.Agent({ rejectUnauthorized }),
+      ...(proxyAgents && { httpAgent: proxyAgents.httpAgent }),
       maxRedirects: 5,
       headers,
     });
@@ -101,11 +107,11 @@ async function check(config, lastState) {
       : true;
     ok = statusOk && keywordOk;
     if (!statusOk) errMsg = acceptedCodes.length
-      ? `Status ${res.status} (attendu : ${acceptedCodes.join(', ')})`
-      : `Status ${res.status} (attendu ${expectedStatus})`;
+      ? `Status ${res.status} (expected: ${acceptedCodes.join(', ')})`
+      : `Status ${res.status} (expected ${expectedStatus})`;
     else if (!keywordOk) errMsg = keywordMode === 'absent'
-      ? `Mot-clé "${keyword}" trouvé dans la réponse`
-      : `Mot-clé "${keyword}" absent de la réponse`;
+      ? `Keyword "${keyword}" found in response`
+      : `Keyword "${keyword}" not found in response`;
 
     // Extract favicon — try current response first, fall back to site root
     if (httpMethod === 'get') {
@@ -117,7 +123,8 @@ async function check(config, lastState) {
             const rootRes = await axios.get(origin, {
               timeout: 5000,
               validateStatus: () => true,
-              httpsAgent: new https.Agent({ rejectUnauthorized }),
+              httpsAgent: proxyAgents?.httpsAgent || new https.Agent({ rejectUnauthorized }),
+              ...(proxyAgents && { httpAgent: proxyAgents.httpAgent }),
               maxRedirects: 3,
               headers,
             });
@@ -137,44 +144,18 @@ async function check(config, lastState) {
   const isSlow = ok && responseTimeThreshold > 0 && responseTime != null && responseTime > responseTimeThreshold;
   const notifications = [];
   if (lastState !== null) {
-    if (!ok && wasOk) notifications.push({
-      title: `${url} — Hors ligne`,
-      message: errMsg || 'Service inaccessible',
-      level: 'error', type: 'status_change',
-    });
-    if (ok && !wasOk) notifications.push({
-      title: `${url} — De retour`,
-      message: `Temps de réponse : ${responseTime}ms`,
-      level: 'success', type: 'status_change',
-    });
+    if (!ok && wasOk) notifications.push({ ...L.httpOffline(url, errMsg), level: 'error', type: 'status_change' });
+    if (ok && !wasOk) notifications.push({ ...L.httpBack(url, responseTime), level: 'success', type: 'status_change' });
 
-    // Response time threshold alerts
-    if (isSlow && !wasSlow) notifications.push({
-      title: `${url} — Temps de réponse élevé`,
-      message: `${responseTime}ms (seuil : ${responseTimeThreshold}ms)`,
-      level: 'warning', type: 'response_time',
-    });
-    if (!isSlow && wasSlow) notifications.push({
-      title: `${url} — Temps de réponse normalisé`,
-      message: `${responseTime}ms`,
-      level: 'success', type: 'response_time',
-    });
+    if (isSlow && !wasSlow) notifications.push({ ...L.httpSlow(url, responseTime, responseTimeThreshold), level: 'warning', type: 'response_time' });
+    if (!isSlow && wasSlow) notifications.push({ ...L.httpNormalized(url, responseTime), level: 'success', type: 'response_time' });
 
-    // SSL expiry notifications
     if (sslInfo) {
       const prevDays = lastState?.sslDaysLeft;
       if (sslInfo.daysLeft <= 0 && (prevDays === undefined || prevDays > 0)) {
-        notifications.push({
-          title: `SSL expiré — ${parsedUrl?.hostname}`,
-          message: `Le certificat TLS a expiré.`,
-          level: 'error', type: 'ssl_expiry',
-        });
+        notifications.push({ ...L.httpSslExpired(parsedUrl?.hostname), level: 'error', type: 'ssl_expiry' });
       } else if (sslInfo.daysLeft <= sslAlertDays && (prevDays === undefined || prevDays > sslAlertDays)) {
-        notifications.push({
-          title: `SSL expire bientôt — ${parsedUrl?.hostname}`,
-          message: `Le certificat expire dans ${sslInfo.daysLeft} jour(s).`,
-          level: 'warning', type: 'ssl_expiry',
-        });
+        notifications.push({ ...L.httpSslExpiringSoon(parsedUrl?.hostname, sslInfo.daysLeft), level: 'warning', type: 'ssl_expiry' });
       }
     }
   }
@@ -184,9 +165,9 @@ async function check(config, lastState) {
     : null;
 
   let lastError = null;
-  if (!ok) lastError = errMsg || 'Service inaccessible';
-  else if (isSlow) lastError = `Temps de réponse élevé : ${responseTime}ms (seuil : ${responseTimeThreshold}ms)`;
-  else if (sslStatus === 'expired') lastError = 'Certificat SSL expiré';
+  if (!ok) lastError = errMsg || 'Service unreachable';
+  else if (isSlow) lastError = `High response time: ${responseTime}ms (threshold: ${responseTimeThreshold}ms)`;
+  else if (sslStatus === 'expired') lastError = 'SSL certificate expired';
 
   return {
     status: ok ? (isSlow || sslStatus === 'expired' ? 'warning' : 'online') : (statusCode ? 'warning' : 'offline'),
@@ -197,12 +178,9 @@ async function check(config, lastState) {
   };
 }
 
-async function report(config, state) {
-  const { url } = config;
-  const msg = state?.ok
-    ? `${url}\nStatut : ${state.statusCode} — ${state.responseTime}ms`
-    : `${url}\n${state?.errMsg || 'Inaccessible'}`;
-  return { title: `Rapport HTTP — ${url}`, message: msg };
+async function report(config, state, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
+  return L.httpReport(config.url, state);
 }
 
 module.exports = { check, report };

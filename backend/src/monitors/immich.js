@@ -1,18 +1,23 @@
 const axios = require('axios');
 const https = require('https');
 const cfHeaders = require('./cfHeaders');
+const { getProxyAgents } = require('./proxyAgent');
+const i18n = require('../i18n');
 
-async function check(config, lastState) {
-  const { apiUrl, apiKey, rejectUnauthorized = true } = config;
+async function check(config, lastState, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
+  const { apiUrl, apiKey, rejectUnauthorized = true, proxy } = config;
 
   if (!apiUrl || !apiKey) return { status: 'error', state: null, metrics: null, notifications: [
-    { title: 'Config manquante — Immich', message: 'URL et clé API requises', level: 'error', type: 'status_change' }
+    { ...L.missingConfig('Immich', 'URL and API key required'), level: 'error', type: 'status_change' }
   ]};
 
   const base = apiUrl.replace(/\/$/, '');
+  const proxyAgents = getProxyAgents(proxy);
   const http = axios.create({
     timeout: 10000,
-    httpsAgent: new https.Agent({ rejectUnauthorized }),
+    httpsAgent: proxyAgents?.httpsAgent || new https.Agent({ rejectUnauthorized }),
+    ...(proxyAgents && { httpAgent: proxyAgents.httpAgent }),
     headers: { 'x-api-key': apiKey, ...cfHeaders(config) },
   });
 
@@ -33,11 +38,7 @@ async function check(config, lastState) {
 
     const notifications = [];
     if (lastState && diskPct > 90 && (lastState.diskPct ?? 0) <= 90) {
-      notifications.push({
-        title: 'Stockage Immich critique',
-        message: `Disque à ${diskPct}% — ${storage.diskUse} utilisés / ${storage.diskSize}`,
-        level: 'warning', type: 'status_change',
-      });
+      notifications.push({ ...L.immichStorageCritical(diskPct, storage.diskUse, storage.diskSize), level: 'warning', type: 'status_change' });
     }
 
     const state = { photos: stats.photos, videos: stats.videos, diskPct };
@@ -53,17 +54,15 @@ async function check(config, lastState) {
     return { status: 'online', state, metrics, notifications };
   } catch (err) {
     return { status: 'error', lastError: err.message, state: lastState, metrics: null, notifications: [
-      { title: 'Immich — Erreur API', message: err.message, level: 'error', type: 'status_change' }
+      { ...L.apiError('Immich', err.message), level: 'error', type: 'status_change' }
     ]};
   }
 }
 
-async function report(config, state) {
-  if (!state) return { title: 'Immich', message: 'Aucune donnée.' };
-  return {
-    title: 'Rapport Immich',
-    message: `Photos : ${state.photos}\nVidéos : ${state.videos}\nDisque : ${state.diskPct}%`,
-  };
+async function report(config, state, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
+  if (!state) return { title: 'Immich', message: 'No data.' };
+  return L.immichReport(state);
 }
 
 module.exports = { check, report };

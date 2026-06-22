@@ -100,6 +100,10 @@ const CONFIG = {
   redis: [
     { key: 'responseTime', fr: 'Temps de réponse', en: 'Response time', unit: 'ms' },
   ],
+  ollama: [
+    { key: 'modelsCount',  fr: 'Modèles',           en: 'Models',         unit: '' },
+    { key: 'responseTime', fr: 'Temps de réponse',  en: 'Response time',  unit: 'ms' },
+  ],
 };
 
 function haEntityMetrics(config) {

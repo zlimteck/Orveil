@@ -1,4 +1,5 @@
 const http = require('http');
+const i18n = require('../i18n');
 
 function dockerRequest(socketPath, path) {
   return new Promise((resolve, reject) => {
@@ -9,21 +10,22 @@ function dockerRequest(socketPath, path) {
         res.on('data', chunk => data += chunk);
         res.on('end', () => {
           try { resolve(JSON.parse(data)); }
-          catch { reject(new Error('Réponse invalide du socket Docker')); }
+          catch { reject(new Error('Invalid response from Docker socket')); }
         });
       }
     );
     req.on('error', (err) => {
       const msg = err.code === 'ENOENT' || err.code === 'ECONNREFUSED'
-        ? `Socket Docker inaccessible (${socketPath})`
+        ? `Docker socket unreachable (${socketPath})`
         : err.message;
       reject(new Error(msg));
     });
-    req.setTimeout(5000, () => { req.destroy(); reject(new Error('Timeout Docker API')); });
+    req.setTimeout(5000, () => { req.destroy(); reject(new Error('Docker API timeout')); });
   });
 }
 
-async function check(config, lastState) {
+async function check(config, lastState, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
   const { socketPath = '/var/run/docker.sock' } = config;
 
   try {
@@ -52,20 +54,15 @@ async function check(config, lastState) {
   } catch (err) {
     return {
       status: 'error', state: lastState, metrics: null,
-      notifications: [{ title: 'Docker — Erreur socket', message: err.message, level: 'error', type: 'status_change' }],
+      notifications: [{ ...L.dockerSocketError(err.message), level: 'error', type: 'status_change' }],
     };
   }
 }
 
-async function report(config, state) {
-  if (!state) return { title: 'Docker', message: 'Aucune donnée.' };
-  const lines = (state.containers || [])
-    .map(c => `${c.name} (${c.state})`)
-    .join('\n');
-  return {
-    title: 'Rapport Docker',
-    message: `Actifs : ${state.containersRunning} | Arrêtés : ${state.containersStopped}\n\n${lines}`,
-  };
+async function report(config, state, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
+  if (!state) return { title: 'Docker', message: 'No data.' };
+  return L.dockerReport(state);
 }
 
 module.exports = { check, report };

@@ -4,8 +4,10 @@ const Incident = require('../models/Incident');
 const Settings = require('../models/Settings');
 const primaryMetric = require('./primaryMetric');
 const { sendNotification } = require('../services/notifier');
+const { decryptConfig } = require('../utils/crypto');
 const sse = require('../sse');
 const handlers = require('./handlers');
+const i18n = require('../i18n');
 
 function computeSeverity(result, monitorType) {
   const status = result.status;
@@ -25,7 +27,16 @@ function computeSeverity(result, monitorType) {
   return 'P3';
 }
 
-async function runCheck(monitor) {
+function resolveProxy(monitor, settings, globalProxy) {
+  if (monitor.config?.proxyId) {
+    const saved = settings?.proxies?.find(p => String(p._id) === String(monitor.config.proxyId));
+    return saved ? decryptConfig(saved) : globalProxy;
+  }
+  if (monitor.config?.proxy?.enabled) return monitor.config.proxy;
+  return globalProxy;
+}
+
+async function runCheck(monitor, globalProxy = null, lang = 'fr') {
   const handler = handlers[monitor.type];
   if (!handler) return;
 
@@ -41,16 +52,22 @@ async function runCheck(monitor) {
 
   console.log(`[Runner] Check: ${monitor.name} (${monitor.type})`);
 
+  const effectiveConfig = globalProxy
+    ? { ...monitor.config, proxy: { ...globalProxy, enabled: true } }
+    : monitor.config;
+
+  const L = i18n[lang] || i18n.fr;
+
   let result;
   try {
-    result = await handler.check(monitor.config, monitor.lastState);
+    result = await handler.check(effectiveConfig, monitor.lastState, lang);
   } catch (err) {
-    console.error(`[Runner] Erreur inattendue sur ${monitor.name}:`, err.message);
+    console.error(`[Runner] Unexpected error on ${monitor.name}:`, err.message);
     result = {
       status: 'error',
       state: monitor.lastState,
       metrics: monitor.metrics,
-      notifications: [{ title: `Erreur — ${monitor.name}`, message: err.message, level: 'error', type: 'error' }],
+      notifications: [{ title: `Error — ${monitor.name}`, message: err.message, level: 'error', type: 'error' }],
     };
   }
 
@@ -124,19 +141,11 @@ async function runCheck(monitor) {
     const cameBack = ['error', 'offline', 'warning'].includes(prevStatus) && result.status === 'online';
 
     if (wentDown) {
-      monitorNotifs.push({
-        title: `${monitor.name} — Hors ligne`,
-        message: monitorNotifs[0]?.message || `Statut : ${result.status}`,
-        level: 'error',
-        type: 'status_change',
-      });
+      const notif = L.monitorOffline(monitor.name, monitorNotifs[0]?.message, result.status);
+      monitorNotifs.push({ ...notif, level: 'error', type: 'status_change' });
     } else if (cameBack) {
-      monitorNotifs.push({
-        title: `${monitor.name} — De retour`,
-        message: 'Le service est de nouveau accessible.',
-        level: 'success',
-        type: 'status_change',
-      });
+      const notif = L.monitorBack(monitor.name);
+      monitorNotifs.push({ ...notif, level: 'success', type: 'status_change' });
     }
   }
 
@@ -182,18 +191,18 @@ async function runCheck(monitor) {
   }
 }
 
-async function runReport(monitor) {
+async function runReport(monitor, lang = 'fr') {
   const handler = handlers[monitor.type];
   if (!handler?.report) return;
 
-  console.log(`[Runner] Rapport: ${monitor.name}`);
+  console.log(`[Runner] Report: ${monitor.name}`);
 
   try {
-    const { title, message } = await handler.report(monitor.config, monitor.metrics ?? monitor.lastState);
+    const { title, message } = await handler.report(monitor.config, monitor.metrics ?? monitor.lastState, lang);
     await sendNotification({ title, message, level: 'info', type: 'report', monitorId: monitor._id, monitorName: monitor.name });
     await Monitor.findByIdAndUpdate(monitor._id, { lastReported: new Date() });
   } catch (err) {
-    console.error(`[Runner] Erreur rapport ${monitor.name}:`, err.message);
+    console.error(`[Runner] Report error ${monitor.name}:`, err.message);
   }
 }
 
@@ -206,18 +215,24 @@ async function tick() {
     return;
   }
 
+  const settings = await Settings.findOne({ key: 'global' }).lean().catch(() => null);
+  const activeProxy = settings?.proxies?.find(p => p.active);
+  const globalProxy = activeProxy ? decryptConfig(activeProxy) : null;
+  const lang = settings?.notificationLanguage || 'fr';
+
   for (const monitor of monitors) {
     const checkMs = monitor.checkInterval * 60 * 1000;
     const lastCheck = monitor.lastChecked ? monitor.lastChecked.getTime() : 0;
     if (now - lastCheck >= checkMs) {
-      runCheck(monitor).catch(err => console.error(`[Runner] tick error ${monitor.name}:`, err.message));
+      const proxyForMonitor = resolveProxy(monitor, settings, globalProxy);
+      runCheck(monitor, proxyForMonitor, lang).catch(err => console.error(`[Runner] tick error ${monitor.name}:`, err.message));
     }
 
     if (monitor.reportInterval > 0) {
       const reportMs = monitor.reportInterval * 60 * 60 * 1000;
       const lastReport = monitor.lastReported ? monitor.lastReported.getTime() : 0;
       if (now - lastReport >= reportMs) {
-        runReport(monitor).catch(err => console.error(`[Runner] report error ${monitor.name}:`, err.message));
+        runReport(monitor, lang).catch(err => console.error(`[Runner] report error ${monitor.name}:`, err.message));
       }
     }
   }
@@ -252,16 +267,12 @@ async function checkWeeklyReport() {
     const problems = monitors.filter(m => !['online', 'unknown'].includes(m.status));
 
     const uptimePct = total > 0 ? Math.round((onlineCount / total) * 100) : 100;
+    const lang = s.notificationLanguage || 'fr';
+    const L = i18n[lang] || i18n.fr;
 
-    let message = `Uptime global : ${uptimePct}% (${onlineCount}/${total} services en ligne)`;
-    if (problems.length > 0) {
-      message += '\n\nServices en anomalie :\n';
-      message += problems.map(m => `${m.name} — ${m.status}`).join('\n');
-    } else {
-      message += '\n\nTous les services sont en ligne.';
-    }
+    const message = L.weeklyReportBody(uptimePct, onlineCount, total, problems);
 
-    await sendNotification({ title: 'Rapport hebdomadaire Orveil', message, level: 'info', type: 'report' });
+    await sendNotification({ title: L.weeklyReportTitle, message, level: 'info', type: 'report' });
     await Settings.updateOne({ key: 'global' }, { 'weeklyReport.lastSentAt': now });
     console.log('[Runner] Rapport hebdomadaire envoyé');
   } catch (err) {
@@ -283,7 +294,12 @@ async function triggerNow(monitorId) {
   const monitor = await Monitor.findById(monitorId);
   if (monitor && monitor.enabled) {
     await Monitor.findByIdAndUpdate(monitorId, { lastChecked: null });
-    runCheck({ ...monitor.toObject(), lastChecked: null });
+    const settings = await Settings.findOne({ key: 'global' }).lean().catch(() => null);
+    const activeProxy = settings?.proxies?.find(p => p.active);
+    const globalProxy = activeProxy ? decryptConfig(activeProxy) : null;
+    const lang = settings?.notificationLanguage || 'fr';
+    const m = { ...monitor.toObject(), lastChecked: null };
+    runCheck(m, resolveProxy(m, settings, globalProxy), lang);
   }
 }
 

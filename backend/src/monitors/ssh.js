@@ -1,4 +1,5 @@
 const { Client } = require('ssh2');
+const i18n = require('../i18n');
 
 function sshExec(config) {
   return new Promise((resolve, reject) => {
@@ -6,7 +7,7 @@ function sshExec(config) {
     const cmd = 'uptime && free -m | grep Mem && df -h / | tail -1 && top -bn1 | grep -iE "^(%Cpu|Cpu\\(s\\))" | head -1';
     const conn = new Client();
 
-    const timer = setTimeout(() => { conn.end(); reject(new Error('Timeout SSH')); }, 12000);
+    const timer = setTimeout(() => { conn.end(); reject(new Error('SSH timeout')); }, 12000);
 
     conn.on('ready', () => {
       conn.exec(cmd, (err, stream) => {
@@ -31,11 +32,9 @@ function sshExec(config) {
 function parseOutput(out) {
   const metrics = {};
 
-  // uptime: " 10:32:01 up 5 days, 3:12, ..."
   const uptimeMatch = out.match(/up\s+([^,]+(?:,\s*\d+:\d+)?)/);
   if (uptimeMatch) metrics.uptime = uptimeMatch[1].trim();
 
-  // free -m: "Mem: total used free ..."
   const memMatch = out.match(/Mem:\s+(\d+)\s+(\d+)/);
   if (memMatch) {
     metrics.memTotal = parseInt(memMatch[1]);
@@ -43,7 +42,6 @@ function parseOutput(out) {
     metrics.memPct   = Math.round((metrics.memUsed / metrics.memTotal) * 100);
   }
 
-  // df -h: "overlay 100G 42G 58G 43% /"
   const dfMatch = out.match(/(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\d+)%\s+\/$/m);
   if (dfMatch) {
     metrics.diskSize = dfMatch[2];
@@ -51,7 +49,6 @@ function parseOutput(out) {
     metrics.diskPct  = parseInt(dfMatch[5]);
   }
 
-  // top -bn1: "%Cpu(s): 2.3 us, ... 96.7 id, ..."
   const idleMatch = out.match(/(\d+[\.,]\d*)\s*%?\s*id/i);
   if (idleMatch) {
     const idle = parseFloat(idleMatch[1].replace(',', '.'));
@@ -61,10 +58,11 @@ function parseOutput(out) {
   return metrics;
 }
 
-async function check(config, lastState) {
+async function check(config, lastState, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
   const { host } = config;
   if (!host || !config.username) return { status: 'error', state: null, metrics: null, notifications: [
-    { title: 'Config manquante — SSH', message: 'Hôte et nom d\'utilisateur requis', level: 'error', type: 'status_change' }
+    { ...L.missingConfig('SSH', 'Host and username required'), level: 'error', type: 'status_change' }
   ]};
 
   const wasOnline = lastState !== null;
@@ -74,22 +72,18 @@ async function check(config, lastState) {
     const metrics = { host, ...parseOutput(out) };
 
     const notifications = [];
-    if (!wasOnline) notifications.push({
-      title: `SSH ${host} — Connecté`,
-      message: `Uptime : ${metrics.uptime || '—'}`,
-      level: 'success', type: 'status_change',
-    });
+    if (!wasOnline) notifications.push({ ...L.sshConnected(host, metrics.uptime), level: 'success', type: 'status_change' });
     if (lastState && metrics.cpuPct > 90 && (lastState.cpuPct ?? 0) <= 90)
-      notifications.push({ title: `CPU élevé — ${host}`, message: `CPU à ${metrics.cpuPct}%`, level: 'warning', type: 'status_change' });
+      notifications.push({ ...L.sshHighCpu(host, metrics.cpuPct), level: 'warning', type: 'status_change' });
     if (lastState && metrics.memPct > 90 && (lastState.memPct ?? 0) <= 90)
-      notifications.push({ title: `RAM élevée — ${host}`, message: `RAM à ${metrics.memPct}%`, level: 'warning', type: 'status_change' });
+      notifications.push({ ...L.sshHighRam(host, metrics.memPct), level: 'warning', type: 'status_change' });
     if (lastState && metrics.diskPct > 90 && (lastState.diskPct ?? 0) <= 90)
-      notifications.push({ title: `Disque plein — ${host}`, message: `Disque à ${metrics.diskPct}%`, level: 'warning', type: 'status_change' });
+      notifications.push({ ...L.sshHighDisk(host, metrics.diskPct), level: 'warning', type: 'status_change' });
 
     return { status: 'online', state: metrics, metrics, notifications };
   } catch (err) {
     const notifications = wasOnline ? [{
-      title: `SSH ${host} — Connexion échouée`,
+      ...L.sshConnectionFailed(host),
       message: err.message,
       level: 'error', type: 'status_change',
     }] : [];
@@ -97,13 +91,10 @@ async function check(config, lastState) {
   }
 }
 
-async function report(config, state) {
-  if (!state) return { title: `SSH ${config.host}`, message: 'Inaccessible.' };
-  const cpu = state.cpuPct != null ? `\nCPU : ${state.cpuPct}%` : '';
-  return {
-    title: `Rapport SSH — ${state.host}`,
-    message: `Uptime : ${state.uptime || '—'}${cpu}\nRAM : ${state.memUsed}/${state.memTotal} MB (${state.memPct}%)\nDisque : ${state.diskUsed}/${state.diskSize} (${state.diskPct}%)`,
-  };
+async function report(config, state, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
+  if (!state) return { title: `SSH ${config.host}`, message: 'Unreachable.' };
+  return L.sshReport(state);
 }
 
 module.exports = { check, report };

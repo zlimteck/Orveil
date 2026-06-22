@@ -1,9 +1,18 @@
 const axios = require('axios');
+const { getProxyAgents } = require('./proxyAgent');
+const i18n = require('../i18n');
 
 const BASE = 'https://api.adguard-dns.io/oapi/v1';
-const http = axios.create({ timeout: 10000 });
 
-async function refreshToken(refreshTok) {
+function makeHttp(proxy) {
+  const proxyAgents = getProxyAgents(proxy);
+  return axios.create({
+    timeout: 10000,
+    ...(proxyAgents && { httpsAgent: proxyAgents.httpsAgent, httpAgent: proxyAgents.httpAgent }),
+  });
+}
+
+async function refreshToken(refreshTok, http) {
   const res = await http.post(`${BASE}/oauth_token`,
     new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshTok }),
     { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
@@ -11,7 +20,7 @@ async function refreshToken(refreshTok) {
   return { accessToken: res.data.access_token, refreshToken: res.data.refresh_token };
 }
 
-async function fetchData(accessToken) {
+async function fetchData(accessToken, http) {
   const [srv, acc] = await Promise.all([
     http.get(`${BASE}/dns_servers`, { headers: { Authorization: `Bearer ${accessToken}` } }),
     http.get(`${BASE}/account/limits`, { headers: { Authorization: `Bearer ${accessToken}` } }),
@@ -29,34 +38,36 @@ async function fetchData(accessToken) {
   };
 }
 
-async function check(config, lastState) {
-  let { accessToken, refreshTok } = config;
+async function check(config, lastState, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
+  let { accessToken, refreshTok, proxy } = config;
   if (!accessToken && !refreshTok) {
     return { status: 'error', state: null, metrics: null, configUpdate: null, notifications: [
-      { title: 'Config manquante — AdGuard', message: 'Access token ou refresh token requis', level: 'error', type: 'status_change' }
+      { ...L.missingConfig('AdGuard', 'Access token or refresh token required'), level: 'error', type: 'status_change' }
     ]};
   }
 
+  const http = makeHttp(proxy);
   let data;
   let configUpdate = null;
 
   try {
-    data = await fetchData(accessToken);
+    data = await fetchData(accessToken, http);
   } catch (err) {
     if (err.response?.status === 401 && refreshTok) {
       try {
-        const tokens = await refreshToken(refreshTok);
+        const tokens = await refreshToken(refreshTok, http);
         accessToken = tokens.accessToken;
         configUpdate = { accessToken: tokens.accessToken, refreshTok: tokens.refreshToken };
-        data = await fetchData(accessToken);
+        data = await fetchData(accessToken, http);
       } catch (e) {
         return { status: 'error', state: null, metrics: null, configUpdate: null, notifications: [
-          { title: 'AdGuard — Token invalide', message: `Impossible de rafraîchir le token: ${e.message}`, level: 'error', type: 'status_change' }
+          { ...L.adguardInvalidToken(e.message), level: 'error', type: 'status_change' }
         ]};
       }
     } else {
       return { status: 'error', state: lastState, metrics: null, configUpdate: null, notifications: [
-        { title: 'AdGuard — Erreur API', message: err.message, level: 'error', type: 'status_change' }
+        { ...L.apiError('AdGuard', err.message), level: 'error', type: 'status_change' }
       ]};
     }
   }
@@ -65,17 +76,9 @@ async function check(config, lastState) {
 
   if (lastState !== null) {
     if (!data.protection_enabled && lastState.protection_enabled) {
-      notifications.push({
-        title: 'AdGuard DNS — Protection désactivée',
-        message: `La protection DNS AdGuard a été désactivée sur le serveur "${data.server_name}".`,
-        level: 'warning', type: 'status_change',
-      });
+      notifications.push({ ...L.adguardProtectionDisabled(data.server_name), level: 'warning', type: 'status_change' });
     } else if (data.protection_enabled && lastState.protection_enabled === false) {
-      notifications.push({
-        title: 'AdGuard DNS — Protection réactivée',
-        message: `La protection DNS AdGuard est de nouveau active sur "${data.server_name}".`,
-        level: 'success', type: 'status_change',
-      });
+      notifications.push({ ...L.adguardProtectionEnabled(data.server_name), level: 'success', type: 'status_change' });
     }
   }
 
@@ -91,19 +94,10 @@ async function check(config, lastState) {
   return { status, state: data, metrics, configUpdate, notifications };
 }
 
-async function report(config, state) {
-  if (!state) return { title: 'AdGuard DNS', message: 'Aucune donnée disponible.' };
-  const prot = state.protection_enabled ? 'Activée' : 'Désactivée';
-  const pct = state.limit_requests ? Math.round((state.used_requests / state.limit_requests) * 100) : 0;
-  const msg = `Rapport AdGuard DNS — ${state.server_name}
-
-Protection : ${prot}
-Règles utilisateur : ${state.user_rules_count}
-Listes de filtres : ${state.filter_list_count}
-Appareils : ${state.devices}
-Requêtes : ${state.used_requests} / ${state.limit_requests} (${pct}%)`;
-
-  return { title: 'Rapport AdGuard DNS', message: msg };
+async function report(config, state, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
+  if (!state) return { title: 'AdGuard DNS', message: 'No data available.' };
+  return L.adguardReport(state);
 }
 
 module.exports = { check, report };

@@ -1,17 +1,22 @@
 const axios = require('axios');
 const https = require('https');
+const { getProxyAgents } = require('./proxyAgent');
+const i18n = require('../i18n');
 
-async function check(config, lastState) {
-  const { apiUrl, apiKey, rejectUnauthorized = true } = config;
+async function check(config, lastState, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
+  const { apiUrl, apiKey, rejectUnauthorized = true, proxy } = config;
 
   if (!apiUrl || !apiKey) return { status: 'error', state: null, metrics: null, notifications: [
-    { title: 'Config manquante — Jellyfin', message: 'URL et clé API requises', level: 'error', type: 'status_change' },
+    { ...L.missingConfig('Jellyfin', 'URL and API key required'), level: 'error', type: 'status_change' },
   ]};
 
   const base = apiUrl.replace(/\/$/, '');
+  const proxyAgents = getProxyAgents(proxy);
   const http = axios.create({
     timeout: 10000,
-    httpsAgent: new https.Agent({ rejectUnauthorized }),
+    httpsAgent: proxyAgents?.httpsAgent || new https.Agent({ rejectUnauthorized }),
+    ...(proxyAgents && { httpAgent: proxyAgents.httpAgent }),
     headers: { 'X-Emby-Token': apiKey },
   });
 
@@ -41,17 +46,15 @@ async function check(config, lastState) {
   } catch (err) {
     return {
       status: 'error', lastError: err.message, state: lastState, metrics: null,
-      notifications: [{ title: 'Jellyfin — Erreur API', message: err.message, level: 'error', type: 'status_change' }],
+      notifications: [{ ...L.apiError('Jellyfin', err.message), level: 'error', type: 'status_change' }],
     };
   }
 }
 
-async function report(config, state) {
-  if (!state) return { title: 'Jellyfin', message: 'Aucune donnée.' };
-  return {
-    title: 'Rapport Jellyfin',
-    message: `Sessions actives : ${state.activeSessions}\nFilms : ${state.movies} | Séries : ${state.series} | Musiques : ${state.songs}\nVersion : ${state.version}`,
-  };
+async function report(config, state, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
+  if (!state) return { title: 'Jellyfin', message: 'No data.' };
+  return L.jellyfinReport(state);
 }
 
 module.exports = { check, report };

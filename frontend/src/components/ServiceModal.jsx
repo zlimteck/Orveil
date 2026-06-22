@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, Trash2, Wifi, RefreshCw } from 'lucide-react';
 import { useLang } from '../context/LangContext';
-import { useToast } from '../context/ToastContext';
-import { monitors as monitorsApi } from '../api';
+import { monitors as monitorsApi, settings as settingsApi } from '../api';
 import Portal from './Portal';
 import { getMetrics } from '../utils/metricConfig';
 import ServiceIcon from './ServiceIcon';
@@ -37,6 +36,7 @@ const TYPE_DEFAULTS = {
   dns:            { checkInterval: 5,  reportInterval: 0,  config: { hostname: '', recordType: 'A', expectedValue: '' } },
   mysql:          { checkInterval: 5,  reportInterval: 0,  config: { host: '', port: 3306, user: '', password: '', database: '' } },
   redis:          { checkInterval: 5,  reportInterval: 0,  config: { host: '', port: 6379, password: '' } },
+  ollama:         { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', rejectUnauthorized: true } },
 };
 
 const TYPE_LABELS = {
@@ -61,6 +61,7 @@ const TYPE_LABELS = {
   dns:           'DNS',
   mysql:         'MySQL',
   redis:         'Redis',
+  ollama:        'Ollama',
 };
 
 function Field({ label, value, onChange, placeholder, type = 'text', hint }) {
@@ -70,6 +71,19 @@ function Field({ label, value, onChange, placeholder, type = 'text', hint }) {
       <input className="input" type={type} value={value ?? ''} placeholder={placeholder}
         onChange={e => onChange(e.target.value)} />
       {hint && <p className="text-xs text-muted mt-1">{hint}</p>}
+    </div>
+  );
+}
+
+function UnitField({ label, value, onChange, unit, min = 0 }) {
+  return (
+    <div>
+      <label className="label">{label}</label>
+      <div className="flex">
+        <input className="input rounded-r-none flex-1 border-r-0" type="number" min={min}
+          value={value ?? ''} onChange={e => onChange(+e.target.value)} />
+        <span className="flex items-center px-3 text-xs text-muted bg-surface border border-border rounded-r-lg shrink-0">{unit}</span>
+      </div>
     </div>
   );
 }
@@ -189,6 +203,78 @@ function TlsToggle({ config, set, t }) {
   );
 }
 
+function ProxySection({ config, set, proxies }) {
+  const { t } = useLang();
+  const [open, setOpen] = React.useState(!!config.proxyId);
+  const selectedId = config.proxyId || '';
+  const selectedProxy = proxies.find(p => p._id === selectedId);
+  const [testing, setTesting] = React.useState(false);
+  const [testResult, setTestResult] = React.useState(null);
+
+  function handleSelect(id) {
+    set('proxyId', id || undefined);
+    setTestResult(null);
+  }
+
+  async function handleTest() {
+    if (!selectedProxy) return;
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const r = await settingsApi.testProxy(selectedProxy);
+      setTestResult(r.ok ? { ok: true, ms: r.ms } : { ok: false, error: r.error });
+    } catch (err) {
+      setTestResult({ ok: false, error: err.response?.data?.error || err.message });
+    }
+    setTesting(false);
+  }
+
+  const typeLabel = { http: 'HTTP', https: 'HTTPS', socks5: 'SOCKS5', ssh: 'SSH' };
+
+  return (
+    <div className="border-t border-border pt-3 space-y-2">
+      <button type="button" onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 text-xs text-muted hover:text-thistle transition-colors w-full">
+        <span className={`transition-transform ${open ? 'rotate-90' : ''}`}>▶</span>
+        Proxy
+        {selectedProxy
+          ? <span className="ml-auto text-periwinkle font-normal normal-case tracking-normal">{selectedProxy.name}</span>
+          : <span className="ml-auto text-muted/50 font-normal normal-case tracking-normal">{t('settings.proxies.globalFallback')}</span>
+        }
+      </button>
+      {open && (
+        <div className="space-y-2 pl-3">
+          <select className="select text-sm" value={selectedId} onChange={e => handleSelect(e.target.value)}>
+            <option value="">{t('settings.proxies.globalFallback')}</option>
+            {proxies.map(p => (
+              <option key={p._id} value={p._id}>
+                {p.name} ({typeLabel[p.type] || p.type} · {p.host}{p.port ? `:${p.port}` : ''})
+              </option>
+            ))}
+          </select>
+          {proxies.length === 0 && (
+            <p className="text-xs text-muted italic">{t('settings.proxies.emptyHint')}</p>
+          )}
+          {selectedProxy && (
+            <div className="space-y-1">
+              <button type="button" onClick={handleTest} disabled={testing}
+                className="btn-ghost border border-border px-3 py-1.5 rounded-lg text-xs flex items-center gap-2 disabled:opacity-40">
+                <Wifi size={12} className={testing ? 'animate-pulse text-periwinkle' : ''} />
+                {testing ? t('settings.proxies.testing') : t('settings.proxies.test')}
+              </button>
+              {testResult && (
+                <p className={`text-xs ${testResult.ok ? 'text-celadon' : 'text-red-400'}`}>
+                  {testResult.ok ? `✓ ${t('settings.proxies.testOk')} (${testResult.ms}ms)` : `✗ ${testResult.error}`}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CFAccessSection({ config, set, t }) {
   const [open, setOpen] = React.useState(!!(config.cfClientId || config.cfClientSecret));
   return (
@@ -210,7 +296,7 @@ function CFAccessSection({ config, set, t }) {
   );
 }
 
-function ConfigFields({ type, config, onChange, t }) {
+function ConfigFields({ type, config, onChange, t, proxies = [] }) {
   const set = (key, val) => onChange({ ...config, [key]: val });
   const f = t('form.fields');
 
@@ -221,6 +307,7 @@ function ConfigFields({ type, config, onChange, t }) {
       <Field label="Account ID" value={config.accountId} onChange={v => set('accountId', v)}
         placeholder="Your Account ID" hint={t('form.fields.cloudflare.accountIdHint')} />
       <CFAccessSection config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
     </>
   );
 
@@ -231,6 +318,7 @@ function ConfigFields({ type, config, onChange, t }) {
       <Field label="Refresh Token" value={config.refreshTok} onChange={v => set('refreshTok', v)}
         placeholder="Your AdGuard DNS refresh token" hint={t('form.fields.adguard.refreshHint')} />
       <CFAccessSection config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
     </>
   );
 
@@ -262,6 +350,7 @@ function ConfigFields({ type, config, onChange, t }) {
         </div>
       </div>
       <CFAccessSection config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
     </>
   );
 
@@ -273,6 +362,7 @@ function ConfigFields({ type, config, onChange, t }) {
       <Field label="Ultra Token" value={config.ultraToken} onChange={v => set('ultraToken', v)}
         placeholder="Your Ultra.cc API token" />
       <CFAccessSection config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
     </>
   );
 
@@ -304,6 +394,7 @@ function ConfigFields({ type, config, onChange, t }) {
       </div>
       <TlsToggle config={config} set={set} t={t} />
       <CFAccessSection config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
     </>
   );
 
@@ -335,20 +426,18 @@ function ConfigFields({ type, config, onChange, t }) {
         <Field label={t('form.fields.http.sslAlertDays')} value={config.sslAlertDays ?? 30} onChange={v => set('sslAlertDays', +v)} type="number" placeholder="30" hint={t('form.fields.http.sslAlertDaysHint')} />
         <Field label={t('form.fields.http.responseTimeThreshold')} value={config.responseTimeThreshold ?? 0} onChange={v => set('responseTimeThreshold', +v)} type="number" placeholder="0" hint={t('form.fields.http.responseTimeThresholdHint')} />
       </div>
-      <div className="space-y-1.5">
+      <div className="grid grid-cols-2 gap-3">
         <Field label={t('form.fields.http.keyword')} value={config.keyword} onChange={v => set('keyword', v)}
           placeholder={t('form.fields.http.keywordPlaceholder')} hint={t('form.fields.http.keywordHint')} />
-        {config.keyword && (
-          <div className="flex gap-2">
-            {[['present', 'Doit être présent'], ['absent', 'Doit être absent']].map(([val, lbl]) => (
-              <button key={val} type="button"
-                onClick={() => set('keywordMode', val)}
-                className={`text-xs px-3 py-1 rounded-full border transition-colors ${config.keywordMode === val || (!config.keywordMode && val === 'present') ? 'bg-periwinkle/20 text-periwinkle border-periwinkle/40' : 'text-muted border-border hover:text-thistle'}`}>
-                {lbl}
-              </button>
-            ))}
+        {config.keyword ? (
+          <div>
+            <label className="label">Mode</label>
+            <select className="select" value={config.keywordMode || 'present'} onChange={e => set('keywordMode', e.target.value)}>
+              <option value="present">Doit être présent</option>
+              <option value="absent">Doit être absent</option>
+            </select>
           </div>
-        )}
+        ) : <div />}
       </div>
       <Field label={t('form.fields.http.bearerToken')} value={config.bearerToken} onChange={v => set('bearerToken', v)}
         placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" hint={t('form.fields.http.bearerTokenHint')} />
@@ -362,6 +451,7 @@ function ConfigFields({ type, config, onChange, t }) {
       </div>
       <TlsToggle config={config} set={set} t={t} />
       <CFAccessSection config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
     </>
   );
 
@@ -384,6 +474,7 @@ function ConfigFields({ type, config, onChange, t }) {
       <Field label={t('form.fields.proxmox.node')} value={config.node} onChange={v => set('node', v)} placeholder="pve" />
       <TlsToggle config={config} set={set} t={t} />
       <CFAccessSection config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
     </>
   );
 
@@ -394,6 +485,7 @@ function ConfigFields({ type, config, onChange, t }) {
         placeholder={t('form.fields.immich.apiKeyHint')} />
       <TlsToggle config={config} set={set} t={t} />
       <CFAccessSection config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
     </>
   );
 
@@ -404,6 +496,7 @@ function ConfigFields({ type, config, onChange, t }) {
         placeholder={t('form.fields.portainer.apiKeyHint')} />
       <TlsToggle config={config} set={set} t={t} />
       <CFAccessSection config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
     </>
   );
 
@@ -457,6 +550,7 @@ function ConfigFields({ type, config, onChange, t }) {
         placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
         hint={t('form.fields.unraid.apiKeyHint')} />
       <TlsToggle config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
     </>
   );
 
@@ -476,11 +570,15 @@ function ConfigFields({ type, config, onChange, t }) {
       <Field label={t('form.fields.ssh.password')} value={config.password} onChange={v => set('password', v)}
         type="password" placeholder="••••••••" />
       <TlsToggle config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
     </>
   );
 
   if (type === 'homeassistant') return (
-    <HAConfigFields config={config} set={set} t={t} />
+    <>
+      <HAConfigFields config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
+    </>
   );
 
   if (type === 'speedtest') return (
@@ -492,6 +590,7 @@ function ConfigFields({ type, config, onChange, t }) {
         placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
         hint={t('form.fields.speedtest.apiKeyHint')} />
       <TlsToggle config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
     </>
   );
 
@@ -503,6 +602,7 @@ function ConfigFields({ type, config, onChange, t }) {
         placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
         hint={t('form.fields.jellyfin.apiKeyHint')} />
       <TlsToggle config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
     </>
   );
 
@@ -548,43 +648,158 @@ function ConfigFields({ type, config, onChange, t }) {
     </>
   );
 
+  if (type === 'ollama') return (
+    <>
+      <Field label="URL Ollama" value={config.apiUrl} onChange={v => set('apiUrl', v)} placeholder="http://192.168.1.10:11434" />
+      <TlsToggle config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
+    </>
+  );
+
   return null;
+}
+
+function AdvancedSection({ form, setForm, allMonitors, monitor, lang, t, defaultOpen = false }) {
+  const [open, setOpen] = React.useState(defaultOpen);
+  const metrics = getMetrics(form.type, form.config);
+
+  return (
+    <div className="border-t border-border pt-3 space-y-2">
+      <button type="button" onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 text-xs text-muted hover:text-thistle transition-colors w-full">
+        <span className={`transition-transform ${open ? 'rotate-90' : ''}`}>▶</span>
+        {t('form.advanced') || 'Avancé'}
+      </button>
+      {open && (
+        <div className="space-y-4 pt-1">
+          <Field label={t('form.description')} value={form.description}
+            onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="…" />
+
+          <Field label={t('form.serviceUrl')} value={form.serviceUrl}
+            onChange={v => setForm(f => ({ ...f, serviceUrl: v }))} placeholder="https://…" />
+
+          <div className="grid grid-cols-2 gap-3">
+            <UnitField label={t('form.checkInterval')} value={form.checkInterval} unit="min" min={1}
+              onChange={v => setForm(f => ({ ...f, checkInterval: v }))} />
+            <UnitField label={t('form.reportInterval')} value={form.reportInterval} unit="h" min={0}
+              onChange={v => setForm(f => ({ ...f, reportInterval: v }))} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.enabled}
+                onChange={e => setForm(f => ({ ...f, enabled: e.target.checked }))}
+                className="w-4 h-4 rounded accent-periwinkle" />
+              <span className="text-sm text-thistle">{t('form.enabled')}</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.showOnStatusPage !== false}
+                onChange={e => setForm(f => ({ ...f, showOnStatusPage: e.target.checked }))}
+                className="w-4 h-4 rounded accent-periwinkle" />
+              <span className="text-sm text-thistle">{t('form.showOnStatusPage')}</span>
+            </label>
+          </div>
+
+          <div>
+            <label className="label">{t('form.slaTarget')}</label>
+            <div className="flex">
+              <input className="input rounded-r-none flex-1 border-r-0" type="number" min="0" max="100" step="0.1"
+                placeholder={t('form.slaTargetHint')} value={form.slaTarget}
+                onChange={e => setForm(f => ({ ...f, slaTarget: e.target.value }))} />
+              <span className="flex items-center px-3 text-xs text-muted bg-surface border border-border rounded-r-lg shrink-0">%</span>
+            </div>
+          </div>
+
+          {metrics.length > 0 && (
+            <div>
+              <label className="label">{t('form.cardMetric')}</label>
+              <select className="select" value={form.cardMetric || ''}
+                onChange={e => setForm(f => ({ ...f, cardMetric: e.target.value || null }))}>
+                <option value="">{t('form.cardMetricDefault')}</option>
+                {metrics.map(m => (
+                  <option key={m.key} value={m.key}>{lang === 'fr' ? m.fr : m.en}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {allMonitors.filter(m => m._id !== monitor?._id).length > 0 && (
+            <div>
+              <label className="label">{t('form.dependsOn')}</label>
+              <p className="text-xs text-muted mb-2">{t('form.dependsOnHint')}</p>
+              <div className="space-y-1 max-h-32 overflow-y-auto border border-border rounded-lg p-2">
+                {allMonitors.filter(m => m._id !== monitor?._id).sort((a, b) => a.name.localeCompare(b.name)).map(m => (
+                  <label key={m._id} className="flex items-center gap-2 cursor-pointer py-0.5">
+                    <input type="checkbox" className="w-3.5 h-3.5 rounded accent-periwinkle"
+                      checked={form.dependsOn.includes(String(m._id))}
+                      onChange={e => {
+                        const id = String(m._id);
+                        setForm(f => ({
+                          ...f,
+                          dependsOn: e.target.checked
+                            ? [...f.dependsOn, id]
+                            : f.dependsOn.filter(d => d !== id),
+                        }));
+                      }} />
+                    <span className="text-sm text-thistle">{m.name}</span>
+                    <span className="text-xs text-muted ml-auto">{m.type}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function ServiceModal({ monitor, onClose, onSave }) {
   const { t, lang } = useLang();
-  const toast = useToast();
   const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState(null);
+  const savedRef = useRef(false);
+  const originalFormRef = useRef(null);
   const [allMonitors, setAllMonitors] = useState([]);
+  const [savedProxies, setSavedProxies] = useState([]);
 
   useEffect(() => {
     monitorsApi.list().then(setAllMonitors).catch(() => {});
+    settingsApi.get().then(s => setSavedProxies(s.proxies || [])).catch(() => {});
   }, []);
 
   async function handleTest() {
     setTesting(true);
+    setTestResult(null);
     try {
       const r = monitor?._id
         ? await monitorsApi.test(monitor._id)
         : await monitorsApi.testConfig(form.type, form.config);
-      if (r.status === 'online') toast.add(`${t('test.ok')} — ${form.name || form.type}`, 'success');
-      else toast.add(`${t('test.error')} — ${form.name || form.type} (${r.status}${r.error ? ': ' + r.error : ''})`, 'error');
+      if (r.status === 'online') {
+        setTestResult({ ok: true, message: t('test.ok') });
+      } else {
+        setTestResult({ ok: false, message: `${r.status}${r.error ? ': ' + r.error : ''}` });
+      }
     } catch (err) {
-      toast.add(err.response?.data?.error || t('test.error'), 'error');
+      setTestResult({ ok: false, message: err.response?.data?.error || t('test.error') });
     }
     setTesting(false);
   }
-  const [form, setForm] = useState({
-    name: '', type: 'cloudflare', description: '', category: '',
-    enabled: true, checkInterval: 1, reportInterval: 6,
-    cardMetric: null, serviceUrl: '', showOnStatusPage: true,
-    slaTarget: '', dependsOn: [],
-    config: TYPE_DEFAULTS.cloudflare.config,
+  const [form, setForm] = useState(() => {
+    const initial = {
+      name: '', type: 'cloudflare', description: '', category: '',
+      enabled: true, checkInterval: 1, reportInterval: 6,
+      cardMetric: null, serviceUrl: '', showOnStatusPage: true,
+      slaTarget: '', dependsOn: [],
+      config: TYPE_DEFAULTS.cloudflare.config,
+    };
+    originalFormRef.current = initial;
+    return initial;
   });
 
   useEffect(() => {
     if (monitor) {
-      setForm({
+      const monitorForm = {
         name: monitor.name,
         type: monitor.type,
         description: monitor.description || '',
@@ -598,7 +813,11 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
         slaTarget: monitor.slaTarget != null ? String(monitor.slaTarget) : '',
         dependsOn: monitor.dependsOn?.map(id => String(id)) || [],
         config: monitor.config || {},
-      });
+      };
+      originalFormRef.current = monitorForm;
+      savedRef.current = false;
+      setTestResult(null);
+      setForm(monitorForm);
     }
   }, [monitor]);
 
@@ -617,6 +836,21 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
     });
   };
 
+  const advancedDefaultOpen = !!(monitor && (
+    monitor.description ||
+    monitor.serviceUrl ||
+    monitor.slaTarget != null ||
+    monitor.cardMetric ||
+    monitor.dependsOn?.length
+  ));
+
+  function handleClose() {
+    const hasChanges = !savedRef.current &&
+      JSON.stringify(form) !== JSON.stringify(originalFormRef.current);
+    if (hasChanges && !window.confirm(t('form.unsavedChanges'))) return;
+    onClose();
+  }
+
   return (
     <Portal><div className="modal-backdrop fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm">
       <div className="modal-panel bg-card border border-border w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl max-h-[92dvh] overflow-y-auto shadow-2xl">
@@ -626,10 +860,10 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
 
         <div className="flex items-center justify-between px-5 py-3 border-b border-border">
           <h2 className="font-semibold text-thistle">{monitor ? t('form.titleEdit') : t('form.titleNew')}</h2>
-          <button onClick={onClose} className="btn-ghost p-1.5 rounded-lg"><X size={16} /></button>
+          <button onClick={handleClose} className="btn-ghost p-1.5 rounded-lg"><X size={16} /></button>
         </div>
 
-        <form onSubmit={e => { e.preventDefault(); onSave({ ...form, slaTarget: form.slaTarget !== '' ? parseFloat(form.slaTarget) : null }); }} className="p-5 space-y-4">
+        <form onSubmit={e => { e.preventDefault(); savedRef.current = true; onSave({ ...form, slaTarget: form.slaTarget !== '' ? parseFloat(form.slaTarget) : null }); }} className="p-5 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <Field label={t('form.name')} value={form.name}
               onChange={v => setForm(f => ({ ...f, name: v }))} placeholder={t('form.namePlaceholder')} />
@@ -656,108 +890,29 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
             </div>
           </div>
 
-          <Field label={t('form.description')} value={form.description}
-            onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="…" />
-
-          <Field label={t('form.serviceUrl')} value={form.serviceUrl}
-            onChange={v => setForm(f => ({ ...f, serviceUrl: v }))} placeholder="https://…" />
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">{t('form.checkInterval')}</label>
-              <input className="input" type="number" min="1" value={form.checkInterval}
-                onChange={e => setForm(f => ({ ...f, checkInterval: +e.target.value }))} />
-            </div>
-            <div>
-              <label className="label">{t('form.reportInterval')}</label>
-              <input className="input" type="number" min="0" value={form.reportInterval}
-                onChange={e => setForm(f => ({ ...f, reportInterval: +e.target.value }))} />
-            </div>
-          </div>
-
           <div className="border-t border-border pt-4 space-y-3">
             <p className="text-xs font-medium text-muted uppercase tracking-wider">{t('form.config')} {TYPE_LABELS[form.type]}</p>
             <ConfigFields type={form.type} config={form.config}
-              onChange={config => setForm(f => ({ ...f, config }))} t={t} />
+              onChange={config => setForm(f => ({ ...f, config }))} t={t} proxies={savedProxies} />
           </div>
 
-          {allMonitors.filter(m => m._id !== monitor?._id).length > 0 && (
-            <div>
-              <label className="label">{t('form.dependsOn')}</label>
-              <p className="text-xs text-muted mb-2">{t('form.dependsOnHint')}</p>
-              <div className="space-y-1 max-h-32 overflow-y-auto border border-border rounded-lg p-2">
-                {allMonitors.filter(m => m._id !== monitor?._id).sort((a, b) => a.name.localeCompare(b.name)).map(m => (
-                  <label key={m._id} className="flex items-center gap-2 cursor-pointer py-0.5">
-                    <input
-                      type="checkbox"
-                      className="w-3.5 h-3.5 rounded accent-periwinkle"
-                      checked={form.dependsOn.includes(String(m._id))}
-                      onChange={e => {
-                        const id = String(m._id);
-                        setForm(f => ({
-                          ...f,
-                          dependsOn: e.target.checked
-                            ? [...f.dependsOn, id]
-                            : f.dependsOn.filter(d => d !== id),
-                        }));
-                      }}
-                    />
-                    <span className="text-sm text-thistle">{m.name}</span>
-                    <span className="text-xs text-muted ml-auto">{m.type}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
+          <AdvancedSection form={form} setForm={setForm} allMonitors={allMonitors} monitor={monitor} lang={lang} t={t} defaultOpen={advancedDefaultOpen} />
 
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={form.enabled}
-              onChange={e => setForm(f => ({ ...f, enabled: e.target.checked }))}
-              className="w-4 h-4 rounded accent-periwinkle" />
-            <span className="text-sm text-thistle">{t('form.enabled')}</span>
-          </label>
-
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={form.showOnStatusPage !== false}
-              onChange={e => setForm(f => ({ ...f, showOnStatusPage: e.target.checked }))}
-              className="w-4 h-4 rounded accent-periwinkle" />
-            <span className="text-sm text-thistle">{t('form.showOnStatusPage')}</span>
-          </label>
-
-          <div>
-            <label className="label">{t('form.slaTarget')}</label>
-            <input
-              className="input"
-              type="number" min="0" max="100" step="0.1"
-              placeholder={t('form.slaTargetHint')}
-              value={form.slaTarget}
-              onChange={e => setForm(f => ({ ...f, slaTarget: e.target.value }))}
-            />
-          </div>
-
-          {getMetrics(form.type, form.config).length > 0 && (
-            <div>
-              <label className="label">{t('form.cardMetric')}</label>
-              <select className="select" value={form.cardMetric || ''}
-                onChange={e => setForm(f => ({ ...f, cardMetric: e.target.value || null }))}>
-                <option value="">{t('form.cardMetricDefault')}</option>
-                {getMetrics(form.type, form.config).map(m => (
-                  <option key={m.key} value={m.key}>{lang === 'fr' ? m.fr : m.en}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div className="flex justify-between gap-3 pt-2 border-t border-border">
+          <div className="flex justify-between items-start gap-3 pt-2 border-t border-border">
             <div>
               <button type="button" onClick={handleTest} disabled={testing}
                 className="btn-ghost border border-border px-3 py-2 rounded-lg text-sm flex items-center gap-2">
                 <Wifi size={14} className={testing ? 'animate-pulse text-periwinkle' : ''} />
                 {testing ? t('test.testing') : t('test.button')}
               </button>
+              {testResult && (
+                <p className={`text-xs mt-1.5 ${testResult.ok ? 'text-celadon' : 'text-red-400'}`}>
+                  {testResult.ok ? '✓' : '✗'} {testResult.message}
+                </p>
+              )}
             </div>
             <div className="flex gap-3">
-              <button type="button" onClick={onClose} className="btn-ghost">{t('form.cancel')}</button>
+              <button type="button" onClick={handleClose} className="btn-ghost">{t('form.cancel')}</button>
               <button type="submit" className="btn-primary">{monitor ? t('form.save') : t('form.create')}</button>
             </div>
           </div>

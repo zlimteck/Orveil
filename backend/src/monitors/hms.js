@@ -1,15 +1,20 @@
 const axios = require('axios');
 const cfHeaders = require('./cfHeaders');
+const { getProxyAgents } = require('./proxyAgent');
+const i18n = require('../i18n');
 
-const http = axios.create({ timeout: 10000 });
-
-async function fetchVps(hmsToken, vpsId, vpsName, extraHeaders = {}) {
+async function fetchVps(hmsToken, vpsId, vpsName, extraHeaders = {}, proxy = null) {
   const auth = hmsToken.startsWith('Bearer ') ? hmsToken : `Bearer ${hmsToken}`;
   const headers = { Authorization: auth, ...extraHeaders };
+  const proxyAgents = getProxyAgents(proxy);
+  const http = axios.create({
+    timeout: 10000,
+    ...(proxyAgents && { httpsAgent: proxyAgents.httpsAgent, httpAgent: proxyAgents.httpAgent }),
+  });
 
   const infoRes = await http.get(`https://www.hostmyservers.fr/api/cloud/${vpsId}`, { headers });
   const info = infoRes.data?.data;
-  if (!info) throw new Error(`Infos introuvables pour VPS ${vpsName}`);
+  if (!info) throw new Error(`Info not found for VPS ${vpsName}`);
 
   return {
     id: vpsId,
@@ -27,12 +32,13 @@ async function fetchVps(hmsToken, vpsId, vpsName, extraHeaders = {}) {
   };
 }
 
-async function check(config, lastState) {
-  const { hmsToken, vpsList } = config;
+async function check(config, lastState, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
+  const { hmsToken, vpsList, proxy } = config;
 
   if (!hmsToken || !vpsList?.length) {
     return { status: 'error', state: null, metrics: null, notifications: [
-      { title: 'Config manquante — HMS', message: 'HMS Token et au moins un VPS requis', level: 'error', type: 'status_change' }
+      { ...L.missingConfig('HMS', 'HMS Token and at least one VPS required'), level: 'error', type: 'status_change' }
     ]};
   }
 
@@ -41,10 +47,10 @@ async function check(config, lastState) {
 
   for (const vps of vpsList) {
     try {
-      const data = await fetchVps(hmsToken, vps.id, vps.name, cfHeaders(config));
+      const data = await fetchVps(hmsToken, vps.id, vps.name, cfHeaders(config), proxy);
       results.push(data);
     } catch (err) {
-      console.error(`[HMS] Erreur VPS ${vps.name || vps.id}:`, err.message);
+      console.error(`[HMS] VPS error ${vps.name || vps.id}:`, err.message);
       errors.push({ id: vps.id, name: vps.name, error: err.message });
     }
   }
@@ -59,29 +65,17 @@ async function check(config, lastState) {
       const prev = prevMap[vps.id];
       if (prev) {
         if (vps.cpu > 90 && prev.cpu <= 90) {
-          notifications.push({
-            title: `CPU élevé — ${vps.name}`,
-            message: `CPU à ${vps.cpu}% sur ${vps.name} (${vps.ipv4 || vps.id})`,
-            level: 'warning', type: 'status_change',
-          });
+          notifications.push({ ...L.hmsHighCpu(vps.name, vps.ipv4 || vps.id, vps.cpu), level: 'warning', type: 'status_change' });
         }
         if (vps.memory_pct > 90 && prev.memory_pct <= 90) {
-          notifications.push({
-            title: `Mémoire saturée — ${vps.name}`,
-            message: `RAM à ${vps.memory_pct}% sur ${vps.name} (${vps.memory_used}/${vps.max_memory} MB)`,
-            level: 'warning', type: 'status_change',
-          });
+          notifications.push({ ...L.hmsHighMemory(vps.name, vps.memory_used, vps.max_memory, vps.memory_pct), level: 'warning', type: 'status_change' });
         }
       }
     }
     for (const err of errors) {
       const prev = prevMap[err.id];
       if (prev && !prev.error) {
-        notifications.push({
-          title: `VPS inaccessible — ${err.name}`,
-          message: err.error,
-          level: 'error', type: 'status_change',
-        });
+        notifications.push({ ...L.hmsVpsUnreachable(err.name, err.error), level: 'error', type: 'status_change' });
       }
     }
   }
@@ -101,17 +95,10 @@ async function check(config, lastState) {
   return { status, state, metrics, notifications };
 }
 
-async function report(config, state) {
+async function report(config, state, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
   const vpsList = state?.vps || [];
-  let msg = `Rapport VPS — ${vpsList.length} serveur(s)\n`;
-  for (const v of vpsList) {
-    msg += `\n${v.name} (${v.ipv4 || v.id})`;
-    msg += `\n  État: ${v.state} | ${v.vcores} vCore | ${v.ram_gb} GB RAM | ${v.datacenter || ''}`;
-  }
-  if (state?.errors?.length) {
-    msg += `\n\nErreurs: ${state.errors.map(e => e.name).join(', ')}`;
-  }
-  return { title: 'Rapport VPS HMS', message: msg };
+  return L.hmsReport(vpsList, state?.errors);
 }
 
 module.exports = { check, report };

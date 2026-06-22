@@ -15,7 +15,7 @@
 ## Features
 
 - **Unified dashboard** — status overview of all your services at a glance, grid or list view
-- **21 monitor types** — HTTP/HTTPS, Ping/TCP, SSH, DNS, MySQL, Redis, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Home Assistant, Portainer, Docker, Syncthing, Immich, HostMyServers, Ultra.cc, Heartbeat, Unraid, Speedtest Tracker, Jellyfin
+- **22 monitor types** — HTTP/HTTPS, Ping/TCP, SSH, DNS, MySQL, Redis, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Home Assistant, Portainer, Docker, Syncthing, Immich, HostMyServers, Ultra.cc, Heartbeat, Unraid, Speedtest Tracker, Jellyfin, Ollama
 - **Public status page** — shareable `/status` page (no login required) with uptime bars, open incidents, and 90-day history per service; toggle visibility per service
 - **Search & sort** — filter cards by name, sort by status / name / manual order
 - **Drag & drop reordering** — manually reorder cards in grid view
@@ -33,8 +33,9 @@
 - **Apprise notifications** — Pushover, Telegram, Discord, Slack, email, and [100+ more](https://github.com/caronc/apprise/wiki)
 - **Weekly report** — optional weekly Apprise summary (services in error, average uptime)
 - **Manual notifications** — send a message to all channels directly from the UI
+- **Proxy library** — save multiple named proxies (HTTP, HTTPS, SOCKS5, SSH tunnel); activate/deactivate any proxy as the global default in one click; assign a specific proxy per monitor; test each proxy from the UI; passwords and private keys encrypted at rest
 - **Auto / light / dark theme** — follows system preference, persisted per browser
-- **FR / EN interface** — language toggle in the sidebar
+- **FR / EN interface** — language toggle synced to notification language (one setting controls both UI and alerts)
 - **REST API** — full API with Bearer token auth, documented in-app
 - **MCP server** — Model Context Protocol server exposing monitors, incidents and stats to AI assistants (Claude Desktop, etc.) via Streamable HTTP and stdio transports
 
@@ -93,6 +94,7 @@ Default credentials: `admin` / `orveil`
 | **Home Assistant** | Instance status, version, and selected entity states via Long-lived access token. Numeric entities (temperature, humidity, power…) can be graphed — non-numeric states (on/off, home/away) are displayed but not graphable |
 | **Speedtest Tracker** | Latest speedtest result — download, upload, ping, jitter |
 | **Jellyfin** | Active sessions, library counts (movies / series / songs), server version |
+| **Ollama** | Running model list and server availability via Ollama API |
 
 ## Alerts sent per monitor type
 
@@ -200,7 +202,7 @@ Generate a key and add it to your `.env`:
 echo "ENCRYPTION_KEY=$(openssl rand -hex 32)" >> .env
 ```
 
-When set, all sensitive monitor fields (API keys, tokens, passwords, private keys) are encrypted in the database using AES-256-GCM before being stored. The encryption is transparent — credentials are decrypted automatically at runtime.
+When set, all sensitive monitor fields (API keys, tokens, passwords, private keys) **and proxy credentials** are encrypted in the database using AES-256-GCM before being stored. The encryption is transparent — credentials are decrypted automatically at runtime.
 
 > **Note:** If you add `ENCRYPTION_KEY` to an existing deployment, credentials saved before that point remain in plaintext until you re-save each monitor. New monitors and any monitor you edit after setting the key will be encrypted automatically.
 

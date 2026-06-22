@@ -91,12 +91,17 @@ function buildSections(t) {
     {
       key: 'settings',
       routes: [
-        { method: 'GET',  path: '/api/settings',                descKey: 'settingsGet' },
-        { method: 'PUT',  path: '/api/settings',                descKey: 'settingsSave', body: '{ "appriseUrls": […], "appriseApiUrl": "…" }' },
-        { method: 'POST', path: '/api/settings/test',           descKey: 'settingsTest' },
-        { method: 'GET',  path: '/api/settings/export',         descKey: 'settingsExport' },
-        { method: 'POST', path: '/api/settings/import',         descKey: 'settingsImport', body: '{ "version": 1, "monitors": […], "settings": {…} }' },
-        { method: 'POST', path: '/api/settings/mcp/regenerate', descKey: 'settingsMcpRegenerate' },
+        { method: 'GET',    path: '/api/settings',                      descKey: 'settingsGet' },
+        { method: 'PUT',    path: '/api/settings',                      descKey: 'settingsSave', body: '{ "appriseUrls": […], "appriseApiUrl": "…" }' },
+        { method: 'POST',   path: '/api/settings/test',                 descKey: 'settingsTest' },
+        { method: 'GET',    path: '/api/settings/export',               descKey: 'settingsExport' },
+        { method: 'POST',   path: '/api/settings/import',               descKey: 'settingsImport', body: '{ "version": 1, "monitors": […], "settings": {…} }' },
+        { method: 'POST',   path: '/api/settings/mcp/regenerate',       descKey: 'settingsMcpRegenerate' },
+        { method: 'POST',   path: '/api/settings/proxies',              descKey: 'proxiesCreate', body: '{ "name": "…", "type": "http", "host": "…", "port": 8080 }' },
+        { method: 'PUT',    path: '/api/settings/proxies/:id',          descKey: 'proxiesUpdate', body: '{ "name": "…", "host": "…", "port": 8080 }' },
+        { method: 'DELETE', path: '/api/settings/proxies/:id',          descKey: 'proxiesDelete' },
+        { method: 'PATCH',  path: '/api/settings/proxies/:id/activate', descKey: 'proxiesActivate' },
+        { method: 'POST',   path: '/api/settings/proxy/test',           descKey: 'proxiesTest', body: '{ "proxy": { "type": "http", "host": "…", "port": 8080 } }' },
       ],
     },
   ].map(s => ({

@@ -20,4 +20,5 @@ module.exports = {
   dns:            require('./dns'),
   mysql:          require('./mysql'),
   redis:          require('./redis'),
+  ollama:         require('./ollama'),
 };

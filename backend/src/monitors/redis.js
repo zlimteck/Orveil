@@ -1,14 +1,16 @@
 const Redis = require('ioredis');
+const i18n = require('../i18n');
 
-async function check(config) {
+async function check(config, lastState, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
   const { host, port = 6379, password, timeout = 5000 } = config;
 
   if (!host) return {
     status: 'error',
     state: null,
     metrics: null,
-    lastError: 'Hôte requis',
-    notifications: [{ title: 'Config manquante — Redis', message: 'Hôte requis', level: 'error', type: 'status_change' }],
+    lastError: 'Host required',
+    notifications: [{ ...L.missingConfig('Redis', 'Host required'), level: 'error', type: 'status_change' }],
   };
 
   const start = Date.now();
@@ -24,7 +26,7 @@ async function check(config) {
   try {
     await client.connect();
     const pong = await client.ping();
-    if (pong !== 'PONG') throw new Error(`Réponse inattendue : ${pong}`);
+    if (pong !== 'PONG') throw new Error(`Unexpected response: ${pong}`);
 
     const responseTime = Date.now() - start;
     const info = await client.info('server').catch(() => '');
@@ -44,12 +46,7 @@ async function check(config) {
       lastError: err.message,
       state: null,
       metrics: null,
-      notifications: [{
-        title: `Redis ${host} — Inaccessible`,
-        message: err.message,
-        level: 'error',
-        type: 'status_change',
-      }],
+      notifications: [{ ...L.unreachable(`Redis ${host}`, host, err.message), level: 'error', type: 'status_change' }],
     };
   } finally {
     client.disconnect();

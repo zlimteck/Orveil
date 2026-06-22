@@ -150,19 +150,22 @@ export default function Layout() {
         <UserFooter onLogout={logout} />
       </aside>
 
+      {/* Mobile top bar — fixed so the virtual keyboard can't push it off screen */}
+      <header className="md:hidden fixed top-0 inset-x-0 z-30 flex items-center justify-between px-4 h-14 bg-card border-b border-border">
+        <button onClick={() => setSidebarOpen(true)} className="btn-ghost p-1.5 rounded-lg">
+          <Menu size={20} />
+        </button>
+        <div className="flex items-center gap-2">
+          <img src="/logo.svg" alt="Orveil" className="w-5 h-5" />
+          <span className="font-bold text-thistle text-sm">Orveil</span>
+        </div>
+        <div className="w-8" />
+      </header>
+
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Mobile top bar */}
-        <header className="md:hidden flex items-center justify-between px-4 py-3 bg-card border-b border-border sticky top-0 z-30">
-          <button onClick={() => setSidebarOpen(true)} className="btn-ghost p-1.5 rounded-lg">
-            <Menu size={20} />
-          </button>
-          <div className="flex items-center gap-2">
-            <img src="/logo.svg" alt="Orveil" className="w-5 h-5" />
-            <span className="font-bold text-thistle text-sm">Orveil</span>
-          </div>
-          <div className="w-8" />
-        </header>
+        {/* Spacer that matches the fixed header height on mobile */}
+        <div className="md:hidden h-14 shrink-0" />
 
         <main className="flex-1 overflow-auto">
           <div key={location.pathname} className="animate-fade-in">

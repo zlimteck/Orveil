@@ -1,8 +1,10 @@
 const router = require('express').Router();
+const axios = require('axios');
 const Settings = require('../models/Settings');
 const Monitor = require('../models/Monitor');
 const { sendNotification } = require('../services/notifier');
 const { encryptConfig, decryptConfig } = require('../utils/crypto');
+const { getProxyAgents } = require('../monitors/proxyAgent');
 
 router.get('/', async (req, res) => {
   let s = await Settings.findOneAndUpdate(
@@ -14,11 +16,24 @@ router.get('/', async (req, res) => {
     const mcpApiKey = require('crypto').randomBytes(24).toString('hex');
     s = await Settings.findOneAndUpdate({ key: 'global' }, { $set: { mcpApiKey } }, { new: true });
   }
-  res.json(s);
+  // Migrate legacy defaultProxy → proxies
+  if (s.defaultProxy && (!s.proxies || s.proxies.length === 0)) {
+    const migrated = { ...decryptConfig(s.defaultProxy), name: 'Proxy par défaut', active: !!s.defaultProxy.enabled };
+    delete migrated.enabled;
+    s = await Settings.findOneAndUpdate(
+      { key: 'global' },
+      { $set: { proxies: [encryptConfig(migrated)] }, $unset: { defaultProxy: '' } },
+      { new: true }
+    );
+  }
+  const obj = s.toObject();
+  obj.proxies = (obj.proxies || []).map(p => decryptConfig(p));
+  delete obj.defaultProxy;
+  res.json(obj);
 });
 
 router.put('/', async (req, res) => {
-  const { appriseUrls, appriseApiUrl, weeklyReport, showGraphs, statusPage } = req.body;
+  const { appriseUrls, appriseApiUrl, weeklyReport, showGraphs, statusPage, notificationLanguage } = req.body;
   const update = { appriseUrls, appriseApiUrl };
   if (weeklyReport !== undefined) {
     update['weeklyReport.enabled']   = weeklyReport.enabled   ?? false;
@@ -33,6 +48,7 @@ router.put('/', async (req, res) => {
     update['statusPage.accentColor'] = statusPage.accentColor ?? '';
     update['statusPage.footerText']  = statusPage.footerText  ?? '';
   }
+  if (notificationLanguage !== undefined) update.notificationLanguage = notificationLanguage;
   const s = await Settings.findOneAndUpdate(
     { key: 'global' },
     update,
@@ -116,6 +132,90 @@ router.post('/import', async (req, res) => {
   }
 
   res.json({ ok: true, created, updated });
+});
+
+// ── Proxy CRUD ────────────────────────────────────────────────────────────────
+
+router.post('/proxies', async (req, res) => {
+  const { name, type, host, port, username, password, privateKey } = req.body;
+  const proxy = encryptConfig({ name: name || 'Proxy', active: false, type: type || 'http', host: host || '', port, username: username || '', password: password || '', privateKey: privateKey || '' });
+  const s = await Settings.findOneAndUpdate(
+    { key: 'global' },
+    { $push: { proxies: proxy } },
+    { upsert: true, new: true }
+  );
+  const created = s.proxies[s.proxies.length - 1];
+  res.json(decryptConfig(created.toObject()));
+});
+
+router.put('/proxies/:id', async (req, res) => {
+  const { name, type, host, port, username, password, privateKey } = req.body;
+  const update = encryptConfig({ name, type, host, port, username: username || '', password: password || '', privateKey: privateKey || '' });
+  const s = await Settings.findOneAndUpdate(
+    { key: 'global', 'proxies._id': req.params.id },
+    {
+      $set: {
+        'proxies.$.name':       update.name,
+        'proxies.$.type':       update.type,
+        'proxies.$.host':       update.host,
+        'proxies.$.port':       update.port,
+        'proxies.$.username':   update.username,
+        'proxies.$.password':   update.password,
+        'proxies.$.privateKey': update.privateKey,
+      },
+    },
+    { new: true }
+  );
+  if (!s) return res.status(404).json({ error: 'Not found' });
+  const updated = s.proxies.id(req.params.id);
+  res.json(decryptConfig(updated.toObject()));
+});
+
+router.delete('/proxies/:id', async (req, res) => {
+  await Settings.findOneAndUpdate(
+    { key: 'global' },
+    { $pull: { proxies: { _id: req.params.id } } }
+  );
+  res.json({ ok: true });
+});
+
+router.patch('/proxies/:id/activate', async (req, res) => {
+  const s = await Settings.findOne({ key: 'global' });
+  if (!s) return res.status(404).json({ error: 'Not found' });
+  const target = s.proxies.id(req.params.id);
+  if (!target) return res.status(404).json({ error: 'Proxy not found' });
+  const newActive = !target.active;
+  // Deactivate all, then set target
+  for (const p of s.proxies) p.active = false;
+  target.active = newActive;
+  await s.save();
+  res.json({ ok: true, active: newActive });
+});
+
+// ── Proxy test ────────────────────────────────────────────────────────────────
+
+router.post('/proxy/test', async (req, res) => {
+  const { proxy } = req.body;
+  if (!proxy?.host) {
+    return res.status(400).json({ error: 'Proxy config incomplete' });
+  }
+  if (proxy.type !== 'ssh' && !proxy.port) {
+    return res.status(400).json({ error: 'Proxy config incomplete' });
+  }
+  try {
+    const proxyAgents = getProxyAgents(proxy);
+    const start = Date.now();
+    await axios.get('https://cloudflare.com', {
+      httpsAgent: proxyAgents.httpsAgent,
+      httpAgent: proxyAgents.httpAgent,
+      timeout: 10000,
+      validateStatus: () => true,
+      maxRedirects: 3,
+    });
+    res.json({ ok: true, ms: Date.now() - start });
+  } catch (err) {
+    res.json({ ok: false, error: err.message });
+  }
 });
 
 router.post('/test', async (req, res) => {

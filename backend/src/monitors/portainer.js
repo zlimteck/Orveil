@@ -1,20 +1,24 @@
 const axios = require('axios');
 const https = require('https');
 const cfHeaders = require('./cfHeaders');
+const { getProxyAgents } = require('./proxyAgent');
+const i18n = require('../i18n');
 
-async function check(config, lastState) {
-  const { apiUrl, apiKey, rejectUnauthorized = true } = config;
+async function check(config, lastState, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
+  const { apiUrl, apiKey, rejectUnauthorized = true, proxy } = config;
 
   if (!apiUrl || !apiKey) return { status: 'error', state: null, metrics: null, notifications: [
-    { title: 'Config manquante — Portainer', message: 'URL et clé API requises', level: 'error', type: 'status_change' }
+    { ...L.missingConfig('Portainer', 'URL and API key required'), level: 'error', type: 'status_change' }
   ]};
 
   const base = apiUrl.replace(/\/$/, '');
   const headers = { 'X-API-Key': apiKey, ...cfHeaders(config) };
-
+  const proxyAgents = getProxyAgents(proxy);
   const http = axios.create({
     timeout: 10000,
-    httpsAgent: new https.Agent({ rejectUnauthorized }),
+    httpsAgent: proxyAgents?.httpsAgent || new https.Agent({ rejectUnauthorized }),
+    ...(proxyAgents && { httpAgent: proxyAgents.httpAgent }),
     headers,
   });
 
@@ -25,10 +29,10 @@ async function check(config, lastState) {
       validateStatus: () => true,
     });
     if (endpointsRes.status === 401 || endpointsRes.status === 403) {
-      throw new Error(`${endpointsRes.status} — Clé API invalide ou insuffisante`);
+      throw new Error(`${endpointsRes.status} — Invalid or insufficient API key`);
     }
     if (typeof endpointsRes.data === 'string' && endpointsRes.data.trimStart().startsWith('<')) {
-throw new Error(`URL incorrecte (HTML reçu, status ${endpointsRes.status}) — vérifiez l'URL Portainer`);
+      throw new Error(`Invalid URL (HTML received, status ${endpointsRes.status}) — check the Portainer URL`);
     }
     if (endpointsRes.status >= 400) {
       throw new Error(`HTTP ${endpointsRes.status} — ${endpointsRes.data?.toString().slice(0, 100)}`);
@@ -48,7 +52,6 @@ throw new Error(`URL incorrecte (HTML reçu, status ${endpointsRes.status}) — 
           params: { all: true },
         });
         let containers = res.data;
-        // Portainer peut retourner { value: [...] } ou un tableau direct
         if (!Array.isArray(containers)) containers = containers?.value || [];
 
         for (const c of containers) {
@@ -72,17 +75,15 @@ throw new Error(`URL incorrecte (HTML reçu, status ${endpointsRes.status}) — 
     return { status, state, metrics, notifications: [] };
   } catch (err) {
     return { status: 'error', lastError: err.message, state: lastState, metrics: null, notifications: [
-      { title: 'Portainer — Erreur API', message: err.message, level: 'error', type: 'status_change' }
+      { ...L.apiError('Portainer', err.message), level: 'error', type: 'status_change' }
     ]};
   }
 }
 
-async function report(config, state) {
-  if (!state) return { title: 'Portainer', message: 'Aucune donnée.' };
-  return {
-    title: 'Rapport Portainer',
-    message: `Environnements : ${state.environments}\nContainers actifs : ${state.containersRunning}\nArrêtés : ${state.containersStopped}`,
-  };
+async function report(config, state, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
+  if (!state) return { title: 'Portainer', message: 'No data.' };
+  return L.portainerReport(state);
 }
 
 module.exports = { check, report };

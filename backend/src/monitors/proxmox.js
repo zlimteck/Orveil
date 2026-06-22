@@ -1,19 +1,24 @@
 const axios = require('axios');
 const https = require('https');
 const cfHeaders = require('./cfHeaders');
+const { getProxyAgents } = require('./proxyAgent');
+const i18n = require('../i18n');
 
-async function check(config, lastState) {
-  const { apiUrl, apiToken, node = 'pve', rejectUnauthorized = false } = config;
+async function check(config, lastState, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
+  const { apiUrl, apiToken, node = 'pve', rejectUnauthorized = false, proxy } = config;
   // Proxmox uses self-signed certs by default; honour the config but never throw on cert errors unless explicitly enabled
   const tlsReject = rejectUnauthorized === true;
 
   if (!apiUrl || !apiToken) return { status: 'error', state: null, metrics: null, notifications: [
-    { title: 'Config manquante — Proxmox', message: 'URL et token API requis', level: 'error', type: 'status_change' }
+    { ...L.missingConfig('Proxmox', 'URL and API token required'), level: 'error', type: 'status_change' }
   ]};
 
+  const proxyAgents = getProxyAgents(proxy);
   const http = axios.create({
     timeout: 10000,
-    httpsAgent: new https.Agent({ rejectUnauthorized: tlsReject }),
+    httpsAgent: proxyAgents?.httpsAgent || new https.Agent({ rejectUnauthorized: tlsReject }),
+    ...(proxyAgents && { httpAgent: proxyAgents.httpAgent }),
     headers: { Authorization: `PVEAPIToken=${apiToken}`, ...cfHeaders(config) },
   });
 
@@ -21,7 +26,6 @@ async function check(config, lastState) {
 
   const start = Date.now();
   try {
-    // Auto-detect node name if default 'pve' was used but doesn't match
     let resolvedNode = node;
     try {
       const nodesRes = await http.get(`${base}/api2/json/nodes`);
@@ -31,7 +35,7 @@ async function check(config, lastState) {
       }
     } catch (e) {
       if (e.response?.status === 403) {
-        throw new Error('403 Accès refusé — Proxmox : Datacenter → Permissions → Ajouter → Permission API Token → chemin "/" → rôle Administrator');
+        throw new Error('403 Access denied — Proxmox: Datacenter → Permissions → Add → API Token Permission → path "/" → role Administrator');
       }
       throw e;
     }
@@ -54,9 +58,9 @@ async function check(config, lastState) {
     const notifications = [];
     if (lastState) {
       if (cpuPct > 90 && (lastState.cpuPct ?? 0) <= 90)
-        notifications.push({ title: `CPU Proxmox élevé`, message: `CPU à ${cpuPct}% sur ${node}`, level: 'warning', type: 'status_change' });
+        notifications.push({ ...L.proxmoxHighCpu(cpuPct, node), level: 'warning', type: 'status_change' });
       if (memPct > 90 && (lastState.memPct ?? 0) <= 90)
-        notifications.push({ title: `RAM Proxmox saturée`, message: `RAM à ${memPct}% sur ${node}`, level: 'warning', type: 'status_change' });
+        notifications.push({ ...L.proxmoxHighRam(memPct, node), level: 'warning', type: 'status_change' });
     }
 
     const responseTime = Date.now() - start;
@@ -72,17 +76,15 @@ async function check(config, lastState) {
     return { status: 'online', state, metrics, notifications };
   } catch (err) {
     return { status: 'error', lastError: err.message, state: lastState, metrics: null, notifications: [
-      { title: 'Proxmox — Erreur API', message: err.message, level: 'error', type: 'status_change' }
+      { ...L.apiError('Proxmox', err.message), level: 'error', type: 'status_change' }
     ]};
   }
 }
 
-async function report(config, state) {
-  if (!state) return { title: 'Proxmox', message: 'Aucune donnée.' };
-  return {
-    title: `Rapport Proxmox — ${config.node || 'pve'}`,
-    message: `CPU : ${state.cpuPct}% | RAM : ${state.memPct}%\nVMs : ${state.vmRunning} actives | LXC : ${state.lxcRunning} actifs`,
-  };
+async function report(config, state, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
+  if (!state) return { title: 'Proxmox', message: 'No data.' };
+  return L.proxmoxReport(state, config.node);
 }
 
 module.exports = { check, report };

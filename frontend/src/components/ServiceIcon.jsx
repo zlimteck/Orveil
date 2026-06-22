@@ -1,5 +1,5 @@
 import React from 'react';
-import { siCloudflare, siAdguard, siSyncthing, siProxmox, siImmich, siPortainer, siHomeassistant, siJellyfin, siMysql, siRedis } from 'simple-icons';
+import { siCloudflare, siAdguard, siSyncthing, siProxmox, siImmich, siPortainer, siHomeassistant, siJellyfin, siMysql, siRedis, siOllama } from 'simple-icons';
 import { Globe, Activity, Terminal, HeartPulse, Gauge, Network, Database } from 'lucide-react';
 
 function SimpleIcon({ icon, size = 20 }) {
@@ -82,6 +82,7 @@ const FALLBACKS = {
   dns:            ({ size }) => <Network size={size} color="#a7e2e3" />,
   mysql:          ({ size }) => <SimpleIcon icon={siMysql} size={size} />,
   redis:          ({ size }) => <SimpleIcon icon={siRedis} size={size} />,
+  ollama:         ({ size }) => <SimpleIcon icon={siOllama} size={size} />,
 };
 
 function FileIcon({ type, size, onError }) {
@@ -140,7 +141,7 @@ export default function ServiceIcon({ type, size = 20, url, faviconUrl, serviceU
   }
 
   // Types that have a real file in /icons/ — always go through FileIcon first.
-  const HAS_FILE_ICON = new Set(['hms', 'ultracc', 'unraid', 'docker']);
+  const HAS_FILE_ICON = new Set(['hms', 'ultracc', 'unraid', 'docker', 'speedtest']);
   // For all other types with a Fallback and no favicon, skip the broken-image
   // flicker from FileIcon and render the Fallback directly.
   if (Fallback && !faviconSrc && !HAS_FILE_ICON.has(type)) return <Fallback size={size} />;

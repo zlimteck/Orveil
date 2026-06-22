@@ -1,5 +1,7 @@
 const axios = require('axios');
 const https = require('https');
+const { getProxyAgents } = require('./proxyAgent');
+const i18n = require('../i18n');
 
 const QUERY = `query Orveil {
   info {
@@ -21,24 +23,27 @@ const QUERY = `query Orveil {
   }
 }`;
 
-async function check(config, lastState) {
-  const { apiUrl, apiKey, rejectUnauthorized = true } = config;
+async function check(config, lastState, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
+  const { apiUrl, apiKey, rejectUnauthorized = true, proxy } = config;
 
   if (!apiUrl || !apiKey) return {
     status: 'error', state: null, metrics: null,
-    notifications: [{ title: 'Config manquante — Unraid', message: 'URL et clé API requises', level: 'error', type: 'status_change' }],
+    notifications: [{ ...L.missingConfig('Unraid', 'URL and API key required'), level: 'error', type: 'status_change' }],
   };
 
   const base = apiUrl.replace(/\/$/, '');
 
   try {
+    const proxyAgents = getProxyAgents(proxy);
     const res = await axios.post(
       `${base}/graphql`,
       { query: QUERY },
       {
         headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' },
         timeout: 10000,
-        httpsAgent: new https.Agent({ rejectUnauthorized }),
+        httpsAgent: proxyAgents?.httpsAgent || new https.Agent({ rejectUnauthorized }),
+        ...(proxyAgents && { httpAgent: proxyAgents.httpAgent }),
       }
     );
 
@@ -101,18 +106,10 @@ async function check(config, lastState) {
     const notifications = [];
     if (lastState) {
       if (diskErrors > 0 && (lastState.diskErrors || 0) === 0) {
-        notifications.push({
-          title: 'Unraid — Erreur disque',
-          message: `${diskErrors} disque(s) en erreur dans l'array`,
-          level: 'error', type: 'status_change',
-        });
+        notifications.push({ ...L.unraidDiskError(diskErrors), level: 'error', type: 'status_change' });
       }
       if (!arrayOk && lastState.arrayState === 'STARTED') {
-        notifications.push({
-          title: 'Unraid — Array arrêté',
-          message: `État de l'array : ${array.state}`,
-          level: 'warning', type: 'status_change',
-        });
+        notifications.push({ ...L.unraidArrayStopped(array.state), level: 'warning', type: 'status_change' });
       }
     }
 
@@ -123,23 +120,15 @@ async function check(config, lastState) {
     console.error('[unraid]', message);
     return {
       status: 'error', state: lastState, metrics: null,
-      notifications: [{ title: 'Unraid — Erreur API', message: err.message, level: 'error', type: 'status_change' }],
+      notifications: [{ ...L.apiError('Unraid', err.message), level: 'error', type: 'status_change' }],
     };
   }
 }
 
-async function report(config, state) {
-  if (!state) return { title: 'Unraid', message: 'Aucune donnée.' };
-  const lines = [
-    `Array : ${state.arrayState}`,
-    `Disques : ${state.diskCount}${state.diskErrors > 0 ? ` (${state.diskErrors} en erreur)` : ''}`,
-    `Stockage : ${state.diskUsed} / ${state.diskTotal} TB (${state.diskPct}%)`,
-  ];
-  if (state.cpuPct != null) lines.push(`CPU : ${state.cpuPct}%`);
-  if (state.ramPct != null) lines.push(`RAM : ${state.ramUsedGB} / ${state.ramTotalGB} GB (${state.ramPct}%)`);
-  if (state.tempAvg != null) lines.push(`Temp moy : ${state.tempAvg}°C${state.tempWarn > 0 ? ` ${state.tempWarn} warn` : ''}${state.tempCrit > 0 ? ` ${state.tempCrit} crit` : ''}`);
-  lines.push(`Containers : ${state.containersRunning} actifs`);
-  return { title: 'Rapport Unraid', message: lines.join('\n') };
+async function report(config, state, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
+  if (!state) return { title: 'Unraid', message: 'No data.' };
+  return L.unraidReport(state);
 }
 
 module.exports = { check, report };

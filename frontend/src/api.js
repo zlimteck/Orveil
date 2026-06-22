@@ -51,9 +51,14 @@ export const settings = {
   get: () => api.get('/settings').then(r => r.data),
   save: (data) => api.put('/settings', data).then(r => r.data),
   test: () => api.post('/settings/test').then(r => r.data),
+  testProxy: (proxy) => api.post('/settings/proxy/test', { proxy }).then(r => r.data),
   regenerateMcpKey: () => api.post('/settings/mcp/regenerate').then(r => r.data),
   exportData: () => api.get('/settings/export').then(r => r.data),
   importData: (data) => api.post('/settings/import', data).then(r => r.data),
+  addProxy: (proxy) => api.post('/settings/proxies', proxy).then(r => r.data),
+  updateProxy: (id, proxy) => api.put(`/settings/proxies/${id}`, proxy).then(r => r.data),
+  deleteProxy: (id) => api.delete(`/settings/proxies/${id}`).then(r => r.data),
+  activateProxy: (id) => api.patch(`/settings/proxies/${id}/activate`).then(r => r.data),
 };
 
 export const history = {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { settings as api, auth as authApi } from '../api';
-import { Save, Send, Info, KeyRound, CalendarClock, BarChart2, Globe, Copy, Check, RefreshCw, Server, Download, Upload, AlertTriangle } from 'lucide-react';
+import { Save, Send, Info, KeyRound, CalendarClock, BarChart2, Globe, Copy, Check, RefreshCw, Server, Download, Upload, AlertTriangle, Network, Wifi, Plus, Pencil, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useLang } from '../context/LangContext';
 import { useToast } from '../context/ToastContext';
 
@@ -11,6 +11,246 @@ const EXAMPLES = [
   'discord://WebhookID/WebhookToken/',
   'mailto://user:pass@gmail.com',
 ];
+
+const EMPTY_PROXY_FORM = { name: '', type: 'http', host: '', port: '', username: '', password: '', privateKey: '' };
+
+function ProxyForm({ initial = EMPTY_PROXY_FORM, onSave, onCancel, t, saving }) {
+  const [form, setForm] = useState(initial);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState(null);
+  const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setTestResult(null); };
+
+  async function handleTest() {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const r = await api.testProxy({ ...form, port: form.port ? +form.port : undefined });
+      setTestResult(r.ok ? { ok: true, ms: r.ms } : { ok: false, error: r.error });
+    } catch (err) {
+      setTestResult({ ok: false, error: err.response?.data?.error || err.message });
+    }
+    setTesting(false);
+  }
+
+  const canTest = form.host && (form.type === 'ssh' || form.port);
+
+  return (
+    <div className="space-y-3 pt-2 border-t border-border">
+      <div>
+        <label className="label">{t('settings.proxies.name')}</label>
+        <input className="input" value={form.name} onChange={e => set('name', e.target.value)} placeholder={t('settings.proxies.namePlaceholder')} />
+      </div>
+      <div>
+        <label className="label">{t('settings.proxies.type')}</label>
+        <select className="select" value={form.type} onChange={e => set('type', e.target.value)}>
+          <option value="http">HTTP</option>
+          <option value="https">HTTPS</option>
+          <option value="socks5">SOCKS5</option>
+          <option value="ssh">SSH tunnel</option>
+        </select>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        <div className="col-span-2">
+          <label className="label">{t('settings.proxies.host')}</label>
+          <input className="input" value={form.host} onChange={e => set('host', e.target.value)} placeholder={form.type === 'ssh' ? 'jump.example.com' : '127.0.0.1'} />
+        </div>
+        <div>
+          <label className="label">{t('settings.proxies.port')}</label>
+          <input className="input" type="number" value={form.port} onChange={e => set('port', e.target.value)} placeholder={form.type === 'ssh' ? '22' : '1080'} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="label">{form.type === 'ssh' ? t('settings.proxies.sshUser') : t('settings.proxies.username')}</label>
+          <input className="input" value={form.username} onChange={e => set('username', e.target.value)} placeholder="user" />
+        </div>
+        <div>
+          <label className="label">{t('settings.proxies.password')}</label>
+          <input className="input" type="password" value={form.password} onChange={e => set('password', e.target.value)} placeholder="••••••••" />
+        </div>
+      </div>
+      {form.type === 'ssh' && (
+        <div>
+          <label className="label">{t('settings.proxies.privateKey')}</label>
+          <textarea className="input h-20 resize-none font-mono text-xs"
+            placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
+            value={form.privateKey} onChange={e => set('privateKey', e.target.value)} />
+        </div>
+      )}
+      <div className="space-y-1.5">
+        <div className="flex gap-2">
+          <button type="button" disabled={saving || !form.host} onClick={() => onSave(form)}
+            className="btn-primary text-xs px-3 py-1.5">
+            <Save size={12} /> {t('settings.proxies.save')}
+          </button>
+          <button type="button" disabled={testing || !canTest} onClick={handleTest}
+            className="btn-ghost border border-border text-xs px-3 py-1.5 flex items-center gap-1.5 disabled:opacity-40">
+            <Wifi size={12} className={testing ? 'animate-pulse text-periwinkle' : ''} />
+            {testing ? t('settings.proxies.testing') : t('settings.proxies.test')}
+          </button>
+          <button type="button" onClick={onCancel}
+            className="btn-ghost border border-border text-xs px-3 py-1.5">
+            {t('settings.proxies.cancel')}
+          </button>
+        </div>
+        {testResult && (
+          <p className={`text-xs ${testResult.ok ? 'text-celadon' : 'text-red-400'}`}>
+            {testResult.ok ? `✓ ${t('settings.proxies.testOk')} (${testResult.ms}ms)` : `✗ ${testResult.error}`}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ProxiesCard({ proxies, setProxies, t }) {
+  const toast = useToast();
+  const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [testing, setTesting] = useState(null);
+  const [testResults, setTestResults] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  async function handleAdd(form) {
+    setSaving(true);
+    try {
+      const created = await api.addProxy({ ...form, port: form.port ? +form.port : undefined });
+      setProxies(prev => [...prev, created]);
+      setAdding(false);
+      toast.add(t('settings.saved'), 'success');
+    } catch { toast.add('Error', 'error'); }
+    setSaving(false);
+  }
+
+  async function handleUpdate(id, form) {
+    setSaving(true);
+    try {
+      const updated = await api.updateProxy(id, { ...form, port: form.port ? +form.port : undefined });
+      setProxies(prev => prev.map(p => p._id === id ? updated : p));
+      setEditingId(null);
+      toast.add(t('settings.saved'), 'success');
+    } catch { toast.add('Error', 'error'); }
+    setSaving(false);
+  }
+
+  async function handleDelete(id) {
+    if (!window.confirm(t('settings.proxies.confirmDelete'))) return;
+    try {
+      await api.deleteProxy(id);
+      setProxies(prev => prev.filter(p => p._id !== id));
+    } catch { toast.add('Error', 'error'); }
+  }
+
+  async function handleActivate(id) {
+    try {
+      const r = await api.activateProxy(id);
+      setProxies(prev => prev.map(p => ({ ...p, active: p._id === id ? r.active : false })));
+    } catch { toast.add('Error', 'error'); }
+  }
+
+  async function handleTest(proxy) {
+    setTesting(proxy._id);
+    setTestResults(r => ({ ...r, [proxy._id]: null }));
+    try {
+      const r = await api.testProxy(proxy);
+      setTestResults(prev => ({ ...prev, [proxy._id]: r.ok ? { ok: true, ms: r.ms } : { ok: false, error: r.error } }));
+    } catch (err) {
+      setTestResults(prev => ({ ...prev, [proxy._id]: { ok: false, error: err.response?.data?.error || err.message } }));
+    }
+    setTesting(null);
+  }
+
+  const typeLabel = (type) => ({ http: 'HTTP', https: 'HTTPS', socks5: 'SOCKS5', ssh: 'SSH' }[type] || type?.toUpperCase());
+
+  return (
+    <div className="card space-y-4">
+      <h2 className="font-semibold text-thistle text-sm flex items-center gap-2">
+        <Network size={14} className="text-periwinkle" /> {t('settings.proxies.title')}
+      </h2>
+      <p className="text-xs text-muted">{t('settings.proxies.hint')}</p>
+
+      {proxies.length === 0 && !adding && (
+        <p className="text-xs text-muted italic">{t('settings.proxies.empty')}</p>
+      )}
+
+      <div className="space-y-2">
+        {proxies.map(proxy => {
+          const result = testResults[proxy._id];
+          const isEditing = editingId === proxy._id;
+          return (
+            <div key={proxy._id} className={`rounded-xl border px-4 py-3 space-y-2 transition-colors ${proxy.active ? 'border-periwinkle/40 bg-periwinkle/5' : 'border-border bg-granite-3/30'}`}>
+              {/* Row 1 : toggle + nom + badge */}
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => handleActivate(proxy._id)}
+                  title={proxy.active ? t('settings.proxies.deactivate') : t('settings.proxies.activate')}
+                  className={`w-4 h-4 rounded-full border-2 shrink-0 transition-colors ${proxy.active ? 'border-periwinkle bg-periwinkle' : 'border-muted hover:border-periwinkle'}`} />
+                <span className="text-sm text-thistle font-medium flex-1 min-w-0 truncate">{proxy.name}</span>
+                {proxy.active && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-periwinkle/20 text-periwinkle font-medium shrink-0">{t('settings.proxies.active')}</span>
+                )}
+              </div>
+
+              {/* Row 2 : host info */}
+              <div>
+                <span className="text-xs text-muted">{typeLabel(proxy.type)} · {proxy.host}{proxy.port ? `:${proxy.port}` : ''}</span>
+              </div>
+
+              {/* Row 3 : boutons d'action */}
+              <div className="flex items-center gap-1.5">
+                <button type="button" disabled={testing === proxy._id || !proxy.host}
+                  onClick={() => handleTest(proxy)}
+                  className="btn-ghost border border-border text-xs px-2 py-1 flex items-center gap-1 disabled:opacity-40">
+                  <Wifi size={11} className={testing === proxy._id ? 'animate-pulse text-periwinkle' : ''} />
+                  {testing === proxy._id ? t('settings.proxies.testing') : t('settings.proxies.test')}
+                </button>
+                <button type="button" onClick={() => setEditingId(isEditing ? null : proxy._id)}
+                  className="btn-ghost border border-border p-1.5">
+                  {isEditing ? <ChevronUp size={13} /> : <Pencil size={13} />}
+                </button>
+                <button type="button" onClick={() => handleDelete(proxy._id)}
+                  className="btn-ghost border border-border p-1.5 hover:border-red-400 hover:text-red-400">
+                  <Trash2 size={13} />
+                </button>
+              </div>
+
+              {result && (
+                <p className={`text-xs ${result.ok ? 'text-celadon' : 'text-red-400'}`}>
+                  {result.ok ? `✓ ${t('settings.proxies.testOk')} (${result.ms}ms)` : `✗ ${result.error}`}
+                </p>
+              )}
+
+              {isEditing && (
+                <ProxyForm
+                  initial={{ name: proxy.name, type: proxy.type || 'http', host: proxy.host || '', port: proxy.port || '', username: proxy.username || '', password: '', privateKey: '' }}
+                  onSave={form => handleUpdate(proxy._id, form)}
+                  onCancel={() => setEditingId(null)}
+                  t={t} saving={saving}
+                />
+              )}
+            </div>
+          );
+        })}
+
+        {adding && (
+          <div className="rounded-xl border border-dashed border-border px-4 py-3">
+            <ProxyForm
+              onSave={handleAdd}
+              onCancel={() => setAdding(false)}
+              t={t} saving={saving}
+            />
+          </div>
+        )}
+      </div>
+
+      {!adding && (
+        <button type="button" onClick={() => { setAdding(true); setEditingId(null); }}
+          className="btn-ghost border border-border flex items-center gap-2">
+          <Plus size={14} /> {t('settings.proxies.add')}
+        </button>
+      )}
+    </div>
+  );
+}
 
 function ChangePassword() {
   const { t } = useLang();
@@ -55,6 +295,7 @@ function ChangePassword() {
 export default function Settings() {
   const { t } = useLang();
   const toast = useToast();
+  const [proxies, setProxies] = useState([]);
   const [form, setForm] = useState({ appriseUrls: [], appriseApiUrl: 'http://apprise:8000', weeklyReport: { enabled: false, dayOfWeek: 1, hour: 8 }, showGraphs: true, statusPage: { title: '', description: '', logoUrl: '', accentColor: '', footerText: '' } });
   const [urlsText, setUrlsText] = useState('');
   const [testing, setTesting] = useState(false);
@@ -73,6 +314,7 @@ export default function Settings() {
           showGraphs: s.showGraphs !== false,
           statusPage: s.statusPage || { title: '', description: '', logoUrl: '', accentColor: '', footerText: '' },
         });
+        setProxies(s.proxies || []);
         setUrlsText((s.appriseUrls || []).join('\n'));
         setMcpApiKey(s.mcpApiKey || '');
       })
@@ -143,7 +385,23 @@ export default function Settings() {
     setImporting(false);
   }
 
-  if (loading) return <div className="p-6 text-muted">{t('settings.loading')}</div>;
+  if (loading) return (
+    <div className="p-4 md:p-6 space-y-5">
+      <div className="space-y-1.5">
+        <div className="skeleton h-7 w-40 rounded" />
+        <div className="skeleton h-3.5 w-64 rounded" />
+      </div>
+      {[180, 120, 100, 120, 100].map((h, i) => (
+        <div key={i} className="card space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="skeleton w-4 h-4 rounded" />
+            <div className="skeleton h-4 w-36 rounded" />
+          </div>
+          <div className="skeleton rounded" style={{ height: h }} />
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div className="p-4 md:p-6 space-y-5">
@@ -336,6 +594,8 @@ export default function Settings() {
       </form>
 
       <ChangePassword />
+
+      <ProxiesCard proxies={proxies} setProxies={setProxies} t={t} />
 
       <div className="card space-y-4">
         <h2 className="font-semibold text-thistle text-sm flex items-center gap-2">

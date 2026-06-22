@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState } from 'react';
 import fr from '../i18n/fr';
 import en from '../i18n/en';
+import { settings as settingsApi } from '../api';
 
 const locales = { fr, en };
 const LangContext = createContext();
@@ -11,6 +12,7 @@ export function LangProvider({ children }) {
   function switchLang(l) {
     setLang(l);
     localStorage.setItem('nh_lang', l);
+    settingsApi.save({ notificationLanguage: l }).catch(() => {});
   }
 
   function t(path) {

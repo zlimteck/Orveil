@@ -19,6 +19,21 @@ const settingsSchema = new mongoose.Schema({
     footerText:  { type: String, default: '' },
   },
   mcpApiKey: { type: String, default: () => require('crypto').randomBytes(24).toString('hex') },
+  defaultProxy: { type: mongoose.Schema.Types.Mixed, default: null }, // legacy, migrated to proxies on first GET
+  proxies: {
+    type: [{
+      name:       { type: String, default: 'Proxy' },
+      active:     { type: Boolean, default: false },
+      type:       { type: String, default: 'http' },
+      host:       { type: String, default: '' },
+      port:       { type: Number },
+      username:   { type: String, default: '' },
+      password:   { type: String, default: '' },
+      privateKey: { type: String, default: '' },
+    }],
+    default: [],
+  },
+  notificationLanguage: { type: String, default: 'fr' },
 });
 
 module.exports = mongoose.model('Settings', settingsSchema);
