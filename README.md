@@ -39,6 +39,7 @@
 - **Statistics** — 30-day global view: uptime per service with trend, SLA status, incident count, MTTR, MTTD, severity breakdown, notification log, incident heatmap by day/hour
 - **Maintenance windows** — per-service maintenance mode, immediate or scheduled (date/time picker); presets 30 min to 8 h or custom duration; upcoming windows shown as a badge on the card — no alerts or incidents during the window
 - **Adaptive polling** — when a service goes down, check interval drops automatically to 30 s (configurable) for near-instant recovery detection; reverts to the normal interval once the service is back up; Speedtest and Heartbeat monitors are excluded
+- **Notification cooldown** — configurable minimum delay (in minutes) between repeated down alerts for the same service; prevents alert storms during flapping; recovery notifications always pass through
 - **Monitor dependencies** — link a monitor to a parent; down alerts are suppressed when the parent is also down
 - **Backup & restore** — export all monitors and settings as JSON; import on another instance (Settings page)
 - **Status badges** — embeddable SVG badge per service (`/api/badge/:id`) with live status color; Markdown and HTML snippets available in the service detail modal
@@ -168,7 +169,7 @@ Resources `orveil://monitors/{name}` are also available for direct URI access.
 
 ### Streamable HTTP (remote)
 
-The MCP endpoint is available at `/api/mcp`. The API key is auto-generated on first start and visible in **Settings → MCP Server**.
+The MCP endpoint is available at `/api/mcp`. The API key is auto-generated on first start and visible in **Settings → Integrations → MCP Server**.
 
 ```json
 {
@@ -213,7 +214,7 @@ Orveil embeds an AI assistant powered by [Anthropic Claude](https://www.anthropi
 - Responses are given in the same language as the user (FR/EN auto-detected)
 
 **Setup:**
-1. Go to **Settings → Orveil AI**
+1. Go to **Settings → Integrations → Orveil AI**
 2. Enter your Anthropic API key (`sk-ant-...`)
 3. Select the Claude model to use (loaded live from the Anthropic catalogue)
 4. Save — the AI button appears immediately

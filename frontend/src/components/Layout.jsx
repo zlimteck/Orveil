@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { version } from '../../package.json';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Radio, Bell, Settings, Menu, X, Code2, Siren, LogOut, Sun, Moon, BarChart2, GitBranch } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -65,6 +66,7 @@ function SidebarHeader() {
       <div className="flex items-center gap-2.5">
         <img src="/logo.svg" alt="Orveil" className="w-7 h-7" />
         <span className="text-lg font-bold tracking-tight text-thistle">Orveil</span>
+        <span className="text-[10px] text-muted/50 font-normal ml-0.5 mt-1">v{version}</span>
       </div>
       <p className="text-xs text-muted mt-1">{t('nav.subtitle')}</p>
       <div className="flex items-center justify-center gap-2 mt-2.5">
