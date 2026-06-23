@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { settings as api, auth as authApi, ai as aiApi } from '../api';
-import { Save, Send, Info, KeyRound, CalendarClock, BarChart2, Globe, Copy, Check, RefreshCw, Server, Download, Upload, AlertTriangle, Network, Wifi, Plus, Pencil, Trash2, ChevronDown, ChevronUp, Bot } from 'lucide-react';
+import { Save, Send, Info, KeyRound, CalendarClock, BarChart2, Globe, Copy, Check, RefreshCw, Server, Download, Upload, AlertTriangle, Network, Wifi, Plus, Pencil, Trash2, ChevronDown, ChevronUp, Bot, Zap } from 'lucide-react';
 import { useLang } from '../context/LangContext';
 import { useToast } from '../context/ToastContext';
 
@@ -296,7 +296,7 @@ export default function Settings() {
   const { t } = useLang();
   const toast = useToast();
   const [proxies, setProxies] = useState([]);
-  const [form, setForm] = useState({ appriseUrls: [], appriseApiUrl: 'http://apprise:8000', weeklyReport: { enabled: false, dayOfWeek: 1, hour: 8 }, showGraphs: true, statusPage: { title: '', description: '', logoUrl: '', accentColor: '', footerText: '' } });
+  const [form, setForm] = useState({ appriseUrls: [], appriseApiUrl: 'http://apprise:8000', weeklyReport: { enabled: false, dayOfWeek: 1, hour: 8 }, showGraphs: true, statusPage: { title: '', description: '', logoUrl: '', accentColor: '', footerText: '' }, adaptivePolling: { enabled: true, errorInterval: 30 } });
   const [urlsText, setUrlsText] = useState('');
   const [testing, setTesting] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -319,6 +319,7 @@ export default function Settings() {
           weeklyReport: s.weeklyReport || { enabled: false, dayOfWeek: 1, hour: 8 },
           showGraphs: s.showGraphs !== false,
           statusPage: s.statusPage || { title: '', description: '', logoUrl: '', accentColor: '', footerText: '' },
+          adaptivePolling: s.adaptivePolling || { enabled: true, errorInterval: 30 },
         });
         setProxies(s.proxies || []);
         setUrlsText((s.appriseUrls || []).join('\n'));
@@ -344,6 +345,7 @@ export default function Settings() {
       weeklyReport: form.weeklyReport,
       showGraphs: form.showGraphs,
       statusPage: form.statusPage,
+      adaptivePolling: form.adaptivePolling,
       ...patch,
     });
     toast.add(t('settings.saved'), 'success');
@@ -525,6 +527,36 @@ export default function Settings() {
               <Save size={14} /> {t('settings.save')}
             </button>
           </div>
+      </form>
+
+      <form onSubmit={e => { e.preventDefault(); saveAll(); }} className="card space-y-4">
+        <h2 className="font-semibold text-thistle text-sm flex items-center gap-2">
+          <Zap size={14} className="text-periwinkle" /> {t('settings.adaptivePolling.title')}
+        </h2>
+        <p className="text-xs text-muted">{t('settings.adaptivePolling.hint')}</p>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" className="w-4 h-4 rounded accent-periwinkle"
+            checked={form.adaptivePolling?.enabled ?? true}
+            onChange={e => {
+              const adaptivePolling = { ...(form.adaptivePolling || {}), enabled: e.target.checked };
+              setForm(f => ({ ...f, adaptivePolling }));
+              saveAll({ adaptivePolling });
+            }} />
+          <span className="text-sm text-thistle">{t('settings.adaptivePolling.enable')}</span>
+        </label>
+        {form.adaptivePolling?.enabled && (
+          <div className="max-w-48">
+            <label className="label">{t('settings.adaptivePolling.errorInterval')}</label>
+            <input type="number" min="10" max="300" className="input"
+              value={form.adaptivePolling?.errorInterval ?? 30}
+              onChange={e => setForm(f => ({ ...f, adaptivePolling: { ...(f.adaptivePolling || {}), errorInterval: +e.target.value } }))} />
+          </div>
+        )}
+        <div className="flex items-center gap-3 pt-1">
+          <button type="submit" className="btn-primary">
+            <Save size={14} /> {t('settings.save')}
+          </button>
+        </div>
       </form>
 
       <div className="card space-y-3">

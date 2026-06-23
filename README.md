@@ -38,6 +38,7 @@
 - **SLA tracking** — set a target uptime % per monitor; met/breached indicator displayed on the Stats page
 - **Statistics** — 30-day global view: uptime per service with trend, SLA status, incident count, MTTR, MTTD, severity breakdown, notification log, incident heatmap by day/hour
 - **Maintenance windows** — per-service maintenance mode, immediate or scheduled (date/time picker); presets 30 min to 8 h or custom duration; upcoming windows shown as a badge on the card — no alerts or incidents during the window
+- **Adaptive polling** — when a service goes down, check interval drops automatically to 30 s (configurable) for near-instant recovery detection; reverts to the normal interval once the service is back up; Speedtest and Heartbeat monitors are excluded
 - **Monitor dependencies** — link a monitor to a parent; down alerts are suppressed when the parent is also down
 - **Backup & restore** — export all monitors and settings as JSON; import on another instance (Settings page)
 - **Status badges** — embeddable SVG badge per service (`/api/badge/:id`) with live status color; Markdown and HTML snippets available in the service detail modal

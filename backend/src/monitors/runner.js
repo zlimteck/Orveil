@@ -262,8 +262,13 @@ async function tick() {
   const globalProxy = activeProxy ? decryptConfig(activeProxy) : null;
   const lang = settings?.notificationLanguage || 'fr';
 
+  const adaptiveEnabled = settings?.adaptivePolling?.enabled ?? true;
+  const adaptiveMs      = (settings?.adaptivePolling?.errorInterval ?? 30) * 1000;
+
   for (const monitor of monitors) {
-    const checkMs = monitor.checkInterval * 60 * 1000;
+    const isDown       = ['error', 'offline', 'warning'].includes(monitor.status);
+    const skipAdaptive = ['speedtest', 'heartbeat'].includes(monitor.type);
+    const checkMs = (isDown && adaptiveEnabled && !skipAdaptive) ? adaptiveMs : monitor.checkInterval * 60 * 1000;
     const lastCheck = monitor.lastChecked ? monitor.lastChecked.getTime() : 0;
     if (now - lastCheck >= checkMs) {
       const proxyForMonitor = resolveProxy(monitor, settings, globalProxy);

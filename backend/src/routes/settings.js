@@ -33,7 +33,7 @@ router.get('/', async (req, res) => {
 });
 
 router.put('/', async (req, res) => {
-  const { appriseUrls, appriseApiUrl, weeklyReport, showGraphs, statusPage, notificationLanguage } = req.body;
+  const { appriseUrls, appriseApiUrl, weeklyReport, showGraphs, statusPage, notificationLanguage, adaptivePolling } = req.body;
   const update = { appriseUrls, appriseApiUrl };
   if (weeklyReport !== undefined) {
     update['weeklyReport.enabled']   = weeklyReport.enabled   ?? false;
@@ -49,6 +49,10 @@ router.put('/', async (req, res) => {
     update['statusPage.footerText']  = statusPage.footerText  ?? '';
   }
   if (notificationLanguage !== undefined) update.notificationLanguage = notificationLanguage;
+  if (adaptivePolling !== undefined) {
+    update['adaptivePolling.enabled']       = adaptivePolling.enabled       ?? true;
+    update['adaptivePolling.errorInterval'] = adaptivePolling.errorInterval ?? 30;
+  }
   const s = await Settings.findOneAndUpdate(
     { key: 'global' },
     update,

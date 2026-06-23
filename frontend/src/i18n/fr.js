@@ -222,6 +222,12 @@ export default {
       hour: 'Heure (UTC)',
       days: ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'],
     },
+    adaptivePolling: {
+      title: 'Polling adaptatif',
+      hint: "Quand un service est en erreur, réduit automatiquement l'intervalle de vérification pour détecter la reprise plus rapidement.",
+      enable: 'Activer le polling adaptatif',
+      errorInterval: 'Intervalle en mode erreur (secondes)',
+    },
     proxies: {
       title: 'Proxies',
       hint: 'Le proxy actif est appliqué à tous les monitors sans proxy dédié.',

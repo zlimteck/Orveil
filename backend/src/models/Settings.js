@@ -36,6 +36,10 @@ const settingsSchema = new mongoose.Schema({
     default: [],
   },
   notificationLanguage: { type: String, default: 'fr' },
+  adaptivePolling: {
+    enabled:       { type: Boolean, default: true },
+    errorInterval: { type: Number,  default: 30 },  // seconds
+  },
 });
 
 module.exports = mongoose.model('Settings', settingsSchema);
