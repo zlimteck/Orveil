@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { settings as api, auth as authApi } from '../api';
-import { Save, Send, Info, KeyRound, CalendarClock, BarChart2, Globe, Copy, Check, RefreshCw, Server, Download, Upload, AlertTriangle, Network, Wifi, Plus, Pencil, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { settings as api, auth as authApi, ai as aiApi } from '../api';
+import { Save, Send, Info, KeyRound, CalendarClock, BarChart2, Globe, Copy, Check, RefreshCw, Server, Download, Upload, AlertTriangle, Network, Wifi, Plus, Pencil, Trash2, ChevronDown, ChevronUp, Bot } from 'lucide-react';
 import { useLang } from '../context/LangContext';
 import { useToast } from '../context/ToastContext';
 
@@ -303,6 +303,12 @@ export default function Settings() {
   const [mcpApiKey, setMcpApiKey] = useState('');
   const [copied, setCopied] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [anthropicKey, setAnthropicKey] = useState('');
+  const [anthropicConfigured, setAnthropicConfigured] = useState(false);
+  const [savingAnthropicKey, setSavingAnthropicKey] = useState(false);
+  const [anthropicModel, setAnthropicModel] = useState('claude-sonnet-4-6');
+  const [anthropicModels, setAnthropicModels] = useState([]);
+  const [loadingModels, setLoadingModels] = useState(false);
 
   useEffect(() => {
     api.get()
@@ -320,6 +326,14 @@ export default function Settings() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+    aiApi.status().then(({ configured, model }) => {
+      setAnthropicConfigured(configured);
+      if (model) setAnthropicModel(model);
+      if (configured) {
+        setLoadingModels(true);
+        aiApi.models().then(({ models }) => setAnthropicModels(models)).catch(() => {}).finally(() => setLoadingModels(false));
+      }
+    }).catch(() => {});
   }, []);
 
   async function saveAll(patch = {}) {
@@ -598,6 +612,97 @@ export default function Settings() {
       <ChangePassword />
 
       <ProxiesCard proxies={proxies} setProxies={setProxies} t={t} />
+
+      {/* AI Widget */}
+      <div className="card space-y-4">
+        <h2 className="font-semibold text-thistle text-sm flex items-center gap-2">
+          <Bot size={14} className="text-periwinkle" /> {t('settings.ai.title')}
+        </h2>
+        <p className="text-xs text-muted">{t('settings.ai.hint')}</p>
+        <div className="space-y-2">
+          {anthropicConfigured ? (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-celadon/5 border border-celadon/20">
+              <Check size={14} className="text-celadon shrink-0" />
+              <span className="text-xs text-celadon flex-1">{t('settings.ai.configured')}</span>
+              <button
+                onClick={async () => {
+                  await aiApi.deleteKey();
+                  setAnthropicConfigured(false);
+                  setAnthropicModels([]);
+                  toast.add(t('settings.ai.deleted'), 'success');
+                }}
+                className="text-xs text-red-400 hover:text-red-300 transition-colors"
+              >
+                {t('settings.ai.delete')}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <input
+                type="password"
+                value={anthropicKey}
+                onChange={e => setAnthropicKey(e.target.value)}
+                placeholder="sk-ant-..."
+                className="input text-sm w-full"
+              />
+              <button
+                disabled={!anthropicKey.trim() || savingAnthropicKey}
+                onClick={async () => {
+                  setSavingAnthropicKey(true);
+                  try {
+                    await aiApi.saveKey(anthropicKey.trim());
+                    setAnthropicConfigured(true);
+                    setAnthropicKey('');
+                    toast.add(t('settings.ai.saved'), 'success');
+                    setLoadingModels(true);
+                    aiApi.models().then(({ models }) => setAnthropicModels(models)).catch(() => {}).finally(() => setLoadingModels(false));
+                  } catch { toast.add(t('settings.ai.saveError'), 'error'); }
+                  setSavingAnthropicKey(false);
+                }}
+                className="btn-primary disabled:opacity-40"
+              >
+                <Save size={14} /> {t('settings.ai.save')}
+              </button>
+            </div>
+          )}
+
+          {/* Model selector — shown only when configured */}
+          {anthropicConfigured && (
+            <div className="space-y-1.5">
+              <label className="label">{t('settings.ai.modelLabel')}</label>
+              {loadingModels ? (
+                <div className="flex items-center gap-2 text-xs text-muted">
+                  <RefreshCw size={12} className="animate-spin" /> {t('settings.ai.loadingModels')}
+                </div>
+              ) : anthropicModels.length > 0 ? (
+                <div className="space-y-3">
+                  <select
+                    value={anthropicModel}
+                    onChange={e => setAnthropicModel(e.target.value)}
+                    className="input text-sm w-full"
+                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23626273' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.1em 1.1em', paddingRight: '2rem', appearance: 'none' }}
+                  >
+                    {anthropicModels.map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={async () => {
+                      await aiApi.saveModel(anthropicModel);
+                      toast.add(t('settings.ai.modelSaved'), 'success');
+                    }}
+                    className="btn-primary"
+                  >
+                    <Save size={14} /> {t('settings.save')}
+                  </button>
+                </div>
+              ) : (
+                <p className="text-xs text-muted">{t('settings.ai.noModels')}</p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
 
       <div className="card space-y-4">
         <h2 className="font-semibold text-thistle text-sm flex items-center gap-2">

@@ -8,6 +8,7 @@
     "mcp": "node mcp-stdio.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.105.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "axios": "^1.6.8",
     "bcryptjs": "^2.4.3",

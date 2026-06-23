@@ -90,3 +90,12 @@ export const annotations = {
 export const publicStatus = {
   get: () => axios.get('/api/public/status').then(r => r.data),
 };
+
+export const ai = {
+  status:    ()          => api.get('/ai/status').then(r => r.data),
+  models:    ()          => api.get('/ai/models').then(r => r.data),
+  saveKey:   (apiKey)    => api.put('/ai/key', { apiKey }).then(r => r.data),
+  deleteKey: ()          => api.delete('/ai/key').then(r => r.data),
+  saveModel: (model)     => api.put('/ai/model', { model }).then(r => r.data),
+  chat:      (messages)  => api.post('/ai/chat', { messages }).then(r => r.data),
+};

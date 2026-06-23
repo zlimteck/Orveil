@@ -33,6 +33,7 @@ app.use('/api/history',   require('./routes/history'));
 app.use('/api/incidents',   require('./routes/incidents'));
 app.use('/api/annotations', require('./routes/annotations'));
 app.use('/api/stats',       require('./routes/stats'));
+app.use('/api/ai',          require('./routes/ai'));
 
 // SPA fallback
 app.get('*', (req, res) => res.sendFile(path.join(publicDir, 'index.html')));

@@ -34,10 +34,13 @@
 - **Weekly report** — optional weekly Apprise summary (services in error, average uptime)
 - **Manual notifications** — send a message to all channels directly from the UI
 - **Proxy library** — save multiple named proxies (HTTP, HTTPS, SOCKS5, SSH tunnel); activate/deactivate any proxy as the global default in one click; assign a specific proxy per monitor; test each proxy from the UI; passwords and private keys encrypted at rest
+- **Clone monitor** — duplicate any monitor with one click (opens in disabled state for safe editing before enabling)
+- **Real-time toast notifications** — live in-app alerts when a monitor changes status (via SSE), with coloured toasts per status (error / warning / online)
 - **Auto / light / dark theme** — follows system preference, persisted per browser
 - **FR / EN interface** — language toggle synced to notification language (one setting controls both UI and alerts)
 - **REST API** — full API with Bearer token auth, documented in-app
-- **MCP server** — Model Context Protocol server exposing monitors, incidents and stats to AI assistants (Claude Desktop, etc.) via Streamable HTTP and stdio transports
+- **MCP server** — Model Context Protocol server exposing monitors, incidents, stats, annotations and uptime history to AI assistants (Claude Desktop, etc.) via Streamable HTTP and stdio transports
+- **Orveil AI** — built-in AI assistant (powered by Anthropic Claude) answering questions about your monitors, incidents, and SLA directly from the dashboard; API key stored encrypted in the database; model selectable from live Anthropic catalogue
 
 ## Stack
 
@@ -139,10 +142,12 @@ Orveil exposes a [Model Context Protocol](https://modelcontextprotocol.io) serve
 
 | Tool | Description |
 |------|-------------|
-| `list_monitors` | List all monitors with status (filterable by status / category / enabled) |
-| `get_monitor` | Full details + metrics + last 20 snapshots for a specific monitor |
-| `list_incidents` | Recent incidents (filterable: open only, by monitor) |
-| `get_stats` | Global counters — total, online, offline, warning, error, disabled |
+| `list_monitors` | List all monitors with status, SLA target, category, maintenance state (filterable by status / category / enabled) |
+| `get_monitor` | Full details + metrics + recent snapshot history for a specific monitor |
+| `list_incidents` | Recent incidents with severity, duration, MTTR — filterable by open/resolved or monitor name |
+| `get_stats_detailed` | Full statistics: MTTR, MTTD, uptime per monitor (30d), SLA compliance, incidents/day, severity breakdown |
+| `list_annotations` | Manual event markers attached to monitors (with resolved monitor names) |
+| `get_uptime` | Daily uptime history per monitor (up to 90 days) |
 | `trigger_check` | Trigger an immediate check for a monitor |
 
 Resources `orveil://monitors/{name}` are also available for direct URI access.
@@ -182,6 +187,24 @@ The MCP endpoint is available at `/api/mcp`. The API key is auto-generated on fi
 ```
 
 The same API key also works as a Bearer token on all `/api` REST endpoints.
+
+## Orveil AI
+
+Orveil embeds an AI assistant powered by [Anthropic Claude](https://www.anthropic.com) that can answer natural-language questions about your infrastructure directly from the dashboard.
+
+**How it works:**
+- A floating button appears in the bottom-right corner once an Anthropic API key is configured
+- The assistant has access to your monitors, incidents, statistics, annotations, and SLA data via the same tools as the MCP server
+- Conversations are scoped strictly to Orveil — the assistant will not answer unrelated questions
+- Responses are given in the same language as the user (FR/EN auto-detected)
+
+**Setup:**
+1. Go to **Settings → Orveil AI**
+2. Enter your Anthropic API key (`sk-ant-...`)
+3. Select the Claude model to use (loaded live from the Anthropic catalogue)
+4. Save — the AI button appears immediately
+
+The API key is encrypted at rest using AES-256-GCM (same as monitor credentials). It is never exposed to the frontend.
 
 ## Environment variables
 

@@ -18,7 +18,9 @@ const settingsSchema = new mongoose.Schema({
     accentColor: { type: String, default: '' },
     footerText:  { type: String, default: '' },
   },
-  mcpApiKey: { type: String, default: () => require('crypto').randomBytes(24).toString('hex') },
+  mcpApiKey:       { type: String, default: () => require('crypto').randomBytes(24).toString('hex') },
+  anthropicApiKey:   { type: String, default: null },
+  anthropicModel:    { type: String, default: 'claude-sonnet-4-6' },
   defaultProxy: { type: mongoose.Schema.Types.Mixed, default: null }, // legacy, migrated to proxies on first GET
   proxies: {
     type: [{

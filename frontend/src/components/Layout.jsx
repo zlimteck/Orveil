@@ -5,7 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLang } from '../context/LangContext';
 import { useToast } from '../context/ToastContext';
-import { incidents as incidentsApi } from '../api';
+import { incidents as incidentsApi, ai as aiApi } from '../api';
+import AiChat from './AiChat';
 
 function NavItem({ to, icon: Icon, label, onClick, badge }) {
   return (
@@ -89,6 +90,7 @@ function SidebarHeader() {
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [openIncidents, setOpenIncidents] = useState(0);
+  const [aiConfigured, setAiConfigured] = useState(false);
   const location = useLocation();
   const { logout } = useAuth();
   const { t } = useLang();
@@ -105,6 +107,8 @@ export default function Layout() {
     }
     fetchIncidents();
     const timer = setInterval(fetchIncidents, 60000);
+
+    aiApi.status().then(({ configured }) => setAiConfigured(configured)).catch(() => {});
 
     const es = new EventSource(`/api/events?token=${token}`);
     es.addEventListener('monitor', (e) => {
@@ -186,6 +190,7 @@ export default function Layout() {
           </div>
         </main>
       </div>
+      <AiChat configured={aiConfigured} />
     </div>
   );
 }
