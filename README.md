@@ -27,7 +27,7 @@
 ## Features
 
 - **Unified dashboard** — status overview of all your services at a glance, grid or list view
-- **22 monitor types** — HTTP/HTTPS, Ping/TCP, SSH, DNS, MySQL, Redis, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Home Assistant, Portainer, Docker, Syncthing, Immich, HostMyServers, Ultra.cc, Heartbeat, Unraid, Speedtest Tracker, Jellyfin, Ollama
+- **23 monitor types** — HTTP/HTTPS, Ping/TCP, Port Forwarding, SSH, DNS, MySQL, Redis, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Home Assistant, Portainer, Docker, Syncthing, Immich, HostMyServers, Ultra.cc, Heartbeat, Unraid, Speedtest Tracker, Jellyfin, Ollama
 - **Public status page** — shareable `/status` page (no login required) with uptime bars, open incidents, and 90-day history per service; toggle visibility per service
 - **Search & sort** — filter cards by name, sort by status / name / manual order
 - **Drag & drop reordering** — manually reorder cards in grid view
@@ -110,6 +110,7 @@ Default credentials: `admin` / `orveil`
 | **Speedtest Tracker** | Latest speedtest result — download, upload, ping, jitter |
 | **Jellyfin** | Active sessions, library counts (movies / series / songs), server version |
 | **Ollama** | Running model list and server availability via Ollama API |
+| **Port Forwarding** | TCP connect check to verify a forwarded port is reachable from outside (router/firewall NAT verification) |
 
 ## Alerts sent per monitor type
 

@@ -37,6 +37,7 @@ const TYPE_DEFAULTS = {
   mysql:          { checkInterval: 5,  reportInterval: 0,  config: { host: '', port: 3306, user: '', password: '', database: '' } },
   redis:          { checkInterval: 5,  reportInterval: 0,  config: { host: '', port: 6379, password: '' } },
   ollama:         { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', rejectUnauthorized: true } },
+  portforward:    { checkInterval: 2,  reportInterval: 0,  config: { host: '', port: 80 } },
 };
 
 const TYPE_LABELS = {
@@ -62,6 +63,7 @@ const TYPE_LABELS = {
   mysql:         'MySQL',
   redis:         'Redis',
   ollama:        'Ollama',
+  portforward:   'Port Forwarding',
 };
 
 function Field({ label, value, onChange, placeholder, type = 'text', hint }) {
@@ -563,6 +565,13 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
         <Field label={t('form.fields.ping.port')} value={config.port} onChange={v => set('port', +v)} type="number" placeholder="80" />
         <Field label={t('form.fields.ping.attempts')} value={config.attempts} onChange={v => set('attempts', +v)} type="number" placeholder="3" />
       </div>
+    </>
+  );
+
+  if (type === 'portforward') return (
+    <>
+      <Field label={t('form.fields.portforward.host')} value={config.host} onChange={v => set('host', v)} placeholder="203.0.113.1" hint={t('form.fields.portforward.hostHint')} />
+      <Field label={t('form.fields.portforward.port')} value={config.port} onChange={v => set('port', +v)} type="number" placeholder="8080" />
     </>
   );
 

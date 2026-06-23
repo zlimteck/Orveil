@@ -25,7 +25,8 @@ function primaryMetric(type, metrics) {
     case 'dns':        return metrics.responseTime ?? null;
     case 'mysql':      return metrics.responseTime ?? null;
     case 'redis':      return metrics.responseTime ?? null;
-    case 'ollama':     return metrics.modelsCount ?? null;
+    case 'ollama':       return metrics.modelsCount ?? null;
+    case 'portforward':  return metrics.latency ?? null;
     default:           return null;
   }
 }

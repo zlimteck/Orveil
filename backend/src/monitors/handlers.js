@@ -21,4 +21,5 @@ module.exports = {
   mysql:          require('./mysql'),
   redis:          require('./redis'),
   ollama:         require('./ollama'),
+  portforward:    require('./portforward'),
 };

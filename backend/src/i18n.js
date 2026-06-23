@@ -144,6 +144,10 @@ module.exports = {
       message: state ? `${state.host}:${state.port}\nLatency: ${state.latency ?? '—'}ms — Loss: ${state.loss}%` : 'No data.',
     }),
 
+    // ── Port Forwarding ─────────────────────────────────────────────────────
+    portForwardClosed: (host, port) => ({ title: `${host}:${port} closed`, message: `Port ${port} is no longer reachable on ${host}.` }),
+    portForwardOpen:   (host, port, latency) => ({ title: `${host}:${port} open`, message: `Port ${port} is reachable again on ${host} (${latency}ms).` }),
+
     // ── Portainer ───────────────────────────────────────────────────────────
     portainerReport: (state) => ({
       title: 'Portainer Report',
@@ -370,6 +374,10 @@ module.exports = {
       title: `Rapport Ping — ${host}`,
       message: state ? `${state.host}:${state.port}\nLatence : ${state.latency ?? '—'}ms — Perte : ${state.loss}%` : 'Aucune donnée.',
     }),
+
+    // ── Port Forwarding ─────────────────────────────────────────────────────
+    portForwardClosed: (host, port) => ({ title: `${host}:${port} fermé`, message: `Le port ${port} n'est plus accessible sur ${host}.` }),
+    portForwardOpen:   (host, port, latency) => ({ title: `${host}:${port} ouvert`, message: `Le port ${port} est à nouveau accessible sur ${host} (${latency}ms).` }),
 
     // ── Portainer ───────────────────────────────────────────────────────────
     portainerReport: (state) => ({

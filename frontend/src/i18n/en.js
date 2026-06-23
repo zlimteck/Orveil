@@ -573,6 +573,11 @@ export default {
         port: 'TCP Port',
         attempts: 'Attempts',
       },
+      portforward: {
+        host: 'Host / External IP',
+        hostHint: 'Public IP or domain of your router / server.',
+        port: 'Port to check',
+      },
       heartbeat: {
         expectedEvery: 'Expected every (minutes)',
         expectedEveryHint: 'Alert if no ping is received within 1.5× this interval.',
@@ -656,7 +661,8 @@ export default {
       hms:        'Active VPS',
       docker:     'Running containers',
       unraid:     'Disk usage (%)',
-      speedtest:  'Download (Mbps)',
+      speedtest:   'Download (Mbps)',
+      portforward: 'Latency (ms)',
     },
   },
   notFound: {

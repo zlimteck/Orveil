@@ -1,6 +1,6 @@
 import React from 'react';
 import { siCloudflare, siAdguard, siSyncthing, siProxmox, siImmich, siPortainer, siHomeassistant, siJellyfin, siMysql, siRedis, siOllama } from 'simple-icons';
-import { Globe, Activity, Terminal, HeartPulse, Gauge, Network, Database } from 'lucide-react';
+import { Globe, Activity, Terminal, HeartPulse, Gauge, Network, Database, ArrowLeftRight } from 'lucide-react';
 
 function SimpleIcon({ icon, size = 20 }) {
   return (
@@ -74,7 +74,8 @@ const FALLBACKS = {
   docker:     ({ size }) => <DockerIcon size={size} />,
   unraid:     ({ size }) => <UnraidIcon size={size} />,
   http:       ({ size }) => <Globe size={size} color="#c9d7f8" />,
-  ping:       ({ size }) => <Activity size={size} color="#80cfa9" />,
+  ping:        ({ size }) => <Activity size={size} color="#80cfa9" />,
+  portforward: ({ size }) => <ArrowLeftRight size={size} color="#818cf8" />,
   ssh:        ({ size }) => <Terminal size={size} color="#a7e2e3" />,
   heartbeat:  ({ size }) => <HeartPulse size={size} color="#f87171" />,
   speedtest:      ({ size }) => <Gauge size={size} color="#a7e2e3" />,
