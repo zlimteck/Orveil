@@ -182,7 +182,7 @@ function TokenCard({ t }) {
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted">{t('api.auth.permanent') || 'Clé permanente — valide jusqu\'à régénération.'}</p>
         <button onClick={handleRegenerate} disabled={regenerating}
-          className="flex items-center gap-1.5 text-xs text-muted hover:text-thistle transition-colors disabled:opacity-50">
+          className="btn-primary flex items-center gap-1.5 text-xs px-3 h-8 disabled:opacity-50">
           <RefreshCw size={11} className={regenerating ? 'animate-spin' : ''} />
           {t('api.auth.regenerate') || 'Régénérer'}
         </button>

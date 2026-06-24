@@ -320,6 +320,9 @@ export default {
       validity: 'Le token est valide',
       days: '30 jours',
       renew: 'Pour en obtenir un nouveau, reconnectez-vous.',
+      permanent: 'Clé permanente — valide jusqu\'à régénération.',
+      regenerate: 'Régénérer',
+      confirmRegenerate: 'Régénérer la clé API ? Les intégrations existantes devront être mises à jour.',
     },
     params: 'params',
     sections: {

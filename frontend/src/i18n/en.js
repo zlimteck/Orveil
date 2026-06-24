@@ -320,6 +320,9 @@ export default {
       validity: 'The token is valid for',
       days: '30 days',
       renew: 'Sign in again to get a new one.',
+      permanent: 'Permanent key — valid until regenerated.',
+      regenerate: 'Regenerate',
+      confirmRegenerate: 'Regenerate the API key? Existing integrations will need to be updated.',
     },
     params: 'params',
     sections: {
