@@ -49,6 +49,8 @@ app.use('/api/incidents',   require('./routes/incidents'));
 app.use('/api/annotations', require('./routes/annotations'));
 app.use('/api/stats',       require('./routes/stats'));
 app.use('/api/ai',          require('./routes/ai'));
+app.use('/api/search',      require('./routes/search'));
+app.use('/api/changelog',   require('./routes/changelog'));
 
 // SPA fallback
 app.get('*', (req, res) => res.sendFile(path.join(publicDir, 'index.html')));

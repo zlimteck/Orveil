@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { monitors as monitorsApi, history as historyApi, settings as settingsApi } from '../api';
 import { useLang } from '../context/LangContext';
 import { useAuth } from '../context/AuthContext';
@@ -771,6 +772,8 @@ export default function Dashboard() {
   const { t } = useLang();
   const { token } = useAuth();
   const [monitors, setMonitors] = useState([]);
+  const location = useLocation();
+  const navigate = useNavigate();
   const [hist, setHist] = useState({});
   const [dailyHist, setDailyHist] = useState({});
   const [showGraphs, setShowGraphs] = useState(true);
@@ -838,6 +841,16 @@ export default function Dashboard() {
 
     return () => es.close();
   }, [token]);
+
+  useEffect(() => {
+    const id = location.state?.openMonitorId;
+    if (!id || monitors.length === 0) return;
+    const m = monitors.find(mon => String(mon._id) === String(id));
+    if (m) {
+      setSelected(m);
+      navigate('/', { replace: true, state: {} });
+    }
+  }, [location.state?.openMonitorId, monitors]);
 
   const sorted = useMemo(() => {
     if (sortMode === 'name')   return [...monitors].sort((a, b) => a.name.localeCompare(b.name));

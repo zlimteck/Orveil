@@ -903,6 +903,18 @@ function AdvancedSection({ form, setForm, allMonitors, monitor, lang, t, default
               onChange={v => setForm(f => ({ ...f, reportInterval: v }))} />
           </div>
 
+          <div>
+            <label className="label">{t('form.confirmAfter')}</label>
+            <div className="flex">
+              <input className="input rounded-r-none flex-1 border-r-0" type="number" min="1" max="10" step="1"
+                placeholder="1" value={form.confirmAfter}
+                onChange={e => setForm(f => ({ ...f, confirmAfter: Math.max(1, parseInt(e.target.value) || 1) }))} />
+              <span className="flex items-center px-3 text-xs text-muted bg-surface border border-border rounded-r-lg shrink-0">
+                {t('form.confirmAfterHint')}
+              </span>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={form.enabled}
@@ -1039,7 +1051,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
       name: '', type: 'cloudflare', description: '', category: '',
       enabled: true, checkInterval: 1, reportInterval: 6,
       cardMetric: null, serviceUrl: '', showOnStatusPage: true,
-      slaTarget: '', dependsOn: [], customIconUrl: '',
+      slaTarget: '', confirmAfter: 1, dependsOn: [], customIconUrl: '',
       config: TYPE_DEFAULTS.cloudflare.config,
     };
     originalFormRef.current = initial;
@@ -1060,6 +1072,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
         serviceUrl: monitor.serviceUrl || '',
         showOnStatusPage: monitor.showOnStatusPage !== false,
         slaTarget: monitor.slaTarget != null ? String(monitor.slaTarget) : '',
+        confirmAfter: monitor.confirmAfter ?? 1,
         dependsOn: monitor.dependsOn?.map(id => String(id)) || [],
         customIconUrl: monitor.customIconUrl || '',
         config: monitor.config || {},

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, AlertTriangle, CheckCircle, Tag, Trash2, Wrench } from 'lucide-react';
-import { history as historyApi, incidents as incidentsApi, annotations as annotationsApi, monitors as monitorsApi } from '../api';
+import { X, AlertTriangle, CheckCircle, Tag, Trash2, Wrench, GitCommitHorizontal, Pencil } from 'lucide-react';
+import { history as historyApi, incidents as incidentsApi, annotations as annotationsApi, monitors as monitorsApi, changelog as changelogApi } from '../api';
 import { useLang } from '../context/LangContext';
 import Portal from './Portal';
 import { getMetrics } from '../utils/metricConfig';
@@ -82,20 +82,29 @@ export default function ServiceDetail({ monitor, onClose }) {
   const [incidents, setIncidents] = useState([]);
   const [annotations, setAnnotations] = useState([]);
   const [maintenanceWindows, setMaintenanceWindows] = useState([]);
+  const [changelogEntries, setChangelogEntries] = useState([]);
   const [period, setPeriod] = useState(24);
   const [tab, setTab] = useState('metrics');
   const [annLabel, setAnnLabel] = useState('');
   const [addingAnn, setAddingAnn] = useState(false);
+  const [addingCl, setAddingCl] = useState(false);
+  const [editingCl, setEditingCl] = useState(null);
+  const [clForm, setClForm] = useState({ version: '', description: '', deployedAt: '' });
 
   const loadAnnotations = () => {
     const since = Date.now() - period * 3600 * 1000;
     annotationsApi.list(monitor._id, since).then(setAnnotations).catch(() => {});
   };
 
+  const loadChangelog = () => {
+    changelogApi.list(monitor._id).then(setChangelogEntries).catch(() => {});
+  };
+
   useEffect(() => {
     historyApi.monitor(monitor._id, period).then(setHist).catch(() => {});
     incidentsApi.list({ monitorId: monitor._id, limit: 50 }).then(setIncidents).catch(() => {});
     loadAnnotations();
+    loadChangelog();
   }, [monitor._id, period]);
 
   useEffect(() => {
@@ -120,6 +129,46 @@ export default function ServiceDetail({ monitor, onClose }) {
   async function handleDeleteAnnotation(id) {
     await annotationsApi.delete(id);
     loadAnnotations();
+  }
+
+  function openAddCl() {
+    const now = new Date();
+    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    setClForm({ version: '', description: '', deployedAt: local });
+    setEditingCl(null);
+    setAddingCl(true);
+  }
+
+  function openEditCl(entry) {
+    const d = new Date(entry.deployedAt);
+    const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    setClForm({ version: entry.version, description: entry.description || '', deployedAt: local });
+    setEditingCl(entry);
+    setAddingCl(true);
+  }
+
+  async function handleSaveCl(e) {
+    e.preventDefault();
+    if (!clForm.version.trim()) return;
+    const payload = {
+      monitorId: monitor._id,
+      version: clForm.version.trim(),
+      description: clForm.description.trim(),
+      deployedAt: clForm.deployedAt ? new Date(clForm.deployedAt).toISOString() : new Date().toISOString(),
+    };
+    if (editingCl) {
+      await changelogApi.update(editingCl._id, payload);
+    } else {
+      await changelogApi.create(payload);
+    }
+    setAddingCl(false);
+    setEditingCl(null);
+    loadChangelog();
+  }
+
+  async function handleDeleteCl(id) {
+    await changelogApi.delete(id);
+    loadChangelog();
   }
 
   const sparkColor = monitor.status === 'online' ? '#c9d7f8' : monitor.status === 'warning' ? '#fbbf24' : '#f87171';
@@ -180,6 +229,7 @@ export default function ServiceDetail({ monitor, onClose }) {
             { key: 'incidents',   label: lang === 'fr' ? 'Incidents' : 'Incidents', badge: incidents.filter(i => !i.resolvedAt).length },
             { key: 'maintenance', label: lang === 'fr' ? 'Maintenance' : 'Maintenance', badge: maintenanceWindows.length || null },
             { key: 'annotations', label: lang === 'fr' ? 'Annotations' : 'Annotations', badge: annotations.length },
+            { key: 'changelog',   label: t('modal.changelogTab'), badge: changelogEntries.length || null },
             { key: 'badge',       label: 'Badge' },
           ].map(({ key, label, badge }) => (
             <button
@@ -220,39 +270,52 @@ export default function ServiceDetail({ monitor, onClose }) {
                 {points.length >= 2 && <StatusTimeline points={points} period={period} lang={lang} />}
               </div>
 
-              {/* Last HTTP status codes — shown for any monitor type that exposes statusCode in metrics */}
-              {hist !== null && (() => {
+              {/* Last HTTP status codes — shown for http monitors, includes error/timeout snapshots */}
+              {hist !== null && monitor.type === 'http' && (() => {
                 const recent = points
-                  .filter(p => p.metrics?.statusCode != null)
+                  .filter(p => p.metrics?.statusCode != null || ['error', 'offline', 'warning'].includes(p.status))
                   .slice(-50)
                   .reverse()
-                  .filter((p, i, arr) => i === 0 || p.metrics.statusCode !== arr[i - 1].metrics.statusCode)
+                  .filter((p, i, arr) => {
+                    const codeOf = pt => pt.metrics?.statusCode ?? pt.status;
+                    return i === 0 || codeOf(p) !== codeOf(arr[i - 1]);
+                  })
                   .slice(0, 10);
                 if (!recent.length) return null;
                 return (
                   <div className="pt-4 border-t border-border/50">
                     <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
-                      {lang === 'fr' ? 'Derniers statuts HTTP' : 'Latest HTTP statuses'}
+                      {lang === 'fr' ? 'Historique des statuts' : 'Status history'}
                     </p>
                     <div className="space-y-1">
                       {recent.map((p, i) => {
-                        const code = p.metrics.statusCode;
-                        const rt   = p.metrics.responseTime;
-                        const cls  =
-                          code >= 500 ? 'bg-red-500/15 text-red-400 border-red-500/30' :
-                          code >= 400 ? 'bg-amber-400/15 text-amber-400 border-amber-400/30' :
-                          code >= 300 ? 'bg-periwinkle/15 text-periwinkle border-periwinkle/30' :
-                          'bg-celadon/15 text-celadon border-celadon/30';
+                        const code = p.metrics?.statusCode;
+                        const rt   = p.metrics?.responseTime;
+                        const isErr = code == null;
+                        const label = isErr
+                          ? (p.status === 'offline' ? 'offline' : 'timeout')
+                          : String(code);
+                        const cls = isErr
+                          ? 'bg-red-500/15 text-red-400 border-red-500/30'
+                          : code >= 500 ? 'bg-red-500/15 text-red-400 border-red-500/30'
+                          : code >= 400 ? 'bg-amber-400/15 text-amber-400 border-amber-400/30'
+                          : code >= 300 ? 'bg-periwinkle/15 text-periwinkle border-periwinkle/30'
+                          : 'bg-celadon/15 text-celadon border-celadon/30';
                         return (
                           <div key={i} className="flex items-center gap-3 px-3 py-1.5 rounded-lg bg-surface text-xs">
                             <span className={`font-mono font-bold px-1.5 py-0.5 rounded border text-xs shrink-0 ${cls}`}>
-                              {code}
+                              {label}
                             </span>
                             <span className="text-muted flex-1">
                               {new Date(p.ts).toLocaleString(locale)}
                             </span>
                             {rt != null && (
                               <span className="text-muted/60 shrink-0 font-mono">{rt}ms</span>
+                            )}
+                            {isErr && p.lastError && (
+                              <span className="text-muted/50 shrink-0 truncate max-w-[120px]" title={p.lastError}>
+                                {p.lastError.length > 20 ? p.lastError.slice(0, 19) + '…' : p.lastError}
+                              </span>
                             )}
                           </div>
                         );
@@ -266,7 +329,7 @@ export default function ServiceDetail({ monitor, onClose }) {
               {graphs.map(g => (
                 <div key={g.key} className="pt-4 border-t border-border/50">
                   <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">{g.label}</p>
-                  <Sparkline points={g.pts} color={sparkColor} height={110} showLabels incidents={incidents} annotations={annotations} maintenanceWindows={maintenanceWindows} />
+                  <Sparkline points={g.pts} color={sparkColor} height={110} showLabels incidents={incidents} annotations={annotations} maintenanceWindows={maintenanceWindows} changelogEntries={changelogEntries} />
                   <div className="flex justify-between text-xs text-muted/50 mt-1">
                     <span>{period === 24 ? '−24h' : `−${t('modal.period7d')}`}</span>
                     <span>{t('modal.now')}</span>
@@ -425,6 +488,73 @@ export default function ServiceDetail({ monitor, onClose }) {
                   <div className="text-center py-8">
                     <Tag size={24} className="text-muted/40 mx-auto mb-2" />
                     <p className="text-xs text-muted italic">{t('modal.annotationNone')}</p>
+                  </div>
+                )
+              )}
+            </div>
+          )}
+          {tab === 'changelog' && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-muted uppercase tracking-wider">{t('modal.changelogTab')}</p>
+                <button onClick={openAddCl}
+                  className="text-xs px-2 py-0.5 rounded text-periwinkle bg-periwinkle/10 border border-periwinkle/20 hover:bg-periwinkle/20 transition-colors">
+                  + {t('modal.changelogAdd')}
+                </button>
+              </div>
+
+              {addingCl && (
+                <form onSubmit={handleSaveCl} className="bg-surface border border-border rounded-lg p-3 mb-3 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs text-muted block mb-1">{t('modal.changelogVersion')} *</label>
+                      <input autoFocus className="input text-xs h-8 w-full" placeholder={t('modal.changelogVersionPlaceholder')}
+                        value={clForm.version} onChange={e => setClForm(f => ({ ...f, version: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted block mb-1">{t('modal.changelogDate')}</label>
+                      <input type="datetime-local" className="input text-xs h-8 w-full"
+                        value={clForm.deployedAt} onChange={e => setClForm(f => ({ ...f, deployedAt: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted block mb-1">{t('modal.changelogDescription')}</label>
+                    <input className="input text-xs h-8 w-full" placeholder={t('modal.changelogDescriptionPlaceholder')}
+                      value={clForm.description} onChange={e => setClForm(f => ({ ...f, description: e.target.value }))} />
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <button type="button" onClick={() => { setAddingCl(false); setEditingCl(null); }}
+                      className="btn-ghost text-xs px-2 h-7"><X size={12} /></button>
+                    <button type="submit" className="btn-primary text-xs px-3 h-7">{t('modal.changelogSave')}</button>
+                  </div>
+                </form>
+              )}
+
+              {changelogEntries.length > 0 ? (
+                <div className="space-y-1">
+                  {changelogEntries.map(c => (
+                    <div key={c._id} className="flex items-start gap-2 bg-surface rounded-lg px-3 py-2">
+                      <GitCommitHorizontal size={13} className="text-green-400 shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-green-400">{c.version}</span>
+                          <span className="text-xs text-muted">{new Date(c.deployedAt).toLocaleString(locale)}</span>
+                        </div>
+                        {c.description && <p className="text-xs text-thistle/80 mt-0.5 truncate">{c.description}</p>}
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <button onClick={() => openEditCl(c)} className="text-muted hover:text-periwinkle transition-colors"><Pencil size={11} /></button>
+                        <button onClick={() => handleDeleteCl(c._id)} className="text-muted hover:text-red-400 transition-colors"><Trash2 size={11} /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                !addingCl && (
+                  <div className="text-center py-8">
+                    <GitCommitHorizontal size={24} className="text-muted/40 mx-auto mb-2" />
+                    <p className="text-xs text-muted">{t('modal.changelogNone')}</p>
+                    <p className="text-xs text-muted/60 mt-1">{t('modal.changelogNoneHint')}</p>
                   </div>
                 )
               )}

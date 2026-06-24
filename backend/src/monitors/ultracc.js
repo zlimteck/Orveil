@@ -5,17 +5,19 @@ const i18n = require('../i18n');
 
 const COOLDOWN_MS = 60 * 1000;
 const lastCall = {};
+const lastRealResult = {}; // apiUrl -> last result from a real API call
 
-function cachedResult(lastState) {
+function cachedResult(apiUrl, lastState) {
+  if (lastRealResult[apiUrl]) return { ...lastRealResult[apiUrl], notifications: [] };
   if (!lastState) return { status: 'unknown', state: null, metrics: null, notifications: [] };
   return {
     status: 'online', state: lastState,
     metrics: {
-      total_storage:    lastState.total_storage,
-      free_storage:     lastState.free_storage,
-      free_pct:         lastState.total_storage > 0 ? Math.round((lastState.free_storage / lastState.total_storage) * 100) : 0,
+      total_storage:     lastState.total_storage,
+      free_storage:      lastState.free_storage,
+      free_pct:          lastState.total_storage > 0 ? Math.round((lastState.free_storage / lastState.total_storage) * 100) : 0,
       traffic_available: lastState.traffic_available,
-      traffic_reset:    lastState.traffic_reset,
+      traffic_reset:     lastState.traffic_reset,
     },
     notifications: [],
   };
@@ -33,7 +35,7 @@ async function check(config, lastState, lang = 'fr') {
 
   const now = Date.now();
   if (lastCall[apiUrl] && now - lastCall[apiUrl] < COOLDOWN_MS) {
-    return cachedResult(lastState);
+    return cachedResult(apiUrl, lastState);
   }
   lastCall[apiUrl] = now;
 
@@ -41,7 +43,7 @@ async function check(config, lastState, lang = 'fr') {
   try {
     const proxyAgents = getProxyAgents(proxy);
     const http = axios.create({
-      timeout: 15000,
+      timeout: 30000,
       ...(proxyAgents && { httpsAgent: proxyAgents.httpsAgent, httpAgent: proxyAgents.httpAgent }),
     });
     const res = await http.get(apiUrl, {
@@ -61,11 +63,13 @@ async function check(config, lastState, lang = 'fr') {
     if (err.response?.status === 429) {
       console.warn('[Ultra.cc] Rate limit reached — returning cached result');
       lastCall[apiUrl] = now + 60 * 1000;
-      return cachedResult(lastState);
+      return cachedResult(apiUrl, lastState);
     }
-    return { status: 'error', state: lastState, metrics: null, notifications: [
+    const errResult = { status: 'error', state: lastState, metrics: null, notifications: [
       { ...L.apiError('Ultra.cc', err.message), level: 'error', type: 'status_change' }
     ]};
+    lastRealResult[apiUrl] = errResult;
+    return errResult;
   }
 
   const notifications = [];
@@ -84,11 +88,12 @@ async function check(config, lastState, lang = 'fr') {
 
   const status = data.free_storage < 20 || data.traffic_available < 5 ? 'warning' : 'online';
 
-  return {
+  const realResult = {
     status, state: data,
     metrics: { total_storage: data.total_storage, free_storage: data.free_storage, free_pct, traffic_available: data.traffic_available, traffic_reset: data.traffic_reset, statusCode: data.statusCode },
-    notifications,
   };
+  lastRealResult[apiUrl] = realResult;
+  return { ...realResult, notifications };
 }
 
 async function report(config, state, lang = 'fr') {

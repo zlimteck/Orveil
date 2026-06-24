@@ -27,6 +27,8 @@ const monitorSchema = new mongoose.Schema({
   showOnStatusPage: { type: Boolean, default: true },
   dependsOn: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Monitor' }],
   slaTarget: { type: Number, default: null }, // % uptime target, e.g. 99.9
+  confirmAfter: { type: Number, default: 1 }, // consecutive errors before opening an incident
+  consecutiveErrors: { type: Number, default: 0 },
   customIconUrl: { type: String, default: '' },
   pinned: { type: Boolean, default: false },
 }, { timestamps: true });

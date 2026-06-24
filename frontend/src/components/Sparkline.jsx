@@ -30,8 +30,9 @@ const formatVal = v => {
   return v.toFixed(1);
 };
 
-export default function Sparkline({ points = [], color = '#c9d7f8', height = 56, showLabels = false, incidents = [], annotations = [], maintenanceWindows = [] }) {
+export default function Sparkline({ points = [], color = '#c9d7f8', height = 56, showLabels = false, incidents = [], annotations = [], maintenanceWindows = [], changelogEntries = [] }) {
   const [tooltip, setTooltip] = useState(null);
+  const [clTooltip, setClTooltip] = useState(null);
 
   const values = points.map(p => p.value).filter(v => v != null);
   if (values.length < 2) return null;
@@ -128,6 +129,12 @@ export default function Sparkline({ points = [], color = '#c9d7f8', height = 56,
     return x != null ? { x, label: a.label, id: a._id } : null;
   }).filter(Boolean) : [];
 
+  // Changelog markers
+  const changelogLines = tRange ? changelogEntries.map(c => {
+    const x = tsToX(c.deployedAt);
+    return x != null ? { x, version: c.version, description: c.description, id: c._id } : null;
+  }).filter(Boolean) : [];
+
   // Hover tooltip
   function handleMouseMove(e) {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -157,6 +164,15 @@ export default function Sparkline({ points = [], color = '#c9d7f8', height = 56,
               {formatVal(val)}
             </span>
           ))}
+        </div>
+      )}
+
+      {/* Changelog tooltip */}
+      {clTooltip && !tooltip && (
+        <div className="pointer-events-none absolute z-10 px-2 py-1.5 rounded text-xs bg-surface border border-green-500/30 shadow-lg whitespace-nowrap"
+          style={{ left: `clamp(0%, ${(clTooltip.x / (W - PAD_LEFT)) * 100}%, calc(100% - 140px))`, top: 0, transform: 'translateX(-50%)' }}>
+          <span className="font-semibold text-green-400">{clTooltip.version}</span>
+          {clTooltip.description && <span className="text-muted ml-1.5">{clTooltip.description}</span>}
         </div>
       )}
 
@@ -232,6 +248,24 @@ export default function Sparkline({ points = [], color = '#c9d7f8', height = 56,
               stroke="#a78bfa" strokeWidth="1.5" strokeDasharray="3,3" vectorEffect="non-scaling-stroke" />
             <text x={a.x + 3} y={PAD_TOP + 9} fontSize="8" fill="#a78bfa" opacity="0.9">
               {a.label.length > 18 ? a.label.slice(0, 17) + '…' : a.label}
+            </text>
+          </g>
+        ))}
+
+        {/* Changelog version markers */}
+        {changelogLines.map(c => (
+          <g key={c.id}
+            onMouseEnter={() => setClTooltip(c)}
+            onMouseLeave={() => setClTooltip(null)}
+            style={{ cursor: 'default' }}>
+            <line x1={c.x} y1={PAD_TOP} x2={c.x} y2={PAD_TOP + innerH}
+              stroke="#4ade80" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+            {/* Diamond marker at top */}
+            <polygon
+              points={`${c.x},${PAD_TOP - 1} ${c.x + 4},${PAD_TOP + 4} ${c.x},${PAD_TOP + 9} ${c.x - 4},${PAD_TOP + 4}`}
+              fill="#4ade80" opacity="0.9" />
+            <text x={c.x + 6} y={PAD_TOP + 9} fontSize="8" fill="#4ade80" opacity="0.9" fontWeight="600">
+              {c.version.length > 10 ? c.version.slice(0, 9) + '…' : c.version}
             </text>
           </g>
         ))}

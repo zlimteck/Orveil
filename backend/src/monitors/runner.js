@@ -99,12 +99,16 @@ async function runCheck(monitor, globalProxy = null, lang = 'fr') {
   }
 
   const errorNotif = (result.notifications || []).find(n => (n.level === 'error' || n.level === 'warning') && n.type === 'status_change');
+  const isDown = ['error', 'offline', 'warning'].includes(result.status);
+  const consecutiveErrors = isDown ? (monitor.consecutiveErrors || 0) + 1 : 0;
+
   const update = {
     status: result.status,
     lastState: result.state ?? monitor.lastState,
     metrics: result.metrics ?? monitor.metrics,
     lastChecked: new Date(),
-    lastError: ['error', 'warning', 'offline'].includes(result.status) ? (result.lastError || errorNotif?.message || result.state?.errMsg || null) : null,
+    lastError: isDown ? (result.lastError || errorNotif?.message || result.state?.errMsg || null) : null,
+    consecutiveErrors,
   };
 
   // AdGuard token refresh — persist updated tokens
@@ -127,13 +131,16 @@ async function runCheck(monitor, globalProxy = null, lang = 'fr') {
 
   // Incident tracking — suppressed during maintenance
   if (!maintenanceActive) {
-    if (['error', 'offline', 'warning'].includes(result.status)) {
-      const severity = computeSeverity(result, monitor.type);
-      Incident.findOneAndUpdate(
-        { monitorId: monitor._id, resolvedAt: null },
-        { $setOnInsert: { monitorId: monitor._id, monitorName: monitor.name, monitorType: monitor.type, triggerStatus: result.status, severity, reason: update.lastError || null, startedAt: new Date() } },
-        { upsert: true, new: false }
-      ).catch(() => {});
+    if (isDown) {
+      const threshold = monitor.confirmAfter > 1 ? monitor.confirmAfter : 1;
+      if (consecutiveErrors >= threshold) {
+        const severity = computeSeverity(result, monitor.type);
+        Incident.findOneAndUpdate(
+          { monitorId: monitor._id, resolvedAt: null },
+          { $setOnInsert: { monitorId: monitor._id, monitorName: monitor.name, monitorType: monitor.type, triggerStatus: result.status, severity, reason: update.lastError || null, startedAt: new Date() } },
+          { upsert: true, new: false }
+        ).catch(() => {});
+      }
     } else if (result.status === 'online') {
       const open = await Incident.findOne({ monitorId: monitor._id, resolvedAt: null }).sort({ startedAt: -1 });
       if (open) {

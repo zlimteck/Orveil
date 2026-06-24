@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { incidents as api } from '../api';
 import { useLang } from '../context/LangContext';
 import { AlertTriangle, CheckCircle, BellOff, Trash2, X, Siren, FileText, Wrench } from 'lucide-react';
@@ -104,7 +105,7 @@ function IncidentRow({ incident: i, onAcknowledge, onDelete, onSeverityChange, o
   const locale = lang === 'fr' ? 'fr-FR' : 'en-GB';
 
   return (
-    <div className="card flex items-start gap-3 py-3 px-4">
+    <div id={`incident-${i._id}`} className="card flex items-start gap-3 py-3 px-4">
       <div className={`mt-0.5 shrink-0 ${resolved ? 'text-celadon' : acknowledged ? 'text-amber-400' : 'text-red-400'}`}>
         {resolved ? <CheckCircle size={16} /> : acknowledged ? <BellOff size={16} /> : <AlertTriangle size={16} />}
       </div>
@@ -209,6 +210,8 @@ const SELECT_STYLE = {
 
 export default function Incidents() {
   const { t, lang } = useLang();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterService, setFilterService] = useState('');
@@ -224,6 +227,21 @@ export default function Incidents() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const targetId = location.state?.openIncidentId;
+    const openPm = location.state?.openPostmortem;
+    if (!targetId || data.length === 0) return;
+    const incident = data.find(i => String(i._id) === String(targetId));
+    if (incident) {
+      if (openPm) setPmIncident(incident);
+      // Scroll the incident into view by its element id
+      setTimeout(() => {
+        document.getElementById(`incident-${targetId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+      navigate('/incidents', { replace: true, state: {} });
+    }
+  }, [location.state?.openIncidentId, data]);
 
   useEffect(() => {
     if (!warRoom) return;

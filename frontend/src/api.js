@@ -94,6 +94,17 @@ export const publicStatus = {
   get: () => axios.get('/api/public/status').then(r => r.data),
 };
 
+export const changelog = {
+  list:   (monitorId)       => api.get('/changelog', { params: { monitorId } }).then(r => r.data),
+  create: (data)            => api.post('/changelog', data).then(r => r.data),
+  update: (id, data)        => api.put(`/changelog/${id}`, data).then(r => r.data),
+  delete: (id)              => api.delete(`/changelog/${id}`).then(r => r.data),
+};
+
+export const search = {
+  query: (q) => api.get('/search', { params: { q } }).then(r => r.data),
+};
+
 export const ai = {
   status:    ()          => api.get('/ai/status').then(r => r.data),
   models:    ()          => api.get('/ai/models').then(r => r.data),
