@@ -103,6 +103,10 @@ const CONFIG = {
     { key: 'modelsCount',  fr: 'Modèles',           en: 'Models',         unit: '' },
     { key: 'responseTime', fr: 'Temps de réponse',  en: 'Response time',  unit: 'ms' },
   ],
+  multistep: [
+    { key: 'totalDuration', fr: 'Durée totale',    en: 'Total duration', unit: 'ms' },
+    { key: 'stepsPassed',   fr: 'Étapes réussies', en: 'Steps passed',   unit: '' },
+  ],
 };
 
 function haEntityMetrics(config) {

@@ -27,6 +27,7 @@ function primaryMetric(type, metrics) {
     case 'redis':      return metrics.responseTime ?? null;
     case 'ollama':       return metrics.modelsCount ?? null;
     case 'portforward':  return metrics.latency ?? null;
+    case 'multistep':    return metrics.totalDuration ?? null;
     default:           return null;
   }
 }

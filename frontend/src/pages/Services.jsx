@@ -5,7 +5,8 @@ import { useToast } from '../context/ToastContext';
 import StatusBadge from '../components/StatusBadge';
 import ServiceModal from '../components/ServiceModal';
 import ServiceIcon from '../components/ServiceIcon';
-import { Plus, Play, Pencil, Trash2, Power, Wrench, X, RefreshCw, LayoutGrid, List, Search, Copy, MoreVertical, Clock } from 'lucide-react';
+import { Plus, Play, Pencil, Trash2, Power, Wrench, X, RefreshCw, LayoutGrid, List, Search, Copy, MoreVertical, Clock, Pin } from 'lucide-react';
+import BulkActionBar from '../components/BulkActionBar';
 
 const STATUS_ORDER = { error: 0, offline: 0, warning: 1, online: 2, unknown: 3 };
 
@@ -144,8 +145,30 @@ export default function Services() {
   const [search, setSearch] = useState('');
   const [sortMode, setSortMode] = useState('status');
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('nh_services_view') || 'card');
+  const [bulkSelected, setBulkSelected] = useState(new Set());
 
   function setView(v) { setViewMode(v); localStorage.setItem('nh_services_view', v); }
+
+  function toggleBulkSelect(id) {
+    setBulkSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  async function handlePin(id) {
+    await api.pin(id);
+    load();
+  }
+
+  async function handleBulkAction(action) {
+    if (action === 'delete' && !window.confirm(t('dashboard.bulkDeleteConfirm', { count: bulkSelected.size }))) return;
+    const ids = [...bulkSelected];
+    await api.bulk(ids, action);
+    setBulkSelected(new Set());
+    load();
+  }
 
   async function load() {
     setItems(await api.list());
@@ -167,8 +190,9 @@ export default function Services() {
   }, [kebabOpen]);
 
   const sorted = useMemo(() => {
-    if (sortMode === 'name') return [...items].sort((a, b) => a.name.localeCompare(b.name));
-    return [...items].sort((a, b) => (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3));
+    const pinFirst = (arr) => [...arr.filter(m => m.pinned), ...arr.filter(m => !m.pinned)];
+    if (sortMode === 'name') return pinFirst([...items].sort((a, b) => a.name.localeCompare(b.name)));
+    return pinFirst([...items].sort((a, b) => (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3)));
   }, [items, sortMode]);
 
   const filtered = useMemo(() => {
@@ -293,6 +317,11 @@ export default function Services() {
         <button title={t('services.actions.clone')} onClick={() => handleClone(m._id)} className="btn-ghost p-2 rounded-lg">
           <Copy size={14} />
         </button>
+        <button title={m.pinned ? t('services.actions.unpin') : t('services.actions.pin')}
+          onClick={() => handlePin(m._id)}
+          className={`btn-ghost p-2 rounded-lg ${m.pinned ? 'text-periwinkle' : 'text-muted'}`}>
+          <Pin size={14} />
+        </button>
         {confirmDelete === m._id ? (
           <>
             <button onClick={() => handleDelete(m._id)}
@@ -322,6 +351,11 @@ export default function Services() {
         </button>
         {kebabOpen === m._id && (
           <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border rounded-xl shadow-xl py-1 min-w-[160px]">
+            <button onClick={() => { handlePin(m._id); setKebabOpen(null); }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-granite-3 active:bg-granite-3 transition-colors">
+              <Pin size={13} className={m.pinned ? 'text-periwinkle' : 'text-muted'} />
+              {m.pinned ? t('services.actions.unpin') : t('services.actions.pin')}
+            </button>
             <button onClick={() => { handleRun(m._id); setKebabOpen(null); }}
               disabled={running[m._id] || !m.enabled}
               className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-ink hover:bg-granite-3 active:bg-granite-3 disabled:opacity-40 transition-colors">
@@ -461,8 +495,16 @@ export default function Services() {
               (!m.maintenanceStart || new Date(m.maintenanceStart) <= _now);
             const upcomingMaintenance = m.maintenanceStart && new Date(m.maintenanceStart) > _now &&
               m.maintenanceUntil && new Date(m.maintenanceUntil) > _now;
+            const isSelected = bulkSelected.has(m._id);
             return (
-              <div key={m._id} className={`card ${!m.enabled ? 'opacity-60' : ''}`}>
+              <div key={m._id}
+                onClick={() => bulkSelected.size > 0 && toggleBulkSelect(m._id)}
+                className={`card relative group ${bulkSelected.size > 0 ? 'cursor-pointer' : ''} ${!m.enabled ? 'opacity-60' : ''} ${isSelected ? '!border-periwinkle/50 !bg-periwinkle/5' : ''}`}>
+                <span
+                  onClick={e => { e.stopPropagation(); toggleBulkSelect(m._id); }}
+                  className={`absolute top-1.5 right-1.5 z-10 transition-opacity ${isSelected || bulkSelected.size > 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                  <input type="checkbox" readOnly checked={isSelected} className="w-3.5 h-3.5 rounded accent-periwinkle cursor-pointer" />
+                </span>
                 <div className="flex items-start gap-3">
                   <span className="shrink-0 mt-0.5"><ServiceIcon type={m.type} size={22} url={m.config?.url} faviconUrl={m.metrics?.faviconUrl} serviceUrl={m.serviceUrl} customIconUrl={m.customIconUrl} /></span>
                   <div className="flex-1 min-w-0">
@@ -511,8 +553,15 @@ export default function Services() {
               (!m.maintenanceStart || new Date(m.maintenanceStart) <= _now2);
             const upcomingMaintenance = m.maintenanceStart && new Date(m.maintenanceStart) > _now2 &&
               m.maintenanceUntil && new Date(m.maintenanceUntil) > _now2;
+            const isSelected = bulkSelected.has(m._id);
             return (
-              <div key={m._id} className={`flex items-center gap-3 px-4 py-2.5 ${!m.enabled ? 'opacity-60' : ''}`}>
+              <div key={m._id}
+                onClick={() => bulkSelected.size > 0 && toggleBulkSelect(m._id)}
+                className={`group flex items-center gap-3 px-4 py-2.5 ${bulkSelected.size > 0 ? 'cursor-pointer' : ''} ${!m.enabled ? 'opacity-60' : ''} ${isSelected ? 'bg-periwinkle/5' : ''}`}>
+                <span onClick={e => { e.stopPropagation(); toggleBulkSelect(m._id); }}
+                  className={`shrink-0 transition-opacity ${isSelected || bulkSelected.size > 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                  <input type="checkbox" readOnly checked={isSelected} className="w-3.5 h-3.5 rounded accent-periwinkle cursor-pointer" />
+                </span>
                 <span className="shrink-0"><ServiceIcon type={m.type} size={18} url={m.config?.url} faviconUrl={m.metrics?.faviconUrl} serviceUrl={m.serviceUrl} customIconUrl={m.customIconUrl} /></span>
                 <div className="flex-1 min-w-0 flex items-center gap-2">
                   {m.serviceUrl ? (
@@ -543,6 +592,8 @@ export default function Services() {
           onSave={handleSave}
         />
       )}
+
+      <BulkActionBar selected={bulkSelected} items={items} onAction={handleBulkAction} onClear={() => setBulkSelected(new Set())} />
     </div>
   );
 }

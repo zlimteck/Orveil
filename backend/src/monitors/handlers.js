@@ -22,4 +22,5 @@ module.exports = {
   redis:          require('./redis'),
   ollama:         require('./ollama'),
   portforward:    require('./portforward'),
+  multistep:      require('./multistep'),
 };

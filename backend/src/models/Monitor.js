@@ -28,6 +28,7 @@ const monitorSchema = new mongoose.Schema({
   dependsOn: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Monitor' }],
   slaTarget: { type: Number, default: null }, // % uptime target, e.g. 99.9
   customIconUrl: { type: String, default: '' },
+  pinned: { type: Boolean, default: false },
 }, { timestamps: true });
 
 // Encrypt sensitive config fields before any save

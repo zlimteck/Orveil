@@ -94,7 +94,7 @@ async function runCheck(monitor, globalProxy = null, lang = 'fr') {
     lastState: result.state ?? monitor.lastState,
     metrics: result.metrics ?? monitor.metrics,
     lastChecked: new Date(),
-    lastError: ['error', 'warning'].includes(result.status) ? (result.lastError || errorNotif?.message || result.state?.errMsg || null) : null,
+    lastError: ['error', 'warning', 'offline'].includes(result.status) ? (result.lastError || errorNotif?.message || result.state?.errMsg || null) : null,
   };
 
   // AdGuard token refresh — persist updated tokens

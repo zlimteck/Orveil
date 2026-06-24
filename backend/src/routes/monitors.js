@@ -9,6 +9,29 @@ router.get('/', async (req, res) => {
   res.json(monitors);
 });
 
+router.patch('/bulk', async (req, res) => {
+  const { ids, action } = req.body;
+  if (!Array.isArray(ids) || !ids.length || !action) {
+    return res.status(400).json({ error: 'ids and action required' });
+  }
+  if (action === 'delete') {
+    await Monitor.deleteMany({ _id: { $in: ids } });
+    await Incident.deleteMany({ monitorId: { $in: ids } });
+  } else if (action === 'enable') {
+    await Monitor.updateMany({ _id: { $in: ids } }, { enabled: true });
+    ids.forEach(id => triggerNow(id).catch(() => {}));
+  } else if (action === 'disable') {
+    await Monitor.updateMany({ _id: { $in: ids } }, { enabled: false });
+  } else if (action === 'pin') {
+    await Monitor.updateMany({ _id: { $in: ids } }, { pinned: true });
+  } else if (action === 'unpin') {
+    await Monitor.updateMany({ _id: { $in: ids } }, { pinned: false });
+  } else {
+    return res.status(400).json({ error: 'Unknown action' });
+  }
+  res.json({ ok: true, count: ids.length });
+});
+
 router.patch('/reorder', async (req, res) => {
   const { items } = req.body;
   if (!Array.isArray(items)) return res.status(400).json({ error: 'items requis' });
@@ -76,6 +99,14 @@ router.post('/:id/clone', async (req, res) => {
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
+});
+
+router.patch('/:id/pin', async (req, res) => {
+  const monitor = await Monitor.findById(req.params.id);
+  if (!monitor) return res.status(404).json({ error: 'Service introuvable' });
+  monitor.pinned = !monitor.pinned;
+  await monitor.save();
+  res.json(monitor);
 });
 
 router.patch('/:id/toggle', async (req, res) => {

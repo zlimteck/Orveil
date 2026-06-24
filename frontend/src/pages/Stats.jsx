@@ -226,9 +226,9 @@ export default function Stats() {
       <div>
         <h2 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">{t('stats.monitors')}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatCard icon={Radio}         label={t('dashboard.stats.total')}    value={monitors.total} />
+          <StatCard icon={Radio}         label={t('dashboard.stats.total')}    value={monitors.total}    color="text-periwinkle" />
           <StatCard icon={CheckCircle}   label={t('stats.online')}             value={monitors.online}   color="text-celadon" />
-          <StatCard icon={AlertTriangle} label={t('stats.alerting')}           value={monitors.alerting} color={monitors.alerting > 0 ? 'text-red-400' : 'text-muted'} />
+          <StatCard icon={AlertTriangle} label={t('stats.alerting')}           value={monitors.alerting} color="text-amber-400" />
           <StatCard icon={Clock}         label={t('stats.disabled')}           value={monitors.total - monitors.enabled} color="text-muted" />
         </div>
       </div>

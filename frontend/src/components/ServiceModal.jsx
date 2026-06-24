@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, Trash2, Wifi, RefreshCw, Image } from 'lucide-react';
+import { X, Plus, Trash2, Wifi, RefreshCw, Image, ChevronDown } from 'lucide-react';
 import { useLang } from '../context/LangContext';
 import { monitors as monitorsApi, settings as settingsApi } from '../api';
 import Portal from './Portal';
@@ -38,6 +38,7 @@ const TYPE_DEFAULTS = {
   redis:          { checkInterval: 5,  reportInterval: 0,  config: { host: '', port: 6379, password: '' } },
   ollama:         { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', rejectUnauthorized: true } },
   portforward:    { checkInterval: 2,  reportInterval: 0,  config: { host: '', port: 80 } },
+  multistep:      { checkInterval: 5,  reportInterval: 0,  config: { steps: [{ name: '', url: '', method: 'GET', expectedStatus: 200, body: '', headers: '', extract: '' }] } },
 };
 
 const TYPE_LABELS = {
@@ -64,6 +65,7 @@ const TYPE_LABELS = {
   redis:         'Redis',
   ollama:        'Ollama',
   portforward:   'Port Forwarding',
+  multistep:     'Multi-step HTTP',
 };
 
 function Field({ label, value, onChange, placeholder, type = 'text', hint }) {
@@ -399,6 +401,103 @@ function CFAccessSection({ config, set, t }) {
   );
 }
 
+const STEP_DEFAULT = { name: '', url: '', method: 'GET', expectedStatus: 200, body: '', headers: '', extract: '' };
+const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'];
+
+function MultistepConfigFields({ config, set, t }) {
+  const steps = config.steps?.length ? config.steps : [{ ...STEP_DEFAULT }];
+  const [expanded, setExpanded] = useState(() => [0]);
+
+  const updateStep = (i, field, value) =>
+    set('steps', steps.map((s, idx) => idx === i ? { ...s, [field]: value } : s));
+
+  const addStep = () => {
+    set('steps', [...steps, { ...STEP_DEFAULT }]);
+    setExpanded(e => [...e, steps.length]);
+  };
+
+  const removeStep = (i) => {
+    set('steps', steps.filter((_, idx) => idx !== i));
+    setExpanded(e => e.filter(x => x !== i).map(x => x > i ? x - 1 : x));
+  };
+
+  const toggle = (i) =>
+    setExpanded(e => e.includes(i) ? e.filter(x => x !== i) : [...e, i]);
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-muted">{t('form.fields.multistep.hint')}</p>
+      <div className="space-y-2">
+        {steps.map((step, i) => (
+          <div key={i} className="border border-border rounded-xl overflow-hidden">
+            <button type="button" onClick={() => toggle(i)}
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm bg-granite-3/30 hover:bg-granite-3/50 transition-colors">
+              <ChevronDown size={14} className={`text-muted shrink-0 transition-transform ${expanded.includes(i) ? 'rotate-180' : ''}`} />
+              <span className="flex-1 font-medium text-thistle text-left truncate">
+                {step.name || `Step ${i + 1}`}
+                {step.url && <span className="text-muted font-normal ml-2 text-xs">{step.url}</span>}
+              </span>
+              <span className="text-xs text-muted shrink-0 mr-1">{step.method || 'GET'} {step.expectedStatus || 200}</span>
+              {steps.length > 1 && (
+                <span role="button" onClick={e => { e.stopPropagation(); removeStep(i); }}
+                  className="text-muted/50 hover:text-red-400 transition-colors shrink-0 p-0.5">
+                  <X size={13} />
+                </span>
+              )}
+            </button>
+            {expanded.includes(i) && (
+              <div className="p-3 space-y-3 border-t border-border">
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label={t('form.fields.multistep.stepName')} value={step.name}
+                    onChange={v => updateStep(i, 'name', v)} placeholder={`Step ${i + 1}`} />
+                  <div>
+                    <label className="label">{t('form.fields.multistep.method')}</label>
+                    <select className="input" value={step.method || 'GET'}
+                      onChange={e => updateStep(i, 'method', e.target.value)}>
+                      {METHODS.map(m => <option key={m}>{m}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <Field label="URL" value={step.url} onChange={v => updateStep(i, 'url', v)}
+                  placeholder="https://api.example.com/endpoint"
+                  hint={t('form.fields.multistep.urlHint')} />
+                <Field label={t('form.fields.multistep.expectedStatus')} value={step.expectedStatus}
+                  onChange={v => updateStep(i, 'expectedStatus', +v)} type="number" placeholder="200" />
+                {['POST', 'PUT', 'PATCH'].includes(step.method) && (
+                  <div>
+                    <label className="label">{t('form.fields.multistep.body')}</label>
+                    <textarea className="input text-xs font-mono" rows={3}
+                      value={step.body || ''} onChange={e => updateStep(i, 'body', e.target.value)}
+                      placeholder={'{"key": "value"}'} />
+                  </div>
+                )}
+                <div>
+                  <label className="label">{t('form.fields.multistep.headers')}</label>
+                  <textarea className="input text-xs font-mono" rows={2}
+                    value={step.headers || ''} onChange={e => updateStep(i, 'headers', e.target.value)}
+                    placeholder={'{"Content-Type": "application/json", "Authorization": "Bearer {{token}}"}'} />
+                  <p className="text-xs text-muted mt-1">{t('form.fields.multistep.headersHint')}</p>
+                </div>
+                <div>
+                  <label className="label">{t('form.fields.multistep.extract')}</label>
+                  <textarea className="input text-xs font-mono" rows={2}
+                    value={step.extract || ''} onChange={e => updateStep(i, 'extract', e.target.value)}
+                    placeholder={'{"token": "$.access_token", "userId": "$.data.id"}'} />
+                  <p className="text-xs text-muted mt-1">{t('form.fields.multistep.extractHint')}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <button type="button" onClick={addStep}
+        className="w-full flex items-center justify-center gap-2 px-3 py-2 border border-dashed border-border rounded-xl text-sm text-muted hover:text-thistle hover:border-periwinkle/50 transition-colors">
+        <Plus size={14} /> {t('form.fields.multistep.addStep')}
+      </button>
+    </div>
+  );
+}
+
 function ConfigFields({ type, config, onChange, t, proxies = [] }) {
   const set = (key, val) => onChange({ ...config, [key]: val });
   const f = t('form.fields');
@@ -567,6 +666,8 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
       </div>
     </>
   );
+
+  if (type === 'multistep') return <MultistepConfigFields config={config} set={set} t={t} />;
 
   if (type === 'portforward') return (
     <>

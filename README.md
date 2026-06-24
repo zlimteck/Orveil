@@ -27,11 +27,14 @@
 ## Features
 
 - **Unified dashboard** — status overview of all your services at a glance, grid or list view
-- **23 monitor types** — HTTP/HTTPS, Ping/TCP, Port Forwarding, SSH, DNS, MySQL, Redis, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Home Assistant, Portainer, Docker, Syncthing, Immich, HostMyServers, Ultra.cc, Heartbeat, Unraid, Speedtest Tracker, Jellyfin, Ollama
+- **24 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping/TCP, Port Forwarding, SSH, DNS, MySQL, Redis, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Home Assistant, Portainer, Docker, Syncthing, Immich, HostMyServers, Ultra.cc, Heartbeat, Unraid, Speedtest Tracker, Jellyfin, Ollama
+- **Multi-step HTTP** — chain multiple HTTP requests with variable extraction (JSONPath or response headers) and interpolation between steps; full step-by-step failure reporting
 - **Public status page** — shareable `/status` page (no login required) with uptime bars, open incidents, and 90-day history per service; toggle visibility per service
 - **Search & sort** — filter cards by name, sort by status / name / manual order
 - **Drag & drop reordering** — manually reorder cards in grid view
 - **Category grouping** — assign a category to each service to group cards on the dashboard
+- **Pin monitors** — pin any monitor to always show it in a dedicated "Pinned" group at the top of the dashboard, above all categories
+- **Bulk actions** — select multiple monitors with checkboxes and pin, enable, disable, or delete them in one click; floating action bar slides up when a selection is active
 - **Incident tracking** — automatic incident open/close with duration history; P1–P4 severity (auto-assigned, manually overridable); failure reason displayed inline; incidents grouped by date
 - **War room** — dedicated full-screen view of all active incidents sorted by severity, with auto-refresh every 30 s
 - **Post-mortem reports** — attach a structured post-mortem (summary, root cause, impact, resolution, lessons learned) to any resolved incident

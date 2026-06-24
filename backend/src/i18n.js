@@ -147,6 +147,8 @@ module.exports = {
     // ── Port Forwarding ─────────────────────────────────────────────────────
     portForwardClosed: (host, port, errorType) => ({ title: `${host}:${port} closed`, message: `Port ${port} is no longer reachable on ${host}. ${errorType === 'refused' ? '(Connection refused — nothing listening)' : '(Timeout — port may be blocked)'}` }),
     portForwardOpen:   (host, port, latency) => ({ title: `${host}:${port} open`, message: `Port ${port} is reachable again on ${host} (${latency}ms).` }),
+    multistepFailed: (stepName, stepNum, total, error) => ({ title: `Multi-step failed at step ${stepNum}/${total}`, message: `"${stepName}": ${error}` }),
+    multistepBack:   (total, ms) => ({ title: 'Multi-step back online', message: `All ${total} step${total > 1 ? 's' : ''} passed (${ms}ms total).` }),
 
     // ── Portainer ───────────────────────────────────────────────────────────
     portainerReport: (state) => ({
@@ -378,6 +380,8 @@ module.exports = {
     // ── Port Forwarding ─────────────────────────────────────────────────────
     portForwardClosed: (host, port, errorType) => ({ title: `${host}:${port} fermé`, message: `Le port ${port} n'est plus accessible sur ${host}. ${errorType === 'refused' ? "(Connexion refusée — rien n'écoute)" : '(Timeout — port peut-être bloqué)'}` }),
     portForwardOpen:   (host, port, latency) => ({ title: `${host}:${port} ouvert`, message: `Le port ${port} est à nouveau accessible sur ${host} (${latency}ms).` }),
+    multistepFailed: (stepName, stepNum, total, error) => ({ title: `Multi-step échoué à l'étape ${stepNum}/${total}`, message: `"${stepName}" : ${error}` }),
+    multistepBack:   (total, ms) => ({ title: 'Multi-step de nouveau en ligne', message: `Les ${total} étape${total > 1 ? 's' : ''} passent toutes (${ms}ms au total).` }),
 
     // ── Portainer ───────────────────────────────────────────────────────────
     portainerReport: (state) => ({

@@ -6,7 +6,8 @@ import { extractValue, getMetricLabel, formatMetricValue, getMetrics } from '../
 import StatusBadge from '../components/StatusBadge';
 import ServiceIcon from '../components/ServiceIcon';
 import ServiceDetail from '../components/ServiceDetail';
-import { RefreshCw, Radio, AlertTriangle, CheckCircle, Clock, GripVertical, Search, LayoutGrid, List, Thermometer, Wrench, Layers, ChevronDown, ChevronRight } from 'lucide-react';
+import { RefreshCw, Radio, AlertTriangle, CheckCircle, Clock, GripVertical, Search, LayoutGrid, List, Thermometer, Wrench, Layers, ChevronDown, ChevronRight, Pin } from 'lucide-react';
+import BulkActionBar from '../components/BulkActionBar';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragOverlay,
 } from '@dnd-kit/core';
@@ -337,6 +338,27 @@ function MetricsBlock({ monitor }) {
     </div>
   );
 
+  if (type === 'multistep') {
+    const { stepsTotal = 0, stepsPassed = 0, failedStep, totalDuration, firstUrl } = metrics;
+    return (
+      <div className="space-y-1 text-xs text-muted">
+        <div className="flex items-center gap-3">
+          {failedStep
+            ? <span className="text-red-400 font-medium">{t('form.fields.multistep.stepFailed', { step: failedStep.index + 1, total: stepsTotal })}</span>
+            : <span className="text-celadon font-medium">{t('form.fields.multistep.allPassed', { total: stepsTotal })}</span>
+          }
+          {totalDuration != null && (
+            <span className={totalDuration > 1000 ? 'text-amber-400 font-medium' : 'text-thistle font-medium'}>{totalDuration}ms</span>
+          )}
+        </div>
+        {failedStep && (
+          <p className="text-red-400/70 truncate">"{failedStep.name}": {failedStep.error}</p>
+        )}
+        {firstUrl && <p className="text-muted/60 truncate">{firstUrl}</p>}
+      </div>
+    );
+  }
+
   if (type === 'portforward') return (
     <div className="space-y-1 text-xs text-muted">
       <div className="flex gap-4">
@@ -567,18 +589,26 @@ function SkeletonListRow() {
   );
 }
 
-function CardContent({ monitor, hist, dailyHist, showGraphs, onSelect, t, dragging = false, dragHandleProps = {} }) {
+function CardContent({ monitor, hist, dailyHist, showGraphs, onSelect, t, dragging = false, dragHandleProps = {}, bulkSelected, onToggleBulk, onPin }) {
   const { lang } = useLang();
   const uptime = hist[monitor._id]?.uptime?.h24;
   const points = hist[monitor._id]?.points || [];
   const daily  = dailyHist[monitor._id] || null;
   const cardMetric = monitor.cardMetric || null;
   const hasNumeric = points.some(p => extractValue(p, cardMetric) != null);
+  const isSelected = bulkSelected?.has(monitor._id);
   return (
     <div
-      onClick={() => !dragging && onSelect(monitor)}
-      className={`group card flex flex-col gap-2.5 cursor-pointer hover:border-periwinkle/40 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200 select-none h-full animate-fade-in-up ${!monitor.enabled ? 'opacity-50' : ['error','offline'].includes(monitor.status) ? 'border-red-900/60' : monitor.status === 'warning' ? 'border-amber-900/50' : ''} ${dragging ? 'shadow-2xl border-periwinkle/40' : ''}`}
+      onClick={() => !dragging && (bulkSelected?.size > 0 ? onToggleBulk(monitor._id) : onSelect(monitor))}
+      className={`group card flex flex-col gap-2.5 cursor-pointer hover:border-periwinkle/40 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200 select-none h-full animate-fade-in-up relative ${!monitor.enabled ? 'opacity-50' : ['error','offline'].includes(monitor.status) ? 'border-red-900/60' : monitor.status === 'warning' ? 'border-amber-900/50' : ''} ${dragging ? 'shadow-2xl border-periwinkle/40' : ''} ${isSelected ? '!border-periwinkle/50 !bg-periwinkle/5' : ''}`}
     >
+      <span
+        onClick={e => { e.stopPropagation(); onToggleBulk(monitor._id); }}
+        className={`absolute top-1.5 right-1.5 z-10 transition-opacity ${isSelected || bulkSelected?.size > 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+      >
+        <input type="checkbox" readOnly checked={!!isSelected}
+          className="w-3.5 h-3.5 rounded accent-periwinkle cursor-pointer" />
+      </span>
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className="shrink-0 relative flex items-center justify-center w-5 h-5">
@@ -617,6 +647,10 @@ function CardContent({ monitor, hist, dailyHist, showGraphs, onSelect, t, draggi
               if (upcoming) return <span className="flex items-center gap-0.5 text-xs text-periwinkle" title="Maintenance planifiée"><Clock size={11} /></span>;
               return null;
             })()}
+            <button onClick={e => { e.stopPropagation(); onPin(monitor._id); }}
+              className={`transition-opacity ${monitor.pinned ? 'opacity-100 text-periwinkle' : 'opacity-0 group-hover:opacity-60 text-muted hover:text-periwinkle'}`}>
+              <Pin size={11} />
+            </button>
             <StatusBadge status={monitor.enabled ? monitor.status : 'unknown'} />
           </div>
           <div className="flex items-center gap-1.5">
@@ -685,14 +719,19 @@ function metricSummary(monitor) {
   }
 }
 
-function ListRow({ monitor, hist, onSelect, t }) {
+function ListRow({ monitor, hist, onSelect, t, bulkSelected, onToggleBulk, onPin }) {
   const uptime = hist[monitor._id]?.uptime?.h24;
   const summary = metricSummary(monitor);
+  const isSelected = bulkSelected?.has(monitor._id);
   return (
     <div
       onClick={() => onSelect(monitor)}
-      className={`flex items-center gap-3 px-3 py-2 rounded-xl border border-transparent hover:border-periwinkle/30 hover:bg-granite-3/40 cursor-pointer transition-all duration-150 select-none animate-fade-in-up ${!monitor.enabled ? 'opacity-50' : ''}`}
+      className={`flex items-center gap-3 px-3 py-2 rounded-xl border cursor-pointer transition-all duration-150 select-none animate-fade-in-up ${isSelected ? 'border-periwinkle/40 bg-periwinkle/5' : 'border-transparent hover:border-periwinkle/30 hover:bg-granite-3/40'} ${!monitor.enabled ? 'opacity-50' : ''}`}
     >
+      <span className="shrink-0" onClick={e => { e.stopPropagation(); onToggleBulk(monitor._id); }}>
+        <input type="checkbox" readOnly checked={!!isSelected}
+          className="w-4 h-4 rounded accent-periwinkle cursor-pointer" />
+      </span>
       <span className="shrink-0">
         <ServiceIcon type={monitor.type} size={18} url={monitor.config?.url} faviconUrl={monitor.metrics?.faviconUrl} serviceUrl={monitor.serviceUrl} customIconUrl={monitor.customIconUrl} />
       </span>
@@ -708,17 +747,22 @@ function ListRow({ monitor, hist, onSelect, t }) {
       )}
       <span className="text-xs text-muted shrink-0 hidden md:block">{timeAgo(monitor.lastChecked, t)}</span>
       <StatusBadge status={monitor.enabled ? monitor.status : 'unknown'} />
+      <button onClick={e => { e.stopPropagation(); onPin(monitor._id); }}
+        className={`shrink-0 transition-opacity ${monitor.pinned ? 'opacity-100 text-periwinkle' : 'opacity-0 group-hover:opacity-60 text-muted hover:text-periwinkle'}`}>
+        <Pin size={12} />
+      </button>
     </div>
   );
 }
 
-function SortableCard({ monitor, hist, dailyHist, showGraphs, onSelect, t, sortMode }) {
+function SortableCard({ monitor, hist, dailyHist, showGraphs, onSelect, t, sortMode, bulkSelected, onToggleBulk, onPin }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: monitor._id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0 : 1 };
   return (
     <div ref={setNodeRef} style={style}>
       <CardContent monitor={monitor} hist={hist} dailyHist={dailyHist} showGraphs={showGraphs} onSelect={onSelect} t={t}
-        dragHandleProps={sortMode === 'manual' ? { ...attributes, ...listeners } : null} />
+        dragHandleProps={sortMode === 'manual' ? { ...attributes, ...listeners } : null}
+        bulkSelected={bulkSelected} onToggleBulk={onToggleBulk} onPin={onPin} />
     </div>
   );
 }
@@ -732,6 +776,7 @@ export default function Dashboard() {
   const [showGraphs, setShowGraphs] = useState(true);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
+  const [bulkSelected, setBulkSelected] = useState(new Set());
   const [sortMode, setSortMode] = useState('status');
   const [activeId, setActiveId] = useState(null);
   const [search, setSearch] = useState('');
@@ -739,6 +784,25 @@ export default function Dashboard() {
   const [expandedCats, setExpandedCats] = useState(new Set());
 
   const toggleView = (mode) => { setViewMode(mode); localStorage.setItem('nh_view', mode); };
+
+  const toggleBulkSelect = (id) => setBulkSelected(s => {
+    const n = new Set(s);
+    n.has(id) ? n.delete(id) : n.add(id);
+    return n;
+  });
+
+  const handleBulkAction = async (action) => {
+    if (!bulkSelected.size) return;
+    if (action === 'delete' && !window.confirm(t('dashboard.bulkDeleteConfirm', { count: bulkSelected.size }))) return;
+    const ids = [...bulkSelected];
+    await monitorsApi.bulk(ids, action);
+    setBulkSelected(new Set());
+    load();
+  };
+  const handlePin = async (id) => {
+    await monitorsApi.pin(id);
+    load();
+  };
   const toggleCat = (cat) => setExpandedCats(prev => {
     const next = new Set(prev);
     next.has(cat) ? next.delete(cat) : next.add(cat);
@@ -789,7 +853,9 @@ export default function Dashboard() {
 
   const groups = useMemo(() => {
     const map = new Map();
-    filtered.forEach(m => {
+    const pinned = filtered.filter(m => m.pinned);
+    if (pinned.length) map.set('__pinned__', pinned);
+    filtered.filter(m => !m.pinned).forEach(m => {
       const cat = m.category?.trim() || '';
       if (!map.has(cat)) map.set(cat, []);
       map.get(cat).push(m);
@@ -917,13 +983,14 @@ export default function Dashboard() {
           <div className="card divide-y divide-border p-1">
             {[...groups.entries()].map(([cat, items]) => (
               <div key={cat}>
-                {hasCategories && (
-                  <p className="text-xs font-semibold text-muted uppercase tracking-wider px-3 pt-3 pb-1">
-                    {cat || t('dashboard.uncategorized')}
+                {(hasCategories || cat === '__pinned__') && (
+                  <p className="text-xs font-semibold text-muted uppercase tracking-wider px-3 pt-3 pb-1 flex items-center gap-1.5">
+                    {cat === '__pinned__' && <Pin size={10} />}
+                    {cat === '__pinned__' ? t('dashboard.pinned') : cat || t('dashboard.uncategorized')}
                   </p>
                 )}
                 {items.map(m => (
-                  <ListRow key={m._id} monitor={m} hist={hist} onSelect={setSelected} t={t} />
+                  <ListRow key={m._id} monitor={m} hist={hist} onSelect={setSelected} t={t} bulkSelected={bulkSelected} onToggleBulk={toggleBulkSelect} onPin={handlePin} />
                 ))}
               </div>
             ))}
@@ -933,7 +1000,7 @@ export default function Dashboard() {
         {!loading && viewMode === 'summary' && (
           <div className="space-y-2">
             {[...groups.entries()].map(([cat, items]) => {
-              const label = cat || t('dashboard.uncategorized');
+              const label = cat === '__pinned__' ? t('dashboard.pinned') : cat || t('dashboard.uncategorized');
               const enabled = items.filter(m => m.enabled);
               const onlineCount = enabled.filter(m => m.status === 'online').length;
               const hasError = enabled.some(m => ['error', 'offline'].includes(m.status));
@@ -980,7 +1047,7 @@ export default function Dashboard() {
                   {expanded && (
                     <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3 mt-2">
                       {items.map(m => (
-                        <SortableCard key={m._id} monitor={m} hist={hist} dailyHist={dailyHist} showGraphs={showGraphs} onSelect={setSelected} t={t} sortMode={sortMode} />
+                        <SortableCard key={m._id} monitor={m} hist={hist} dailyHist={dailyHist} showGraphs={showGraphs} onSelect={setSelected} t={t} sortMode={sortMode} bulkSelected={bulkSelected} onToggleBulk={toggleBulkSelect} onPin={handlePin} />
                       ))}
                     </div>
                   )}
@@ -999,16 +1066,17 @@ export default function Dashboard() {
               <div className="space-y-5">
                 {[...groups.entries()].map(([cat, items]) => (
                   <div key={cat} className="space-y-2">
-                    {hasCategories && (
+                    {(hasCategories || cat === '__pinned__') && (
                       <h3 className="text-xs font-semibold text-muted uppercase tracking-wider flex items-center gap-2">
                         <span className="w-4 h-px bg-border" />
-                        {cat || t('dashboard.uncategorized')}
+                        {cat === '__pinned__' && <Pin size={10} />}
+                        {cat === '__pinned__' ? t('dashboard.pinned') : cat || t('dashboard.uncategorized')}
                         <span className="flex-1 h-px bg-border" />
                       </h3>
                     )}
                     <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
                       {items.map(m => (
-                        <SortableCard key={m._id} monitor={m} hist={hist} dailyHist={dailyHist} showGraphs={showGraphs} onSelect={setSelected} t={t} sortMode={sortMode} />
+                        <SortableCard key={m._id} monitor={m} hist={hist} dailyHist={dailyHist} showGraphs={showGraphs} onSelect={setSelected} t={t} sortMode={sortMode} bulkSelected={bulkSelected} onToggleBulk={toggleBulkSelect} onPin={handlePin} />
                       ))}
                     </div>
                   </div>
@@ -1028,6 +1096,8 @@ export default function Dashboard() {
       {selected && (
         <ServiceDetail monitor={selected} onClose={() => setSelected(null)} />
       )}
+
+      <BulkActionBar selected={bulkSelected} items={monitors} onAction={handleBulkAction} onClear={() => setBulkSelected(new Set())} />
     </div>
   );
 }

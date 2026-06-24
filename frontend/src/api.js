@@ -35,6 +35,8 @@ export const monitors = {
   clone: (id) => api.post(`/monitors/${id}/clone`).then(r => r.data),
   delete: (id) => api.delete(`/monitors/${id}`).then(r => r.data),
   reorder: (items) => api.patch('/monitors/reorder', { items }).then(r => r.data),
+  bulk: (ids, action) => api.patch('/monitors/bulk', { ids, action }).then(r => r.data),
+  pin: (id) => api.patch(`/monitors/${id}/pin`).then(r => r.data),
   setMaintenance: (id, { minutes, startsAt }) => api.post(`/monitors/${id}/maintenance`, { minutes, startsAt }).then(r => r.data),
   cancelMaintenance: (id) => api.delete(`/monitors/${id}/maintenance`).then(r => r.data),
   test:       (id)           => api.post(`/monitors/${id}/test`).then(r => r.data),

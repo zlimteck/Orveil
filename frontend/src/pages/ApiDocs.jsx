@@ -48,6 +48,8 @@ function buildSections(t) {
         { method: 'POST',   path: '/api/monitors/:id/test',               descKey: 'monitorsTestById' },
         { method: 'PUT',    path: '/api/monitors/:id',                    descKey: 'monitorsUpdate' },
         { method: 'PATCH',  path: '/api/monitors/:id/toggle',             descKey: 'monitorsToggle' },
+        { method: 'PATCH',  path: '/api/monitors/:id/pin',               descKey: 'monitorsPin' },
+        { method: 'PATCH',  path: '/api/monitors/bulk',                  descKey: 'monitorsBulk', body: '{ "ids": ["…"], "action": "enable|disable|delete|pin|unpin" }' },
         { method: 'PATCH',  path: '/api/monitors/reorder',                descKey: 'monitorsReorder' },
         { method: 'POST',   path: '/api/monitors/:id/run',                descKey: 'monitorsRun' },
         { method: 'POST',   path: '/api/monitors/:id/maintenance',        descKey: 'monitorsMaintenance', body: '{ "minutes": 30 }' },
