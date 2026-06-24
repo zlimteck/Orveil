@@ -1,6 +1,7 @@
 const Monitor = require('../models/Monitor');
 const MetricSnapshot = require('../models/MetricSnapshot');
 const Incident = require('../models/Incident');
+const MaintenanceWindow = require('../models/MaintenanceWindow');
 const Settings = require('../models/Settings');
 const primaryMetric = require('./primaryMetric');
 const { sendNotification } = require('../services/notifier');
@@ -56,14 +57,23 @@ async function runCheck(monitor, globalProxy = null, lang = 'fr') {
   const maintenanceActive = monitor.maintenanceUntil && new Date(monitor.maintenanceUntil) > now &&
     (!monitor.maintenanceStart || new Date(monitor.maintenanceStart) <= now);
 
-  // Skip checks during active maintenance window
   if (maintenanceActive) {
-    console.log(`[Runner] Maintenance: ${monitor.name} — skip until ${monitor.maintenanceUntil}`);
-    return;
+    // Record window activation if not yet recorded
+    await MaintenanceWindow.findOneAndUpdate(
+      { monitorId: monitor._id, endedAt: null },
+      { $setOnInsert: { monitorId: monitor._id, scheduledStart: monitor.maintenanceStart, startedAt: monitor.maintenanceStart || now } },
+      { upsert: true, new: false }
+    );
+    // Continue — check runs normally but incidents/notifications are suppressed below
   }
-  // Auto-clear expired maintenance
+
+  // Auto-clear expired maintenance and close history entry
   if (monitor.maintenanceUntil && new Date(monitor.maintenanceUntil) <= now) {
     await Monitor.findByIdAndUpdate(monitor._id, { maintenanceStart: null, maintenanceUntil: null });
+    await MaintenanceWindow.findOneAndUpdate(
+      { monitorId: monitor._id, endedAt: null },
+      { endedAt: now }
+    );
   }
 
   console.log(`[Runner] Check: ${monitor.name} (${monitor.type})`);
@@ -115,22 +125,27 @@ async function runCheck(monitor, globalProxy = null, lang = 'fr') {
     metrics: result.metrics ?? null,
   }).catch(() => {});
 
-  // Incident tracking
-  if (['error', 'offline', 'warning'].includes(result.status)) {
-    const severity = computeSeverity(result, monitor.type);
-    Incident.findOneAndUpdate(
-      { monitorId: monitor._id, resolvedAt: null },
-      { $setOnInsert: { monitorId: monitor._id, monitorName: monitor.name, monitorType: monitor.type, triggerStatus: result.status, severity, reason: update.lastError || null, startedAt: new Date() } },
-      { upsert: true, new: false }
-    ).catch(() => {});
-  } else if (result.status === 'online') {
-    const open = await Incident.findOne({ monitorId: monitor._id, resolvedAt: null }).sort({ startedAt: -1 });
-    if (open) {
-      open.resolvedAt = new Date();
-      open.duration = open.resolvedAt - open.startedAt;
-      await open.save();
+  // Incident tracking — suppressed during maintenance
+  if (!maintenanceActive) {
+    if (['error', 'offline', 'warning'].includes(result.status)) {
+      const severity = computeSeverity(result, monitor.type);
+      Incident.findOneAndUpdate(
+        { monitorId: monitor._id, resolvedAt: null },
+        { $setOnInsert: { monitorId: monitor._id, monitorName: monitor.name, monitorType: monitor.type, triggerStatus: result.status, severity, reason: update.lastError || null, startedAt: new Date() } },
+        { upsert: true, new: false }
+      ).catch(() => {});
+    } else if (result.status === 'online') {
+      const open = await Incident.findOne({ monitorId: monitor._id, resolvedAt: null }).sort({ startedAt: -1 });
+      if (open) {
+        open.resolvedAt = new Date();
+        open.duration = open.resolvedAt - open.startedAt;
+        await open.save();
+      }
     }
   }
+
+  // Notifications suppressed during maintenance
+  if (maintenanceActive) return;
 
   const monitorNotifs = result.notifications || [];
   const hasStatusChange = monitorNotifs.some(n => n.type === 'status_change');

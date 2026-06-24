@@ -8,6 +8,7 @@ import { useLang } from '../context/LangContext';
 import { useToast } from '../context/ToastContext';
 import { incidents as incidentsApi, ai as aiApi } from '../api';
 import AiChat from './AiChat';
+import ChangelogModal from './ChangelogModal';
 
 function NavItem({ to, icon: Icon, label, onClick, badge }) {
   return (
@@ -61,13 +62,18 @@ function UserFooter({ onLogout }) {
 function SidebarHeader() {
   const { theme, toggle, auto, enableAuto } = useTheme();
   const { lang, switchLang, t } = useLang();
+  const [showChangelog, setShowChangelog] = useState(false);
   return (
     <div className="px-5 py-4 border-b border-border">
       <div className="flex items-center gap-2.5">
         <img src="/logo.svg" alt="Orveil" className="w-7 h-7" />
         <span className="text-lg font-bold tracking-tight text-thistle">Orveil</span>
-        <span className="text-[10px] text-muted/50 font-normal ml-0.5 mt-1">v{version}</span>
+        <button onClick={() => setShowChangelog(true)}
+          className="text-[10px] text-muted/50 font-normal ml-0.5 mt-1 hover:text-periwinkle transition-colors">
+          v{version}
+        </button>
       </div>
+      {showChangelog && <ChangelogModal onClose={() => setShowChangelog(false)} />}
       <p className="text-xs text-muted mt-1">{t('nav.subtitle')}</p>
       <div className="flex items-center justify-center gap-2 mt-2.5">
         <button onClick={toggle} title={theme === 'dark' ? 'Light theme' : 'Dark theme'}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { incidents as api, monitors as monitorsApi } from '../api';
 import { useLang } from '../context/LangContext';
-import { X, GitBranch } from 'lucide-react';
+import { X, GitBranch, Wrench } from 'lucide-react';
 import Portal from '../components/Portal';
 import ServiceDetail from '../components/ServiceDetail';
 
@@ -96,6 +96,12 @@ function IncidentPopup({ seg, windowStart, windowEnd, monitorName, onClose, lang
                 <span className="text-red-300/80">{seg.reason}</span>
               </Row>
             )}
+            {seg.duringMaintenance && (
+              <div className="flex items-center gap-1.5 mt-1 px-2 py-1.5 rounded bg-amber-400/10 border border-amber-400/25">
+                <Wrench size={11} className="text-amber-400 shrink-0" />
+                <span className="text-[11px] text-amber-400">{lang === 'fr' ? 'Survenu pendant une fenêtre de maintenance' : 'Occurred during a maintenance window'}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -109,6 +115,55 @@ function Row({ label, children }) {
       <span className="text-muted text-xs w-24 shrink-0 pt-0.5">{label}</span>
       <span className="text-thistle text-xs flex-1">{children}</span>
     </div>
+  );
+}
+
+function MaintenancePopup({ w, monitorName, onClose, lang }) {
+  const locale = lang === 'fr' ? 'fr-FR' : 'en-GB';
+  const isOngoing = !w.originalEnd;
+  const durMs = (w.originalEnd ?? Date.now()) - w.originalStart;
+  const durMin = Math.round(durMs / 60000);
+  const durLabel = durMin >= 60 ? `${Math.floor(durMin / 60)}h ${durMin % 60}min` : `${durMin}min`;
+
+  return (
+    <Portal>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+        <div className="card w-full max-w-sm" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border">
+            <div>
+              <h2 className="font-semibold text-amber-400 text-sm flex items-center gap-2">
+                <Wrench size={14} />
+                {lang === 'fr' ? 'Fenêtre de maintenance' : 'Maintenance window'}
+              </h2>
+              <p className="text-xs text-muted mt-0.5">{monitorName}</p>
+            </div>
+            <button onClick={onClose} className="p-1 text-muted hover:text-thistle transition-colors">
+              <X size={15} />
+            </button>
+          </div>
+          <div className="p-5 space-y-3 text-sm">
+            <Row label={lang === 'fr' ? 'Statut' : 'Status'}>
+              {isOngoing
+                ? <span className="text-xs px-1.5 py-0.5 rounded bg-amber-900/30 text-amber-400">{lang === 'fr' ? 'En cours' : 'Active'}</span>
+                : <span className="text-xs px-1.5 py-0.5 rounded bg-green-900/20 text-green-400">{lang === 'fr' ? 'Terminée' : 'Ended'}</span>
+              }
+            </Row>
+            <Row label={lang === 'fr' ? 'Début' : 'Start'}>
+              {new Date(w.originalStart).toLocaleString(locale)}
+            </Row>
+            <Row label={lang === 'fr' ? 'Fin' : 'End'}>
+              {isOngoing
+                ? <span className="text-amber-400">{lang === 'fr' ? 'En cours…' : 'Ongoing…'}</span>
+                : new Date(w.originalEnd).toLocaleString(locale)
+              }
+            </Row>
+            <Row label={lang === 'fr' ? 'Durée' : 'Duration'}>
+              {durLabel}
+            </Row>
+          </div>
+        </div>
+      </div>
+    </Portal>
   );
 }
 
@@ -149,10 +204,13 @@ function TimeAxis({ windowStart, windowEnd, hours, lang }) {
   );
 }
 
-function MonitorRow({ row, windowStart, windowEnd, onSegmentClick, onNameClick }) {
+function MonitorRow({ row, windowStart, windowEnd, onSegmentClick, onMaintenanceClick, onNameClick, lang }) {
   const totalMs = windowEnd - windowStart;
   const uptime = computeUptime(row.segments, windowStart, windowEnd);
   const uptimeColor = uptime >= 99 ? 'text-celadon' : uptime >= 95 ? 'text-amber-400' : 'text-red-400';
+  const [mwTooltip, setMwTooltip] = useState(null);
+  const [incTooltip, setIncTooltip] = useState(null);
+  const locale = lang === 'fr' ? 'fr-FR' : 'en-GB';
 
   return (
     <div className="flex items-center gap-2 min-h-[30px] group">
@@ -165,8 +223,8 @@ function MonitorRow({ row, windowStart, windowEnd, onSegmentClick, onNameClick }
         {row.monitorName}
       </button>
 
-      {/* Segments bar + now marker */}
-      <div className="flex-1 relative">
+      {/* Segments bar + maintenance overlay + now marker */}
+      <div className="flex-1 relative mw-bar-root">
         <div className="flex h-6 rounded overflow-hidden gap-px bg-surface/50">
           {row.segments.map((seg, i) => {
             const widthPct = ((seg.end - seg.start) / totalMs) * 100;
@@ -175,10 +233,16 @@ function MonitorRow({ row, windowStart, windowEnd, onSegmentClick, onNameClick }
             return (
               <div
                 key={i}
-                title={isIncident ? `${seg.status} — ${duration(seg.end - seg.start) || '< 1s'}` : undefined}
                 className={`h-full transition-colors ${segmentColor(seg.status)} ${segmentBorder(seg.status)}`}
                 style={{ width: `${widthPct}%`, minWidth: isIncident ? '2px' : undefined }}
                 onClick={isIncident ? () => onSegmentClick(seg, row.monitorName) : undefined}
+                onMouseEnter={isIncident ? e => {
+                  const rect = e.currentTarget.closest('.mw-bar-root').getBoundingClientRect();
+                  const self = e.currentTarget.getBoundingClientRect();
+                  const rawX = self.left - rect.left + self.width / 2;
+                  setIncTooltip({ seg, x: rawX, barW: rect.width });
+                } : undefined}
+                onMouseLeave={isIncident ? () => setIncTooltip(null) : undefined}
               />
             );
           })}
@@ -186,6 +250,88 @@ function MonitorRow({ row, windowStart, windowEnd, onSegmentClick, onNameClick }
             <div className="flex-1 h-full bg-muted/10" />
           )}
         </div>
+        {/* Maintenance window overlays */}
+        {(row.maintenanceWindows || []).map((w, i) => {
+          const leftPct  = ((w.start - windowStart) / totalMs) * 100;
+          const widthPct = ((w.end - w.start) / totalMs) * 100;
+          if (widthPct < 0.05) return null;
+          const durMs = (w.originalEnd ?? Date.now()) - w.originalStart;
+          const durMin = Math.round(durMs / 60000);
+          const durLabel = durMin >= 60 ? `${Math.floor(durMin / 60)}h ${durMin % 60}min` : `${durMin}min`;
+          return (
+            <div
+              key={i}
+              className="absolute top-0 h-full cursor-pointer"
+              style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
+              onClick={() => onMaintenanceClick(w, row.monitorName)}
+              onMouseEnter={e => {
+                const rect = e.currentTarget.closest('.mw-bar-root').getBoundingClientRect();
+                const self = e.currentTarget.getBoundingClientRect();
+                const rawX = self.left - rect.left + self.width / 2;
+                setMwTooltip({ w, durLabel, x: rawX, barW: rect.width, active: i });
+              }}
+              onMouseLeave={() => setMwTooltip(null)}
+            >
+              <div className="h-full w-full bg-amber-400/20 border-x border-amber-400/40" />
+            </div>
+          );
+        })}
+        {/* Incident tooltip */}
+        {incTooltip && (() => {
+          const { seg, x: rawX, barW } = incTooltip;
+          const TW = 220;
+          const x = Math.max(TW / 2, Math.min(rawX, barW - TW / 2));
+          const isOngoing = seg.end >= windowEnd - 1000;
+          const durMs = seg.end - seg.start;
+          const sevColor = { P1: 'text-red-400', P2: 'text-amber-400', P3: 'text-periwinkle', P4: 'text-muted' };
+          const statusColor = seg.status === 'warning' ? 'text-amber-400 bg-amber-900/30' : 'text-red-400 bg-red-900/30';
+          return (
+            <div className="absolute z-30 bottom-full mb-1.5 pointer-events-none" style={{ left: x, transform: 'translateX(-50%)' }}>
+              <div className="bg-card border border-border rounded-lg shadow-lg px-3 py-2 text-xs whitespace-nowrap">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className={`font-mono px-1.5 py-0.5 rounded ${statusColor}`}>{seg.status}</span>
+                  {seg.severity && <span className={`font-semibold ${sevColor[seg.severity] ?? 'text-muted'}`}>{seg.severity}</span>}
+                  {isOngoing && <span className="text-red-400">{lang === 'fr' ? '· en cours' : '· ongoing'}</span>}
+                  {seg.duringMaintenance && <span className="flex items-center gap-0.5 text-amber-400"><Wrench size={9} />{lang === 'fr' ? 'maint.' : 'maint.'}</span>}
+                </div>
+                <p className="text-muted">{lang === 'fr' ? 'Début :' : 'Start:'} <span className="text-thistle">{new Date(seg.start).toLocaleString(locale)}</span></p>
+                {!isOngoing && <p className="text-muted">{lang === 'fr' ? 'Fin :' : 'End:'} <span className="text-thistle">{new Date(seg.end).toLocaleString(locale)}</span></p>}
+                <p className="text-muted">{lang === 'fr' ? 'Durée :' : 'Duration:'} <span className="text-thistle">{duration(durMs) || '< 1s'}</span></p>
+                {seg.reason && <p className="text-muted mt-0.5 max-w-[240px] truncate" title={seg.reason}>— {seg.reason}</p>}
+                <p className="text-muted/50 mt-1">{lang === 'fr' ? 'Clic pour détails' : 'Click for details'}</p>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Maintenance tooltip */}
+        {mwTooltip && (() => {
+          const TW = 200;
+          const x = Math.max(TW / 2, Math.min(mwTooltip.x, mwTooltip.barW - TW / 2));
+          return (
+          <div
+            className="absolute z-30 bottom-full mb-1.5 pointer-events-none"
+            style={{ left: x, transform: 'translateX(-50%)' }}
+          >
+            <div className="bg-card border border-amber-400/30 rounded-lg shadow-lg px-3 py-2 text-xs whitespace-nowrap">
+              <p className="font-semibold text-amber-400 flex items-center gap-1.5 mb-1">
+                <Wrench size={11} />
+                {lang === 'fr' ? 'Maintenance' : 'Maintenance'}
+                {!mwTooltip.w.originalEnd && (
+                  <span className="text-[10px] px-1 py-0.5 rounded bg-amber-400/15">{lang === 'fr' ? 'en cours' : 'active'}</span>
+                )}
+              </p>
+              <p className="text-muted">{lang === 'fr' ? 'Début :' : 'Start:'} <span className="text-thistle">{new Date(mwTooltip.w.originalStart).toLocaleString(locale)}</span></p>
+              {mwTooltip.w.originalEnd
+                ? <p className="text-muted">{lang === 'fr' ? 'Fin :' : 'End:'} <span className="text-thistle">{new Date(mwTooltip.w.originalEnd).toLocaleString(locale)}</span></p>
+                : null
+              }
+              <p className="text-muted">{lang === 'fr' ? 'Durée :' : 'Duration:'} <span className="text-thistle">{mwTooltip.durLabel}</span></p>
+              <p className="text-muted/50 mt-1">{lang === 'fr' ? 'Clic pour détails' : 'Click for details'}</p>
+            </div>
+          </div>
+          );
+        })()}
         {/* Now marker */}
         <div className="absolute top-0 right-0 h-full flex items-center pointer-events-none">
           <div className="w-0.5 h-4 bg-periwinkle/50 rounded-full" />
@@ -211,7 +357,7 @@ function MonitorRow({ row, windowStart, windowEnd, onSegmentClick, onNameClick }
   );
 }
 
-function CategorySection({ label, rows, windowStart, windowEnd, onSegmentClick, onNameClick }) {
+function CategorySection({ label, rows, windowStart, windowEnd, onSegmentClick, onMaintenanceClick, onNameClick, lang }) {
   return (
     <div>
       {label && (
@@ -228,7 +374,9 @@ function CategorySection({ label, rows, windowStart, windowEnd, onSegmentClick, 
             windowStart={windowStart}
             windowEnd={windowEnd}
             onSegmentClick={onSegmentClick}
+            onMaintenanceClick={onMaintenanceClick}
             onNameClick={onNameClick}
+            lang={lang}
           />
         ))}
       </div>
@@ -250,6 +398,7 @@ export default function Timeline() {
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState('');
   const [activeSegment, setActiveSegment] = useState(null);
+  const [activeMaintenance, setActiveMaintenance] = useState(null);
   const [detailMonitor, setDetailMonitor] = useState(null);
   const intervalRef = useRef(null);
 
@@ -329,6 +478,14 @@ export default function Timeline() {
           lang={lang}
         />
       )}
+      {activeMaintenance && (
+        <MaintenancePopup
+          w={activeMaintenance.w}
+          monitorName={activeMaintenance.monitorName}
+          onClose={() => setActiveMaintenance(null)}
+          lang={lang}
+        />
+      )}
       {detailMonitor && (
         <ServiceDetail monitor={detailMonitor} onClose={() => setDetailMonitor(null)} />
       )}
@@ -379,6 +536,10 @@ export default function Timeline() {
           <span className="w-3 h-3 rounded-sm bg-red-500/55 inline-block" />
           {t('status.error')}
         </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-sm bg-amber-400/20 border border-amber-400/40 inline-block" />
+          {lang === 'fr' ? 'Maintenance' : 'Maintenance'}
+        </span>
         <span className="text-muted/60 ml-auto hidden sm:block">{t('timeline.clickDetail')}</span>
       </div>
 
@@ -419,7 +580,9 @@ export default function Timeline() {
                   windowStart={windowStart}
                   windowEnd={windowEnd}
                   onSegmentClick={(seg, name) => setActiveSegment({ seg, monitorName: name })}
+                  onMaintenanceClick={(w, name) => setActiveMaintenance({ w, monitorName: name })}
                   onNameClick={handleNameClick}
+                  lang={lang}
                 />
               ))}
             </div>

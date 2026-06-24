@@ -52,6 +52,7 @@ function buildSections(t) {
         { method: 'PATCH',  path: '/api/monitors/bulk',                  descKey: 'monitorsBulk', body: '{ "ids": ["…"], "action": "enable|disable|delete|pin|unpin" }' },
         { method: 'PATCH',  path: '/api/monitors/reorder',                descKey: 'monitorsReorder' },
         { method: 'POST',   path: '/api/monitors/:id/run',                descKey: 'monitorsRun' },
+        { method: 'GET',    path: '/api/monitors/:id/maintenance',        descKey: 'monitorsMaintenanceHistory' },
         { method: 'POST',   path: '/api/monitors/:id/maintenance',        descKey: 'monitorsMaintenance', body: '{ "minutes": 30 }' },
         { method: 'DELETE', path: '/api/monitors/:id/maintenance',        descKey: 'monitorsMaintenanceDel' },
         { method: 'DELETE', path: '/api/monitors/:id',                    descKey: 'monitorsDelete' },
@@ -73,6 +74,12 @@ function buildSections(t) {
       key: 'stats',
       routes: [
         { method: 'GET', path: '/api/stats', descKey: 'statsGet' },
+      ],
+    },
+    {
+      key: 'prometheus',
+      routes: [
+        { method: 'GET', path: '/api/metrics', descKey: 'metricsGet' },
       ],
     },
     {

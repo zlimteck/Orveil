@@ -4,6 +4,7 @@ const Monitor = require('../models/Monitor');
 const Incident = require('../models/Incident');
 const MetricSnapshot = require('../models/MetricSnapshot');
 const NotificationLog = require('../models/NotificationLog');
+const MaintenanceWindow = require('../models/MaintenanceWindow');
 
 // GET /api/stats — global stats for the Stats page
 router.get('/', async (req, res) => {
@@ -24,15 +25,38 @@ router.get('/', async (req, res) => {
     const since = new Date(now - 30 * 24 * 3600 * 1000);
     const week1 = new Date(now - 7 * 24 * 3600 * 1000);
     const week2 = new Date(now - 14 * 24 * 3600 * 1000);
-    const snapshots = await MetricSnapshot.find({ ts: { $gte: since } });
+    const [snapshots, maintenanceWindows] = await Promise.all([
+      MetricSnapshot.find({ ts: { $gte: since } }),
+      MaintenanceWindow.find({ startedAt: { $gte: since } }),
+    ]);
+
+    // Group maintenance windows by monitorId for fast lookup
+    const mwByMonitor = {};
+    for (const w of maintenanceWindows) {
+      const id = w.monitorId.toString();
+      if (!mwByMonitor[id]) mwByMonitor[id] = [];
+      mwByMonitor[id].push({ start: new Date(w.startedAt).getTime(), end: w.endedAt ? new Date(w.endedAt).getTime() : Date.now() });
+    }
+
+    function inMaintenance(ts, windows) {
+      const t = new Date(ts).getTime();
+      return windows.some(w => t >= w.start && t <= w.end);
+    }
 
     const monitorUptime = {}, monitorTotal = {};
+    const monitorUptimeAdj = {}, monitorTotalAdj = {};
     const recentUp = {}, recentTotal = {}, priorUp = {}, priorTotal = {};
 
     for (const s of snapshots) {
       const id = s.monitorId.toString();
       monitorTotal[id] = (monitorTotal[id] || 0) + 1;
       if (s.status === 'online') monitorUptime[id] = (monitorUptime[id] || 0) + 1;
+
+      if (!inMaintenance(s.ts, mwByMonitor[id] || [])) {
+        monitorTotalAdj[id] = (monitorTotalAdj[id] || 0) + 1;
+        if (s.status === 'online') monitorUptimeAdj[id] = (monitorUptimeAdj[id] || 0) + 1;
+      }
+
       if (s.ts >= week1) {
         recentTotal[id] = (recentTotal[id] || 0) + 1;
         if (s.status === 'online') recentUp[id] = (recentUp[id] || 0) + 1;
@@ -42,19 +66,35 @@ router.get('/', async (req, res) => {
       }
     }
 
+    // Maintenance summary per monitor
+    const mwStats = {};
+    for (const w of maintenanceWindows) {
+      const id = w.monitorId.toString();
+      if (!mwStats[id]) mwStats[id] = { count: 0, totalMinutes: 0 };
+      mwStats[id].count++;
+      if (w.endedAt) mwStats[id].totalMinutes += Math.round((new Date(w.endedAt) - new Date(w.startedAt)) / 60000);
+    }
+    const totalMwWindows = maintenanceWindows.length;
+    const totalMwMinutes = Object.values(mwStats).reduce((s, v) => s + v.totalMinutes, 0);
+
     const uptimeByMonitor = monitors.map(m => {
       const id = m._id.toString();
       const uptime = monitorTotal[id] > 0
         ? Math.round((monitorUptime[id] || 0) / monitorTotal[id] * 100)
         : null;
+      const uptimeAdj = monitorTotalAdj[id] > 0
+        ? Math.round((monitorUptimeAdj[id] || 0) / monitorTotalAdj[id] * 100)
+        : uptime;
       const recentPct = recentTotal[id] > 0 ? (recentUp[id] || 0) / recentTotal[id] * 100 : null;
       const priorPct  = priorTotal[id]  > 0 ? (priorUp[id]  || 0) / priorTotal[id]  * 100 : null;
       const trend = recentPct != null && priorPct != null
         ? Math.round((recentPct - priorPct) * 10) / 10
         : null;
       const slaTarget = m.slaTarget ?? null;
-      const slaMet = slaTarget != null && uptime != null ? uptime >= slaTarget : null;
-      return { id: m._id, name: m.name, type: m.type, status: m.status, enabled: m.enabled, uptime, trend, slaTarget, slaMet };
+      const effectiveUptime = uptimeAdj ?? uptime;
+      const slaMet = slaTarget != null && effectiveUptime != null ? effectiveUptime >= slaTarget : null;
+      const mw = mwStats[id] || { count: 0, totalMinutes: 0 };
+      return { id: m._id, name: m.name, type: m.type, status: m.status, enabled: m.enabled, uptime, uptimeAdj, trend, slaTarget, slaMet, maintenanceCount: mw.count, maintenanceMinutes: mw.totalMinutes };
     }).sort((a, b) => (a.uptime ?? 101) - (b.uptime ?? 101));
 
     // Incidents summary
@@ -109,6 +149,7 @@ router.get('/', async (req, res) => {
       incidentsByDay,
       uptimeByMonitor,
       logsByLevel,
+      maintenance: { totalWindows: totalMwWindows, totalMinutes: totalMwMinutes },
     });
   } catch (err) {
     console.error('[Stats]', err.message);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { incidents as api } from '../api';
 import { useLang } from '../context/LangContext';
-import { AlertTriangle, CheckCircle, BellOff, Trash2, X, Siren, FileText } from 'lucide-react';
+import { AlertTriangle, CheckCircle, BellOff, Trash2, X, Siren, FileText, Wrench } from 'lucide-react';
 import Portal from '../components/Portal';
 
 const SEVERITIES = ['P1','P2','P3','P4'];
@@ -127,6 +127,12 @@ function IncidentRow({ incident: i, onAcknowledge, onDelete, onSeverityChange, o
           {!resolved && acknowledged && (
             <span className="text-xs px-1.5 py-0.5 rounded bg-amber-900/30 text-amber-400 border border-amber-900/40">
               {t('incidents.acknowledged')}
+            </span>
+          )}
+          {i.duringMaintenance && (
+            <span className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded bg-amber-400/10 text-amber-400 border border-amber-400/25">
+              <Wrench size={10} />
+              {lang === 'fr' ? 'Maintenance' : 'Maintenance'}
             </span>
           )}
         </div>

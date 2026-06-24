@@ -38,9 +38,10 @@
 - **Incident tracking** — automatic incident open/close with duration history; P1–P4 severity (auto-assigned, manually overridable); failure reason displayed inline; incidents grouped by date
 - **War room** — dedicated full-screen view of all active incidents sorted by severity, with auto-refresh every 30 s
 - **Post-mortem reports** — attach a structured post-mortem (summary, root cause, impact, resolution, lessons learned) to any resolved incident
-- **SLA tracking** — set a target uptime % per monitor; met/breached indicator displayed on the Stats page
-- **Statistics** — 30-day global view: uptime per service with trend, SLA status, incident count, MTTR, MTTD, severity breakdown, notification log, incident heatmap by day/hour
-- **Maintenance windows** — per-service maintenance mode, immediate or scheduled (date/time picker); presets 30 min to 8 h or custom duration; upcoming windows shown as a badge on the card — no alerts or incidents during the window
+- **SLA tracking** — set a target uptime % per monitor; met/breached indicator displayed on the Stats page; SLA uptime excludes maintenance periods
+- **Statistics** — 30-day global view: uptime per service with trend (raw + maintenance-adjusted), SLA status, incident count, MTTR, MTTD, severity breakdown, maintenance summary, notification log, incident heatmap by day/hour
+- **Prometheus metrics** — `GET /api/metrics` exposes all monitor metrics in Prometheus text format: `orveil_monitor_status`, `orveil_monitor_latency_ms`, `orveil_monitor_uptime_24h/7d/30d_pct`, `orveil_incidents_open_total`; secured by JWT or MCP API key
+- **Maintenance windows** — per-service maintenance mode, immediate or scheduled (date/time picker); presets 30 min to 8 h or custom duration; upcoming windows shown as a badge on the card; checks keep running during maintenance so the real status stays visible — alerts and incident creation are suppressed; full history with ended/canceled distinction; maintenance periods visible as interactive amber bands on the Timeline (hover for details, click to open); incidents that occurred during a maintenance are flagged in the Incidents page; SLA uptime is calculated excluding maintenance time; maintenance summary on the Stats page
 - **Adaptive polling** — when a service goes down, check interval drops automatically to 30 s (configurable) for near-instant recovery detection; reverts to the normal interval once the service is back up; Speedtest and Heartbeat monitors are excluded
 - **Notification cooldown** — configurable minimum delay (in minutes) between repeated down alerts for the same service; prevents alert storms during flapping; recovery notifications always pass through
 - **Monitor dependencies** — link a monitor to a parent; down alerts are suppressed when the parent is also down
@@ -234,6 +235,7 @@ The API key is encrypted at rest using AES-256-GCM (same as monitor credentials)
 | `ENCRYPTION_KEY` | *(none)* | AES-256-GCM key for encrypting sensitive monitor credentials at rest — **strongly recommended** |
 | `ADMIN_USERNAME` | `admin` | Admin account username |
 | `ADMIN_PASSWORD` | `orveil` | Admin account password — **change this** |
+| `METRICS_TOKEN` | *(none)* | Static Bearer token for the Prometheus metrics endpoint — generate with `openssl rand -hex 32` |
 
 ### Setting up encryption at rest
 
@@ -246,6 +248,83 @@ echo "ENCRYPTION_KEY=$(openssl rand -hex 32)" >> .env
 When set, all sensitive monitor fields (API keys, tokens, passwords, private keys) **and proxy credentials** are encrypted in the database using AES-256-GCM before being stored. The encryption is transparent — credentials are decrypted automatically at runtime.
 
 > **Note:** If you add `ENCRYPTION_KEY` to an existing deployment, credentials saved before that point remain in plaintext until you re-save each monitor. New monitors and any monitor you edit after setting the key will be encrypted automatically.
+
+## Prometheus & Grafana integration
+
+Orveil exposes a Prometheus-compatible metrics endpoint at `GET /api/metrics` (authenticated with your MCP/REST API key). To wire it up with Grafana, a Prometheus scraper is required as an intermediary.
+
+### Starting Prometheus alongside Orveil
+
+The repository ships with a pre-configured `prometheus.yml`. The metrics endpoint uses a dedicated static token (`METRICS_TOKEN`) that you define — no need to wait for the MCP key to be generated.
+
+**Step 1 — generate a token and add it to your `.env`:**
+
+```bash
+echo "METRICS_TOKEN=$(openssl rand -hex 32)" >> .env
+```
+
+**Step 2 — copy the example config and set your token:**
+
+```bash
+cp prometheus.yml.example prometheus.yml
+```
+
+Then edit `prometheus.yml` and replace `VOTRE_METRICS_TOKEN`:
+
+```yaml
+bearer_token: your_token_here   # same value as METRICS_TOKEN in .env
+```
+
+**Step 3 — start everything with the `monitoring` profile:**
+
+```bash
+docker compose --profile monitoring up -d
+```
+
+Prometheus will be available on **http://localhost:9090** and scrapes Orveil every 30 seconds.
+
+### Connecting Grafana
+
+1. In Grafana, go to **Connections → Data sources → Add data source**
+2. Choose **Prometheus**
+3. Set the URL to `http://orveil-prometheus:9090` (if Grafana runs in the same Docker network) or `http://localhost:9090` (if Grafana runs on the host)
+4. Click **Save & test**
+
+### Available metrics
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `orveil_monitor_status` | gauge | `1` = online, `0` = offline/error/unknown |
+| `orveil_monitor_latency_ms` | gauge | Last recorded latency in milliseconds |
+| `orveil_monitor_uptime_24h_pct` | gauge | Uptime over the last 24 hours (%) |
+| `orveil_monitor_uptime_7d_pct` | gauge | Uptime over the last 7 days (%) |
+| `orveil_monitor_uptime_30d_pct` | gauge | Uptime over the last 30 days (%) |
+| `orveil_incidents_open_total` | gauge | Number of currently open incidents |
+
+All metrics carry labels `id`, `name`, `type`, and `category` for easy filtering.
+
+### Adding Grafana to the stack (optional)
+
+If you also want Grafana managed by Docker Compose, add this service to your `docker-compose.yml`:
+
+```yaml
+grafana:
+  image: grafana/grafana:latest
+  container_name: orveil-grafana
+  restart: unless-stopped
+  ports:
+    - "3000:3000"
+  volumes:
+    - grafana_data:/var/lib/grafana
+  depends_on:
+    - prometheus
+  networks:
+    - orveil
+  profiles:
+    - monitoring
+```
+
+And add `grafana_data:` under the `volumes:` key. Then access Grafana at **http://localhost:3000** (default credentials: `admin` / `admin`).
 
 ## License
 

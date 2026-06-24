@@ -344,7 +344,9 @@ function ProxySection({ config, set, proxies }) {
         Proxy
         {selectedProxy
           ? <span className="ml-auto text-periwinkle font-normal normal-case tracking-normal">{selectedProxy.name}</span>
-          : <span className="ml-auto text-muted/50 font-normal normal-case tracking-normal">{t('settings.proxies.globalFallback')}</span>
+          : proxies.some(p => p.active)
+            ? <span className="ml-auto text-muted/50 font-normal normal-case tracking-normal">{t('settings.proxies.globalFallback')}</span>
+            : null
         }
       </button>
       {open && (

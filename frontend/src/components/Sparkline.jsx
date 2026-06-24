@@ -30,7 +30,7 @@ const formatVal = v => {
   return v.toFixed(1);
 };
 
-export default function Sparkline({ points = [], color = '#c9d7f8', height = 56, showLabels = false, incidents = [], annotations = [] }) {
+export default function Sparkline({ points = [], color = '#c9d7f8', height = 56, showLabels = false, incidents = [], annotations = [], maintenanceWindows = [] }) {
   const [tooltip, setTooltip] = useState(null);
 
   const values = points.map(p => p.value).filter(v => v != null);
@@ -112,6 +112,14 @@ export default function Sparkline({ points = [], color = '#c9d7f8', height = 56,
     const x2 = tsToX(inc.resolvedAt || Date.now());
     if (x1 == null || x2 == null || x2 <= x1) return null;
     return { x: x1, w: Math.max(x2 - x1, 2), key: inc._id };
+  }).filter(Boolean) : [];
+
+  // Maintenance window shading
+  const maintenanceRects = tRange ? maintenanceWindows.map(w => {
+    const x1 = tsToX(w.startedAt);
+    const x2 = tsToX(w.endedAt || Date.now());
+    if (x1 == null || x2 == null || x2 <= x1) return null;
+    return { x: x1, w: Math.max(x2 - x1, 2), key: w._id };
   }).filter(Boolean) : [];
 
   // Annotation lines
@@ -203,6 +211,12 @@ export default function Sparkline({ points = [], color = '#c9d7f8', height = 56,
         {xTicks.map(({ x, label }, i) => (
           <text key={i} x={x} y={H - 4} fontSize="8" textAnchor={i === 0 ? 'start' : i === 3 ? 'end' : 'middle'}
             fill="currentColor" opacity="0.35">{label}</text>
+        ))}
+
+        {/* Maintenance window shaded regions */}
+        {maintenanceRects.map(r => (
+          <rect key={r.key} x={r.x} y={PAD_TOP} width={r.w} height={innerH}
+            fill="rgba(251,191,36,0.12)" />
         ))}
 
         {/* Incident shaded regions */}

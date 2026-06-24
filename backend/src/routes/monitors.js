@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const Monitor = require('../models/Monitor');
 const Incident = require('../models/Incident');
+const MaintenanceWindow = require('../models/MaintenanceWindow');
 const { triggerNow } = require('../monitors/runner');
 const handlers = require('../monitors/handlers');
 
@@ -185,6 +186,13 @@ router.post('/:id/test', async (req, res) => {
   }
 });
 
+// GET /api/monitors/:id/maintenance — history
+router.get('/:id/maintenance', async (req, res) => {
+  const windows = await MaintenanceWindow.find({ monitorId: req.params.id })
+    .sort({ startedAt: -1 }).limit(50);
+  res.json(windows);
+});
+
 // POST /api/monitors/:id/maintenance  body: { minutes: 60, startsAt?: ISO string }
 router.post('/:id/maintenance', async (req, res) => {
   const { minutes, startsAt } = req.body;
@@ -197,17 +205,24 @@ router.post('/:id/maintenance', async (req, res) => {
     { new: true }
   );
   if (!monitor) return res.status(404).json({ error: 'Service introuvable' });
+  // Record in history (only immediate windows — scheduled ones are recorded when they activate)
+  if (!startsAt) {
+    await MaintenanceWindow.create({ monitorId: monitor._id, startedAt: start });
+  }
   res.json({ ok: true, maintenanceStart: start, maintenanceUntil: until });
 });
 
 // DELETE /api/monitors/:id/maintenance
 router.delete('/:id/maintenance', async (req, res) => {
-  const monitor = await Monitor.findByIdAndUpdate(
-    req.params.id,
-    { maintenanceStart: null, maintenanceUntil: null },
-    { new: true }
-  );
+  const monitor = await Monitor.findById(req.params.id);
   if (!monitor) return res.status(404).json({ error: 'Service introuvable' });
+  // Close open window in history
+  const now = new Date();
+  await MaintenanceWindow.findOneAndUpdate(
+    { monitorId: monitor._id, endedAt: null },
+    { endedAt: now, canceledAt: now }
+  );
+  await monitor.updateOne({ maintenanceStart: null, maintenanceUntil: null });
   res.json({ ok: true });
 });
 

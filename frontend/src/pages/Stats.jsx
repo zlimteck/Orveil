@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { stats as api, incidents as incidentsApi } from '../api';
 import { useLang } from '../context/LangContext';
-import { Radio, AlertTriangle, CheckCircle, Clock, Timer, Eye, Bell } from 'lucide-react';
+import { Radio, AlertTriangle, CheckCircle, Clock, Timer, Eye, Bell, Wrench } from 'lucide-react';
 
 function duration(ms) {
   if (!ms) return '—';
@@ -38,19 +38,28 @@ function SlaBadge({ slaMet, slaTarget }) {
     : <span className="hidden sm:block text-xs font-mono text-red-400 w-20 text-right shrink-0" title={`SLA ${slaTarget}%`}>✗ {slaTarget}%</span>;
 }
 
-function UptimeRow({ monitor }) {
-  const uptime = monitor.uptime;
-  const color     = uptime == null ? 'bg-granite/30'   : uptime >= 99 ? 'bg-celadon/70'   : uptime >= 90 ? 'bg-amber-400/70' : 'bg-red-400/70';
-  const textColor = uptime == null ? 'text-muted'       : uptime >= 99 ? 'text-celadon'     : uptime >= 90 ? 'text-amber-400'  : 'text-red-400';
+function UptimeRow({ monitor, lang }) {
+  const uptime    = monitor.uptime;
+  const uptimeAdj = monitor.uptimeAdj;
+  const display   = uptimeAdj ?? uptime;
+  const hasMaint  = monitor.maintenanceCount > 0 && uptimeAdj != null && uptimeAdj !== uptime;
+  const color     = display == null ? 'bg-granite/30'   : display >= 99 ? 'bg-celadon/70'   : display >= 90 ? 'bg-amber-400/70' : 'bg-red-400/70';
+  const textColor = display == null ? 'text-muted'       : display >= 99 ? 'text-celadon'     : display >= 90 ? 'text-amber-400'  : 'text-red-400';
 
   return (
     <div className="flex items-center gap-3 py-2">
       <span className="text-sm text-thistle truncate flex-1 min-w-0">{monitor.name}</span>
+      {hasMaint && (
+        <span className="hidden sm:flex items-center gap-1 text-[10px] text-amber-400/70 shrink-0" title={lang === 'fr' ? `Brut : ${uptime}%` : `Raw: ${uptime}%`}>
+          <Wrench size={10} />
+          {uptime}%
+        </span>
+      )}
       <div className="w-32 h-2 bg-granite-3 rounded-full overflow-hidden shrink-0">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${uptime ?? 0}%` }} />
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${display ?? 0}%` }} />
       </div>
       <span className={`text-xs font-mono w-10 text-right shrink-0 ${textColor}`}>
-        {uptime != null ? `${uptime}%` : '—'}
+        {display != null ? `${display}%` : '—'}
       </span>
       <TrendBadge trend={monitor.trend} />
       <SlaBadge slaMet={monitor.slaMet} slaTarget={monitor.slaTarget} />
@@ -211,7 +220,7 @@ export default function Stats() {
   const past30 = new Date(Date.now() - 30 * 24 * 3600 * 1000);
   const heatmapIncidents = allIncidents.filter(i => new Date(i.startedAt) >= past30);
 
-  const { monitors, incidents, incidentsByDay, uptimeByMonitor, logsByLevel } = data;
+  const { monitors, incidents, incidentsByDay, uptimeByMonitor, logsByLevel, maintenance } = data;
   const totalSev    = Object.values(incidents.severityCount || {}).reduce((s, v) => s + v, 0);
   const totalNotifs = Object.values(logsByLevel).reduce((s, v) => s + v, 0);
 
@@ -240,10 +249,41 @@ export default function Stats() {
           <p className="text-sm text-muted">{t('stats.noData')}</p>
         ) : (
           <div className="card px-4 divide-y divide-border">
-            {uptimeByMonitor.map(m => <UptimeRow key={m.id} monitor={m} />)}
+            {uptimeByMonitor.map(m => <UptimeRow key={m.id} monitor={m} lang={lang} />)}
           </div>
         )}
       </div>
+
+      {/* Maintenance */}
+      {maintenance && maintenance.totalWindows > 0 && (
+        <div>
+          <h2 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">{lang === 'fr' ? 'Maintenance (30j)' : 'Maintenance (30d)'}</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <StatCard icon={Wrench} label={lang === 'fr' ? 'Fenêtres' : 'Windows'} value={maintenance.totalWindows} color="text-amber-400" />
+            <StatCard icon={Clock}  label={lang === 'fr' ? 'Temps total' : 'Total time'} value={
+              maintenance.totalMinutes >= 60
+                ? `${Math.floor(maintenance.totalMinutes / 60)}h ${maintenance.totalMinutes % 60}min`
+                : `${maintenance.totalMinutes}min`
+            } color="text-amber-400" />
+          </div>
+          {uptimeByMonitor.some(m => m.maintenanceCount > 0) && (
+            <div className="card px-4 py-3 mt-3 space-y-2">
+              <p className="text-xs font-semibold text-muted uppercase tracking-wider">{lang === 'fr' ? 'Par service' : 'Per service'}</p>
+              {uptimeByMonitor.filter(m => m.maintenanceCount > 0).map(m => (
+                <div key={m.id} className="flex items-center gap-3 text-xs">
+                  <span className="text-thistle truncate flex-1 min-w-0">{m.name}</span>
+                  <span className="text-muted shrink-0">{m.maintenanceCount} {lang === 'fr' ? (m.maintenanceCount > 1 ? 'fenêtres' : 'fenêtre') : (m.maintenanceCount > 1 ? 'windows' : 'window')}</span>
+                  <span className="text-amber-400 font-mono shrink-0 w-16 text-right">
+                    {m.maintenanceMinutes >= 60
+                      ? `${Math.floor(m.maintenanceMinutes / 60)}h ${m.maintenanceMinutes % 60}min`
+                      : `${m.maintenanceMinutes}min`}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Incidents */}
       <div>

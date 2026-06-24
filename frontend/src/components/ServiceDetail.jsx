@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, AlertTriangle, CheckCircle, Tag, Trash2 } from 'lucide-react';
-import { history as historyApi, incidents as incidentsApi, annotations as annotationsApi } from '../api';
+import { X, AlertTriangle, CheckCircle, Tag, Trash2, Wrench } from 'lucide-react';
+import { history as historyApi, incidents as incidentsApi, annotations as annotationsApi, monitors as monitorsApi } from '../api';
 import { useLang } from '../context/LangContext';
 import Portal from './Portal';
 import { getMetrics } from '../utils/metricConfig';
@@ -81,6 +81,7 @@ export default function ServiceDetail({ monitor, onClose }) {
   const [hist, setHist] = useState(null);
   const [incidents, setIncidents] = useState([]);
   const [annotations, setAnnotations] = useState([]);
+  const [maintenanceWindows, setMaintenanceWindows] = useState([]);
   const [period, setPeriod] = useState(24);
   const [tab, setTab] = useState('metrics');
   const [annLabel, setAnnLabel] = useState('');
@@ -96,6 +97,16 @@ export default function ServiceDetail({ monitor, onClose }) {
     incidentsApi.list({ monitorId: monitor._id, limit: 50 }).then(setIncidents).catch(() => {});
     loadAnnotations();
   }, [monitor._id, period]);
+
+  useEffect(() => {
+    monitorsApi.maintenanceHistory(monitor._id).then(setMaintenanceWindows).catch(() => {});
+  }, [monitor._id, monitor.maintenanceUntil]);
+
+  useEffect(() => {
+    if (tab === 'maintenance') {
+      monitorsApi.maintenanceHistory(monitor._id).then(setMaintenanceWindows).catch(() => {});
+    }
+  }, [tab]);
 
   async function handleAddAnnotation(e) {
     e.preventDefault();
@@ -167,6 +178,7 @@ export default function ServiceDetail({ monitor, onClose }) {
           {[
             { key: 'metrics',     label: lang === 'fr' ? 'Métriques' : 'Metrics' },
             { key: 'incidents',   label: lang === 'fr' ? 'Incidents' : 'Incidents', badge: incidents.filter(i => !i.resolvedAt).length },
+            { key: 'maintenance', label: lang === 'fr' ? 'Maintenance' : 'Maintenance', badge: maintenanceWindows.length || null },
             { key: 'annotations', label: lang === 'fr' ? 'Annotations' : 'Annotations', badge: annotations.length },
             { key: 'badge',       label: 'Badge' },
           ].map(({ key, label, badge }) => (
@@ -254,7 +266,7 @@ export default function ServiceDetail({ monitor, onClose }) {
               {graphs.map(g => (
                 <div key={g.key} className="pt-4 border-t border-border/50">
                   <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">{g.label}</p>
-                  <Sparkline points={g.pts} color={sparkColor} height={110} showLabels incidents={incidents} annotations={annotations} />
+                  <Sparkline points={g.pts} color={sparkColor} height={110} showLabels incidents={incidents} annotations={annotations} maintenanceWindows={maintenanceWindows} />
                   <div className="flex justify-between text-xs text-muted/50 mt-1">
                     <span>{period === 24 ? '−24h' : `−${t('modal.period7d')}`}</span>
                     <span>{t('modal.now')}</span>
@@ -330,6 +342,44 @@ export default function ServiceDetail({ monitor, onClose }) {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === 'maintenance' && (
+            <div>
+              {maintenanceWindows.length === 0 ? (
+                <div className="text-center py-10">
+                  <Wrench size={28} className="text-muted/40 mx-auto mb-2" />
+                  <p className="text-sm text-thistle font-medium">{lang === 'fr' ? 'Aucune maintenance' : 'No maintenance history'}</p>
+                  <p className="text-xs text-muted mt-1">{lang === 'fr' ? 'Les fenêtres de maintenance passées apparaîtront ici.' : 'Past maintenance windows will appear here.'}</p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {maintenanceWindows.map(w => {
+                    const dur = w.endedAt ? Math.round((new Date(w.endedAt) - new Date(w.startedAt)) / 60000) : null;
+                    return (
+                      <div key={w._id} className="flex items-start gap-2.5 bg-surface rounded-lg px-3 py-2">
+                        <Wrench size={14} className="mt-0.5 shrink-0 text-amber-400" />
+                        <div className="text-xs text-muted min-w-0">
+                          <p className="text-thistle">{new Date(w.startedAt).toLocaleString(locale)}</p>
+                          {w.endedAt ? (
+                            <p className="flex items-center gap-1.5">
+                              {w.canceledAt
+                                ? <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-500/10 text-red-400">{lang === 'fr' ? 'Annulée' : 'Canceled'}</span>
+                                : <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-green-500/10 text-green-400">{lang === 'fr' ? 'Terminée' : 'Ended'}</span>
+                              }
+                              <span>{lang === 'fr' ? 'Durée :' : 'Duration:'} <span className="text-thistle">{dur >= 60 ? `${Math.floor(dur / 60)}h ${dur % 60}min` : `${dur}min`}</span></span>
+                            </p>
+                          ) : (
+                            <p className="text-amber-400">{lang === 'fr' ? 'En cours' : 'Active'}</p>
+                          )}
+                          {w.scheduledStart && <p className="text-muted/70">{lang === 'fr' ? 'Planifiée' : 'Scheduled'}</p>}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

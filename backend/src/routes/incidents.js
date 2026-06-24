@@ -1,6 +1,11 @@
 const router = require('express').Router();
 const Incident = require('../models/Incident');
 const Monitor = require('../models/Monitor');
+const MaintenanceWindow = require('../models/MaintenanceWindow');
+
+function overlapsWindow(start, end, windows) {
+  return windows.some(w => start < w.end && end > w.start);
+}
 
 // GET /api/incidents/timeline?hours=24
 router.get('/timeline', async (req, res) => {
@@ -8,7 +13,7 @@ router.get('/timeline', async (req, res) => {
   const now = new Date();
   const windowStart = new Date(now.getTime() - hours * 60 * 60 * 1000);
 
-  const [monitors, incidentsRaw] = await Promise.all([
+  const [monitors, incidentsRaw, maintenanceRaw] = await Promise.all([
     Monitor.find({}, 'name type category status').sort({ order: 1, name: 1 }).lean(),
     Incident.find({
       $or: [
@@ -17,6 +22,13 @@ router.get('/timeline', async (req, res) => {
         { resolvedAt: { $gte: windowStart } },
       ],
     }).sort({ startedAt: 1 }).lean(),
+    MaintenanceWindow.find({
+      $or: [
+        { startedAt: { $gte: windowStart } },
+        { endedAt: null },
+        { endedAt: { $gte: windowStart } },
+      ],
+    }).lean(),
   ]);
 
   const byMonitor = {};
@@ -26,8 +38,21 @@ router.get('/timeline', async (req, res) => {
     byMonitor[key].push(inc);
   }
 
+  const mwByMonitor = {};
+  for (const w of maintenanceRaw) {
+    const key = String(w.monitorId);
+    if (!mwByMonitor[key]) mwByMonitor[key] = [];
+    mwByMonitor[key].push({
+      start:         Math.max(new Date(w.startedAt).getTime(), windowStart.getTime()),
+      end:           Math.min(w.endedAt ? new Date(w.endedAt).getTime() : now.getTime(), now.getTime()),
+      originalStart: new Date(w.startedAt).getTime(),
+      originalEnd:   w.endedAt ? new Date(w.endedAt).getTime() : null,
+    });
+  }
+
   const rows = monitors.map(m => {
     const mIncidents = byMonitor[String(m._id)] || [];
+    const mw = (mwByMonitor[String(m._id)] || []).filter(w => w.end > w.start);
     const segments = [];
     let cursor = windowStart.getTime();
 
@@ -39,7 +64,14 @@ router.get('/timeline', async (req, res) => {
         segments.push({ start: cursor, end: start, status: 'online' });
       }
       if (end > start) {
-        segments.push({ start, end, status: inc.triggerStatus || 'error', incidentId: String(inc._id), severity: inc.severity, reason: inc.reason || null });
+        segments.push({
+          start, end,
+          status: inc.triggerStatus || 'error',
+          incidentId: String(inc._id),
+          severity: inc.severity,
+          reason: inc.reason || null,
+          duringMaintenance: overlapsWindow(start, end, mw),
+        });
       }
       cursor = Math.max(cursor, end);
     }
@@ -55,6 +87,7 @@ router.get('/timeline', async (req, res) => {
       category: m.category || '',
       currentStatus: m.status,
       segments,
+      maintenanceWindows: mw,
     };
   });
 
@@ -73,7 +106,36 @@ router.get('/', async (req, res) => {
     .limit(parseInt(limit))
     .lean();
 
-  res.json(incidents);
+  if (!incidents.length) return res.json(incidents);
+
+  // Tag incidents that occurred during a maintenance window
+  const earliest = incidents[incidents.length - 1].startedAt;
+  const maintenanceRaw = await MaintenanceWindow.find({
+    ...(monitorId ? { monitorId } : {}),
+    $or: [
+      { endedAt: null },
+      { endedAt: { $gte: earliest } },
+    ],
+  }).lean();
+
+  const mwByMonitor = {};
+  for (const w of maintenanceRaw) {
+    const key = String(w.monitorId);
+    if (!mwByMonitor[key]) mwByMonitor[key] = [];
+    mwByMonitor[key].push({
+      start: new Date(w.startedAt).getTime(),
+      end:   w.endedAt ? new Date(w.endedAt).getTime() : Date.now(),
+    });
+  }
+
+  const result = incidents.map(inc => {
+    const mw = mwByMonitor[String(inc.monitorId)] || [];
+    const start = new Date(inc.startedAt).getTime();
+    const end   = inc.resolvedAt ? new Date(inc.resolvedAt).getTime() : Date.now();
+    return { ...inc, duringMaintenance: overlapsWindow(start, end, mw) };
+  });
+
+  res.json(result);
 });
 
 // PATCH /api/incidents/:id/severity

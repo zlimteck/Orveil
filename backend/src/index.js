@@ -24,6 +24,21 @@ app.use('/api/mcp',    require('./routes/mcp'));
 console.log('[MCP] Serveur MCP démarré sur /api/mcp (Streamable HTTP)');
 app.get('/api/health', (req, res) => res.json({ ok: true, ts: new Date() }));
 
+// Metrics endpoint — own auth: accepts JWT, MCP key, or METRICS_TOKEN env var
+app.use('/api/metrics', async (req, res, next) => {
+  const header = req.headers.authorization;
+  const token = header?.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token) return res.status(401).json({ error: 'Non authentifié' });
+
+  // 1. Static METRICS_TOKEN env var (Prometheus / Grafana)
+  const metricsToken = process.env.METRICS_TOKEN;
+  if (metricsToken && token === metricsToken) return next();
+
+  // 2. Fallback to standard JWT / MCP key auth
+  const { authMiddleware: auth } = require('./middleware/auth');
+  return auth(req, res, next);
+}, require('./routes/metrics'));
+
 // Protected API routes
 app.use('/api', authMiddleware);
 app.use('/api/monitors',  require('./routes/monitors'));
