@@ -44,32 +44,32 @@ const TYPE_DEFAULTS = {
 };
 
 const TYPE_CATEGORIES = {
-  http:          'Web',
-  multistep:     'Web',
-  dns:           'Réseau',
-  ping:          'Réseau',
-  portforward:   'Réseau',
-  ssh:           'Réseau',
-  tailscale:     'Réseau',
-  proxmox:       'Infrastructure',
-  docker:        'Infrastructure',
-  portainer:     'Infrastructure',
-  unraid:        'Infrastructure',
-  mysql:         'Bases de données',
-  redis:         'Bases de données',
-  mongodb:       'Bases de données',
-  cloudflare:    'Services',
-  adguard:       'Services',
-  adguardhome:   'Services',
-  homeassistant: 'Services',
-  syncthing:     'Services',
-  jellyfin:      'Media',
-  immich:        'Media',
-  ollama:        'IA',
-  speedtest:     'Monitoring',
-  heartbeat:     'Monitoring',
-  hms:           'Hébergement',
-  ultracc:       'Hébergement',
+  http:          'web',
+  multistep:     'web',
+  dns:           'network',
+  ping:          'network',
+  portforward:   'network',
+  ssh:           'network',
+  tailscale:     'network',
+  proxmox:       'infrastructure',
+  docker:        'infrastructure',
+  portainer:     'infrastructure',
+  unraid:        'infrastructure',
+  mysql:         'databases',
+  redis:         'databases',
+  mongodb:       'databases',
+  cloudflare:    'services',
+  adguard:       'services',
+  adguardhome:   'services',
+  homeassistant: 'services',
+  syncthing:     'services',
+  jellyfin:      'media',
+  immich:        'media',
+  ollama:        'ai',
+  speedtest:     'monitoring',
+  heartbeat:     'monitoring',
+  hms:           'hosting',
+  ultracc:       'hosting',
 };
 
 const TYPE_LABELS = {
@@ -102,6 +102,7 @@ const TYPE_LABELS = {
 };
 
 function TypeSearchPicker({ value, onChange, disabled }) {
+  const { t } = useLang();
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState('');
   const [highlighted, setHighlighted] = React.useState(-1);
@@ -110,14 +111,16 @@ function TypeSearchPicker({ value, onChange, disabled }) {
 
   const q = query.trim().toLowerCase();
   const allItems = Object.entries(TYPE_LABELS).map(([id, name]) => ({
-    id, name, cat: TYPE_CATEGORIES[id] || 'Autres',
+    id, name,
+    catKey: TYPE_CATEGORIES[id] || 'other',
+    cat: t(`form.typeCategories.${TYPE_CATEGORIES[id] || 'other'}`),
   }));
   const filtered = q
     ? allItems.filter(m => m.name.toLowerCase().includes(q) || m.cat.toLowerCase().includes(q))
     : allItems;
 
   const grouped = filtered.reduce((acc, m) => {
-    (acc[m.cat] = acc[m.cat] || []).push(m);
+    (acc[m.catKey] = acc[m.catKey] || { label: m.cat, items: [] }).items.push(m);
     return acc;
   }, {});
 
@@ -171,7 +174,7 @@ function TypeSearchPicker({ value, onChange, disabled }) {
   }
 
   const label = value ? TYPE_LABELS[value] : null;
-  const cat = value ? (TYPE_CATEGORIES[value] || '') : null;
+  const cat = value ? t(`form.typeCategories.${TYPE_CATEGORIES[value] || 'other'}`) : null;
 
   if (disabled && value) {
     return (
@@ -196,7 +199,7 @@ function TypeSearchPicker({ value, onChange, disabled }) {
         <button type="button"
           onClick={() => { onChange(''); setTimeout(() => { openPicker(); inputRef.current?.focus(); }, 0); }}
           className="text-xs text-muted hover:text-thistle underline underline-offset-2 transition-colors shrink-0">
-          Changer
+          {t('form.changeType')}
         </button>
       </div>
     );
@@ -213,7 +216,7 @@ function TypeSearchPicker({ value, onChange, disabled }) {
           onChange={e => { setQuery(e.target.value); setHighlighted(-1); if (!open) setOpen(true); }}
           onFocus={openPicker}
           onKeyDown={handleKey}
-          placeholder="Rechercher un type de monitor…"
+          placeholder={t('form.searchTypePlaceholder')}
           autoComplete="off"
           className={`input pl-8 w-full${open ? ' rounded-b-none border-b-transparent' : ''}`}
         />
@@ -221,7 +224,7 @@ function TypeSearchPicker({ value, onChange, disabled }) {
       {open && (
         <div className="absolute z-50 left-0 right-0 border border-border border-t-0 rounded-b-lg bg-granite-2 max-h-72 overflow-y-auto shadow-lg">
           {filtered.length === 0 ? (
-            <p className="text-sm text-muted text-center py-5">Aucun type trouvé</p>
+            <p className="text-sm text-muted text-center py-5">{t('form.noTypeFound')}</p>
           ) : q ? (
             filtered.map((m, i) => (
               <div key={m.id} onMouseDown={() => selectType(m.id)}
@@ -232,9 +235,9 @@ function TypeSearchPicker({ value, onChange, disabled }) {
               </div>
             ))
           ) : (
-            Object.entries(grouped).map(([catName, items]) => (
-              <div key={catName}>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted/40 px-3 pt-2.5 pb-1 sticky top-0 bg-granite-2">{catName}</p>
+            Object.entries(grouped).map(([catKey, { label: catLabel, items }]) => (
+              <div key={catKey}>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted/40 px-3 pt-2.5 pb-1 sticky top-0 bg-granite-2">{catLabel}</p>
                 {items.map(m => {
                   const gi = filtered.indexOf(m);
                   return (
