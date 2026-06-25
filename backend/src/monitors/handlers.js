@@ -20,6 +20,8 @@ module.exports = {
   dns:            require('./dns'),
   mysql:          require('./mysql'),
   redis:          require('./redis'),
+  mongodb:        require('./mongodb'),
+  tailscale:      require('./tailscale'),
   ollama:         require('./ollama'),
   portforward:    require('./portforward'),
   multistep:      require('./multistep'),

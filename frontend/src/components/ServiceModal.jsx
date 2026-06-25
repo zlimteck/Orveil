@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, Trash2, Wifi, RefreshCw, Image, ChevronDown, Webhook, Copy, Check, RotateCcw } from 'lucide-react';
+import { X, Plus, Trash2, Wifi, RefreshCw, Image, ChevronDown, Webhook, Copy, Check, RotateCcw, Search } from 'lucide-react';
 import { useLang } from '../context/LangContext';
 import { monitors as monitorsApi, settings as settingsApi } from '../api';
 import Portal from './Portal';
@@ -36,9 +36,40 @@ const TYPE_DEFAULTS = {
   dns:            { checkInterval: 5,  reportInterval: 0,  config: { hostname: '', recordType: 'A', expectedValue: '' } },
   mysql:          { checkInterval: 5,  reportInterval: 0,  config: { host: '', port: 3306, user: '', password: '', database: '' } },
   redis:          { checkInterval: 5,  reportInterval: 0,  config: { host: '', port: 6379, password: '' } },
+  mongodb:        { checkInterval: 5,  reportInterval: 0,  config: { host: '', port: 27017, user: '', password: '', database: 'admin' } },
+  tailscale:      { checkInterval: 5,  reportInterval: 0,  config: { apiKey: '', tailnet: '', deviceName: '' } },
   ollama:         { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', rejectUnauthorized: true } },
   portforward:    { checkInterval: 2,  reportInterval: 0,  config: { host: '', port: 80 } },
   multistep:      { checkInterval: 5,  reportInterval: 0,  config: { steps: [{ name: '', url: '', method: 'GET', expectedStatus: 200, body: '', headers: '', extract: '' }] } },
+};
+
+const TYPE_CATEGORIES = {
+  http:          'Web',
+  multistep:     'Web',
+  dns:           'Réseau',
+  ping:          'Réseau',
+  portforward:   'Réseau',
+  ssh:           'Réseau',
+  tailscale:     'Réseau',
+  proxmox:       'Infrastructure',
+  docker:        'Infrastructure',
+  portainer:     'Infrastructure',
+  unraid:        'Infrastructure',
+  mysql:         'Bases de données',
+  redis:         'Bases de données',
+  mongodb:       'Bases de données',
+  cloudflare:    'Services',
+  adguard:       'Services',
+  adguardhome:   'Services',
+  homeassistant: 'Services',
+  syncthing:     'Services',
+  jellyfin:      'Media',
+  immich:        'Media',
+  ollama:        'IA',
+  speedtest:     'Monitoring',
+  heartbeat:     'Monitoring',
+  hms:           'Hébergement',
+  ultracc:       'Hébergement',
 };
 
 const TYPE_LABELS = {
@@ -63,10 +94,165 @@ const TYPE_LABELS = {
   dns:           'DNS',
   mysql:         'MySQL',
   redis:         'Redis',
+  mongodb:       'MongoDB',
+  tailscale:     'Tailscale',
   ollama:        'Ollama',
   portforward:   'Port Forwarding',
   multistep:     'Multi-step HTTP',
 };
+
+function TypeSearchPicker({ value, onChange, disabled }) {
+  const [open, setOpen] = React.useState(false);
+  const [query, setQuery] = React.useState('');
+  const [highlighted, setHighlighted] = React.useState(-1);
+  const inputRef = React.useRef(null);
+  const wrapperRef = React.useRef(null);
+
+  const q = query.trim().toLowerCase();
+  const allItems = Object.entries(TYPE_LABELS).map(([id, name]) => ({
+    id, name, cat: TYPE_CATEGORIES[id] || 'Autres',
+  }));
+  const filtered = q
+    ? allItems.filter(m => m.name.toLowerCase().includes(q) || m.cat.toLowerCase().includes(q))
+    : allItems;
+
+  const grouped = filtered.reduce((acc, m) => {
+    (acc[m.cat] = acc[m.cat] || []).push(m);
+    return acc;
+  }, {});
+
+  React.useEffect(() => {
+    if (!open) return;
+    function onOutside(e) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', onOutside);
+    return () => document.removeEventListener('mousedown', onOutside);
+  }, [open]);
+
+  function openPicker() {
+    setOpen(true);
+    setQuery('');
+    setHighlighted(-1);
+  }
+
+  function selectType(id) {
+    onChange(id);
+    setOpen(false);
+    setQuery('');
+    setHighlighted(-1);
+  }
+
+  function handleKey(e) {
+    if (!open) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlighted(h => Math.min(h + 1, filtered.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlighted(h => Math.max(h - 1, 0));
+    } else if (e.key === 'Enter' && highlighted >= 0) {
+      e.preventDefault();
+      selectType(filtered[highlighted].id);
+    } else if (e.key === 'Escape') {
+      setOpen(false);
+    }
+  }
+
+  function hlText(text) {
+    if (!q) return text;
+    const idx = text.toLowerCase().indexOf(q);
+    if (idx === -1) return text;
+    return [
+      text.slice(0, idx),
+      <mark key="m" className="bg-periwinkle/20 text-periwinkle rounded-sm px-px not-italic">{text.slice(idx, idx + q.length)}</mark>,
+      text.slice(idx + q.length),
+    ];
+  }
+
+  const label = value ? TYPE_LABELS[value] : null;
+  const cat = value ? (TYPE_CATEGORIES[value] || '') : null;
+
+  if (disabled && value) {
+    return (
+      <div className="flex items-center gap-3 bg-periwinkle/8 border border-periwinkle/20 rounded-lg px-3 py-2.5">
+        <ServiceIcon type={value} size={18} />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-thistle">{label}</p>
+          <p className="text-xs text-muted">{cat}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (value && !open) {
+    return (
+      <div className="flex items-center gap-3 bg-periwinkle/8 border border-periwinkle/20 rounded-lg px-3 py-2.5">
+        <ServiceIcon type={value} size={18} />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-thistle">{label}</p>
+          <p className="text-xs text-muted">{cat}</p>
+        </div>
+        <button type="button"
+          onClick={() => { onChange(''); setTimeout(() => { openPicker(); inputRef.current?.focus(); }, 0); }}
+          className="text-xs text-muted hover:text-thistle underline underline-offset-2 transition-colors shrink-0">
+          Changer
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <div className="relative">
+        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={e => { setQuery(e.target.value); setHighlighted(-1); if (!open) setOpen(true); }}
+          onFocus={openPicker}
+          onKeyDown={handleKey}
+          placeholder="Rechercher un type de monitor…"
+          autoComplete="off"
+          className={`input pl-8 w-full${open ? ' rounded-b-none border-b-transparent' : ''}`}
+        />
+      </div>
+      {open && (
+        <div className="absolute z-50 left-0 right-0 border border-border border-t-0 rounded-b-lg bg-granite-2 max-h-72 overflow-y-auto shadow-lg">
+          {filtered.length === 0 ? (
+            <p className="text-sm text-muted text-center py-5">Aucun type trouvé</p>
+          ) : q ? (
+            filtered.map((m, i) => (
+              <div key={m.id} onMouseDown={() => selectType(m.id)}
+                className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors ${highlighted === i ? 'bg-surface' : 'hover:bg-surface'}`}>
+                <ServiceIcon type={m.id} size={16} />
+                <span className="text-sm flex-1 text-thistle">{hlText(m.name)}</span>
+                <span className="text-[10px] text-muted/50 bg-surface rounded px-1.5 py-0.5">{m.cat}</span>
+              </div>
+            ))
+          ) : (
+            Object.entries(grouped).map(([catName, items]) => (
+              <div key={catName}>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted/40 px-3 pt-2.5 pb-1 sticky top-0 bg-granite-2">{catName}</p>
+                {items.map(m => {
+                  const gi = filtered.indexOf(m);
+                  return (
+                    <div key={m.id} onMouseDown={() => selectType(m.id)}
+                      className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors ${highlighted === gi ? 'bg-surface' : 'hover:bg-surface'}`}>
+                      <ServiceIcon type={m.id} size={16} />
+                      <span className="text-sm text-thistle">{m.name}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function SectionDivider({ label }) {
   return (
@@ -870,6 +1056,30 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
     </>
   );
 
+  if (type === 'mongodb') return (
+    <>
+      <div className="grid grid-cols-3 gap-3">
+        <div className="col-span-2">
+          <Field label="Hôte" value={config.host} onChange={v => set('host', v)} placeholder="192.168.1.10" />
+        </div>
+        <Field label="Port" value={config.port} onChange={v => set('port', +v)} type="number" placeholder="27017" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Utilisateur (optionnel)" value={config.user} onChange={v => set('user', v)} placeholder="admin" />
+        <Field label="Mot de passe (optionnel)" value={config.password} onChange={v => set('password', v)} type="password" placeholder="••••••••" />
+      </div>
+      <Field label="Base de données" value={config.database} onChange={v => set('database', v)} placeholder="admin" />
+    </>
+  );
+
+  if (type === 'tailscale') return (
+    <>
+      <Field label="API Key" value={config.apiKey} onChange={v => set('apiKey', v)} type="password" placeholder="tskey-api-xxxx" />
+      <Field label="Tailnet" value={config.tailnet} onChange={v => set('tailnet', v)} placeholder="example.com ou user@github" />
+      <Field label="Filtre device (optionnel)" value={config.deviceName} onChange={v => set('deviceName', v)} placeholder="mon-serveur" />
+    </>
+  );
+
   if (type === 'ollama') return (
     <>
       <Field label="URL Ollama" value={config.apiUrl} onChange={v => set('apiUrl', v)} placeholder="http://192.168.1.10:11434" />
@@ -1192,11 +1402,11 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
   }
   const [form, setForm] = useState(() => {
     const initial = {
-      name: '', type: 'cloudflare', description: '', category: '',
-      enabled: true, checkInterval: 1, reportInterval: 6,
+      name: '', type: '', description: '', category: '',
+      enabled: true, checkInterval: 5, reportInterval: 0,
       cardMetric: null, serviceUrl: '', showOnStatusPage: true,
       slaTarget: '', confirmAfter: 1, dependsOn: [], customIconUrl: '',
-      config: TYPE_DEFAULTS.cloudflare.config,
+      config: {},
     };
     originalFormRef.current = initial;
     return initial;
@@ -1229,6 +1439,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
   }, [monitor]);
 
   const handleTypeChange = (type) => {
+    if (!type) { setForm(f => ({ ...f, type: '', config: {} })); return; }
     const d = TYPE_DEFAULTS[type];
     setForm(f => {
       const autoName = !f.name || Object.values(TYPE_LABELS).includes(f.name);
@@ -1278,7 +1489,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
-            <ServiceIcon type={form.type} size={16} customIconUrl={form.customIconUrl} />
+            {form.type && <ServiceIcon type={form.type} size={16} customIconUrl={form.customIconUrl} />}
             <h2 className="font-semibold text-thistle">{monitor ? (form.name || t('form.titleEdit')) : t('form.titleNew')}</h2>
           </div>
           <button onClick={handleClose} className="btn-ghost p-1.5 rounded-lg"><X size={16} /></button>
@@ -1306,25 +1517,19 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
             {/* Config */}
             {tab === 'config' && (
               <>
+                <div>
+                  <label className="label">{t('form.type')}</label>
+                  <TypeSearchPicker
+                    value={form.type}
+                    onChange={v => handleTypeChange(v)}
+                    disabled={!!monitor}
+                  />
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <Field label={t('form.name')} value={form.name}
                     onChange={v => setForm(f => ({ ...f, name: v }))} placeholder={t('form.namePlaceholder')} />
                   <Field label={t('form.category')} value={form.category}
                     onChange={v => setForm(f => ({ ...f, category: v }))} placeholder={t('form.categoryPlaceholder')} />
-                </div>
-                <div>
-                  <label className="label">{t('form.type')}</label>
-                  <div className="flex items-stretch gap-2">
-                    <div className="flex-shrink-0 flex items-center justify-center px-3 py-2 rounded-lg border border-border bg-surface">
-                      <ServiceIcon key={form.type} type={form.type} size={18} customIconUrl={form.customIconUrl} />
-                    </div>
-                    <select className="input flex-1" value={form.type} disabled={!!monitor}
-                      onChange={e => !monitor && handleTypeChange(e.target.value)}>
-                      {Object.entries(TYPE_LABELS).sort((a, b) => a[1].localeCompare(b[1])).map(([v, l]) => (
-                        <option key={v} value={v}>{l}</option>
-                      ))}
-                    </select>
-                  </div>
                 </div>
                 <Field label={t('form.serviceUrl')} value={form.serviceUrl}
                   onChange={v => setForm(f => ({ ...f, serviceUrl: v }))} placeholder="https://…" />
@@ -1342,11 +1547,13 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
                     <span className="text-sm text-thistle">{t('form.showOnStatusPage')}</span>
                   </label>
                 </div>
-                <div className="border-t border-border pt-3 space-y-3">
-                  <p className="text-xs font-medium text-muted uppercase tracking-wider">{t('form.config')} {TYPE_LABELS[form.type]}</p>
-                  <ConfigFields type={form.type} config={form.config}
-                    onChange={config => setForm(f => ({ ...f, config }))} t={t} proxies={savedProxies} />
-                </div>
+                {form.type && (
+                  <div className="border-t border-border pt-3 space-y-3">
+                    <p className="text-xs font-medium text-muted uppercase tracking-wider">{t('form.config')} {TYPE_LABELS[form.type]}</p>
+                    <ConfigFields type={form.type} config={form.config}
+                      onChange={config => setForm(f => ({ ...f, config }))} t={t} proxies={savedProxies} />
+                  </div>
+                )}
               </>
             )}
 
@@ -1486,7 +1693,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
             </div>
             <div className="flex gap-3">
               <button type="button" onClick={handleClose} className="btn-ghost">{t('form.cancel')}</button>
-              <button type="submit" className="btn-primary">{monitor ? t('form.save') : t('form.create')}</button>
+              <button type="submit" disabled={!form.type} className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed">{monitor ? t('form.save') : t('form.create')}</button>
             </div>
           </div>
         </form>

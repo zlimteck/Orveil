@@ -517,6 +517,34 @@ function MetricsBlock({ monitor }) {
     </div>
   );
 
+  if (type === 'tailscale') return (
+    <div className="space-y-1.5">
+      <div className="flex gap-4 text-xs text-muted">
+        <span>Appareils : <span className={metrics.offline > 0 ? 'text-amber-400 font-medium' : 'text-celadon font-medium'}>{metrics.online}/{metrics.total}</span></span>
+      </div>
+      {(metrics.devices || []).length > 0 && (
+        <div className="space-y-0.5 max-h-28 overflow-y-auto pr-1">
+          {(metrics.devices || []).map((d, i) => (
+            <div key={i} className="flex items-center gap-1.5 text-xs">
+              <span className={d.online ? 'text-celadon' : 'text-amber-400'}>●</span>
+              <span className="text-thistle truncate flex-1">{d.name}</span>
+              {d.os && <span className="text-muted/50 shrink-0">{d.os}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  if (type === 'mongodb') return (
+    <div className="space-y-1 text-xs text-muted">
+      <div className="flex items-center gap-2">
+        {metrics.responseTime != null && <span className={metrics.responseTime > 200 ? 'text-amber-400 font-medium' : 'text-thistle font-medium'}>{metrics.responseTime}ms</span>}
+      </div>
+      {metrics.version && <p className="text-muted/60">v{metrics.version}</p>}
+    </div>
+  );
+
   if (type === 'ollama') return (
     <div className="space-y-1 text-xs text-muted">
       <div className="flex items-center gap-2">

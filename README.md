@@ -27,7 +27,7 @@
 ## Features
 
 - **Unified dashboard** — status overview of all your services at a glance, grid or list view
-- **24 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping/TCP, Port Forwarding, SSH, DNS, MySQL, Redis, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Home Assistant, Portainer, Docker, Syncthing, Immich, HostMyServers, Ultra.cc, Heartbeat, Unraid, Speedtest Tracker, Jellyfin, Ollama
+- **26 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping/TCP, Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Tailscale, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Home Assistant, Portainer, Docker, Syncthing, Immich, HostMyServers, Ultra.cc, Heartbeat, Unraid, Speedtest Tracker, Jellyfin, Ollama
 - **Multi-step HTTP** — chain multiple HTTP requests with variable extraction (JSONPath or response headers) and interpolation between steps; full step-by-step failure reporting
 - **Public status page** — shareable `/status` page (no login required) with uptime bars, open incidents, and 90-day history per service; toggle visibility per service
 - **Global search** — `Cmd+K` / `Ctrl+K` modal searches across monitors, incidents, annotations, and post-mortems simultaneously; results grouped by type with keyboard navigation; click any result to navigate directly to the relevant page or open the service detail
@@ -101,6 +101,8 @@ Default credentials: `admin` / `orveil`
 | **DNS** | DNS record resolution (A, AAAA, CNAME, MX, TXT, NS) — optionally assert expected value |
 | **MySQL** | Ping a MySQL/MariaDB server and retrieve version via `mysql2` |
 | **Redis** | PING a Redis instance and retrieve version via `ioredis` |
+| **MongoDB** | Ping a MongoDB instance and retrieve version via the native `mongodb` driver — supports optional authentication |
+| **Tailscale** | Check tailnet reachability and list all devices with online/offline status via the Tailscale cloud API; optionally filter to a specific device |
 | **SSH** | CPU / RAM via SSH (password or private key) |
 | **Heartbeat** | Cron job / script monitor — alerts if no ping received within expected interval |
 | **Docker** | Container count and status via Docker socket |

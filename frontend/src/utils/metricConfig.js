@@ -99,6 +99,14 @@ const CONFIG = {
   redis: [
     { key: 'responseTime', fr: 'Temps de réponse', en: 'Response time', unit: 'ms' },
   ],
+  mongodb: [
+    { key: 'responseTime', fr: 'Temps de réponse', en: 'Response time', unit: 'ms' },
+  ],
+  tailscale: [
+    { key: 'online',  fr: 'En ligne',  en: 'Online',  unit: '' },
+    { key: 'offline', fr: 'Hors ligne', en: 'Offline', unit: '' },
+    { key: 'total',   fr: 'Total',     en: 'Total',   unit: '' },
+  ],
   ollama: [
     { key: 'modelsCount',  fr: 'Modèles',           en: 'Models',         unit: '' },
     { key: 'responseTime', fr: 'Temps de réponse',  en: 'Response time',  unit: 'ms' },
