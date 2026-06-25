@@ -43,12 +43,24 @@ services:
       retries: 6
       start_period: 15s
 
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: orveil-docker-proxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      INFO: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - orveil
+
   apprise:
     image: caronc/apprise:latest
     container_name: orveil-apprise
     restart: unless-stopped
     ports:
-      - "8008:8000"
+      - "127.0.0.1:8008:8000"                   # bound to localhost only
     networks:
       - orveil
 
@@ -61,19 +73,21 @@ services:
     environment:
       MONGODB_URI: mongodb://orveil:orveil_pass@mongodb:27017/orveil?authSource=admin
       APPRISE_API_URL: http://apprise:8000
+      DOCKER_PROXY_URL: http://docker-proxy:2375
       PORT: 5050
       NODE_ENV: production
-      JWT_SECRET: change-me-in-production        # CHANGE THIS
+      JWT_SECRET: ""                             # REQUIRED: openssl rand -hex 32
       ADMIN_USERNAME: admin
-      ADMIN_PASSWORD: orveil                     # CHANGE THIS
+      ADMIN_PASSWORD: ""                         # REQUIRED: random password generated on first start if omitted
+      COOKIE_SECURE: "false"                     # set to "true" if behind an HTTPS reverse proxy
       ENCRYPTION_KEY:                            # optional: openssl rand -hex 32
       METRICS_TOKEN:                             # optional: openssl rand -hex 32
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
       mongodb:
         condition: service_healthy
       apprise:
+        condition: service_started
+      docker-proxy:
         condition: service_started
     networks:
       - orveil
@@ -196,10 +210,13 @@ Full list: https://github.com/caronc/apprise/wiki
 |----------|---------|-------------|
 | `MONGO_USER` | `orveil` | MongoDB username |
 | `MONGO_PASS` | `orveil_pass` | MongoDB password |
-| `JWT_SECRET` | `orveil-change-me-in-production` | JWT signing secret — **change this** |
+| `JWT_SECRET` | **required** | JWT signing secret — `openssl rand -hex 32` |
 | `ENCRYPTION_KEY` | *(none)* | AES-256-GCM key for encrypting sensitive credentials at rest — **strongly recommended** |
 | `ADMIN_USERNAME` | `admin` | Admin account username |
-| `ADMIN_PASSWORD` | `orveil` | Admin account password — **change this** |
+| `ADMIN_PASSWORD` | *(random)* | Admin account password — printed in logs on first start if not set. **Set this explicitly.** |
+| `DOCKER_PROXY_URL` | *(none)* | URL of the Docker socket proxy — set to `http://docker-proxy:2375` when using the compose above |
+| `COOKIE_SECURE` | `false` | Set to `true` if serving behind an HTTPS reverse proxy — enables `Secure` flag on the session cookie |
+| `FRONTEND_URL` | *(none)* | Required only for split deployments where frontend and backend are on different origins — restricts CORS to this URL in production |
 | `METRICS_TOKEN` | *(none)* | Static Bearer token for the Prometheus metrics endpoint |
 
 **Generate an encryption key:**

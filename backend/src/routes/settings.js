@@ -1,9 +1,19 @@
 const router = require('express').Router();
+const rateLimit = require('express-rate-limit');
+
+const settingsWriteLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Trop de requêtes, réessayez dans une minute.' },
+});
 const axios = require('axios');
 const Settings = require('../models/Settings');
 const Monitor = require('../models/Monitor');
 const { sendNotification } = require('../services/notifier');
 const { encryptConfig, decryptConfig } = require('../utils/crypto');
+const { isSafeUrl } = require('../utils/validateUrl');
 const { getProxyAgents } = require('../monitors/proxyAgent');
 
 router.get('/', async (req, res) => {
@@ -32,8 +42,10 @@ router.get('/', async (req, res) => {
   res.json(obj);
 });
 
-router.put('/', async (req, res) => {
+router.put('/', settingsWriteLimiter, async (req, res) => {
   const { appriseUrls, appriseApiUrl, weeklyReport, showGraphs, statusPage, notificationLanguage, adaptivePolling, notificationCooldown } = req.body;
+  if (statusPage?.logoUrl && !isSafeUrl(statusPage.logoUrl))
+    return res.status(400).json({ error: 'logoUrl: protocole invalide (http/https uniquement)' });
   const update = { appriseUrls, appriseApiUrl };
   if (weeklyReport !== undefined) {
     update['weeklyReport.enabled']   = weeklyReport.enabled   ?? false;
@@ -62,7 +74,7 @@ router.put('/', async (req, res) => {
   res.json(s);
 });
 
-router.post('/mcp/regenerate', async (req, res) => {
+router.post('/mcp/regenerate', settingsWriteLimiter, async (req, res) => {
   const mcpApiKey = require('crypto').randomBytes(24).toString('hex');
   const s = await Settings.findOneAndUpdate(
     { key: 'global' },
@@ -85,7 +97,7 @@ router.get('/export', async (req, res) => {
     return { ...rest, dependsOn: [] }; // clear dependsOn — IDs won't match on another instance
   });
 
-  const { mcpApiKey, _id, __v, key, ...safeSettings } = settings || {};
+  const { mcpApiKey, anthropicApiKey, appriseUrls, appriseApiUrl, _id, __v, key, ...safeSettings } = settings || {};
 
   res.json({
     version: 1,
@@ -223,7 +235,7 @@ router.post('/proxy/test', async (req, res) => {
   }
 });
 
-router.post('/test', async (req, res) => {
+router.post('/test', settingsWriteLimiter, async (req, res) => {
   try {
     const sent = await sendNotification({
       title: 'Test Orveil',

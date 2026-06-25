@@ -4,11 +4,12 @@ const jwt = require('jsonwebtoken');
 const { addClient } = require('../sse');
 
 router.get('/', (req, res) => {
-  const token = req.query.token;
+  const token = req.cookies?.nh_token;
   if (!token) return res.status(401).json({ error: 'Token requis' });
 
   try {
-    jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const { SECRET } = require('../middleware/auth');
+    jwt.verify(token, SECRET);
   } catch {
     return res.status(401).json({ error: 'Token invalide' });
   }

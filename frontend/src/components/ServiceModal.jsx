@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, Trash2, Wifi, RefreshCw, Image, ChevronDown, Webhook, Copy, Check, RotateCcw, Search } from 'lucide-react';
+import { X, Plus, Trash2, Wifi, RefreshCw, Image, ChevronDown, Webhook, Copy, Check, RotateCcw, Search, Eye, EyeOff } from 'lucide-react';
 import { useLang } from '../context/LangContext';
 import { monitors as monitorsApi, settings as settingsApi } from '../api';
 import Portal from './Portal';
@@ -267,11 +267,23 @@ function SectionDivider({ label }) {
 }
 
 function Field({ label, value, onChange, placeholder, type = 'text', hint }) {
+  const [show, setShow] = useState(false);
+  const isPassword = type === 'password';
   return (
     <div>
       <label className="label">{label}</label>
-      <input className="input" type={type} value={value ?? ''} placeholder={placeholder}
-        onChange={e => onChange(e.target.value)} />
+      <div className={isPassword ? 'relative' : undefined}>
+        <input className="input" type={isPassword && show ? 'text' : type}
+          value={value ?? ''} placeholder={placeholder}
+          onChange={e => onChange(e.target.value)}
+          style={isPassword ? { paddingRight: '2.25rem' } : undefined} />
+        {isPassword && (
+          <button type="button" onClick={() => setShow(s => !s)}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-thistle transition-colors">
+            {show ? <EyeOff size={14} /> : <Eye size={14} />}
+          </button>
+        )}
+      </div>
       {hint && <p className="text-xs text-muted mt-1">{hint}</p>}
     </div>
   );
@@ -705,7 +717,7 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
   if (type === 'cloudflare') return (
     <>
       <Field label="API Token" value={config.apiToken} onChange={v => set('apiToken', v)}
-        placeholder="Your Cloudflare API token" hint={t('form.fields.cloudflare.apiTokenHint')} />
+        type="password" placeholder="Your Cloudflare API token" hint={t('form.fields.cloudflare.apiTokenHint')} />
       <Field label="Account ID" value={config.accountId} onChange={v => set('accountId', v)}
         placeholder="Your Account ID" hint={t('form.fields.cloudflare.accountIdHint')} />
       <CFAccessSection config={config} set={set} t={t} />
@@ -716,9 +728,9 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
   if (type === 'adguard') return (
     <>
       <Field label="Access Token" value={config.accessToken} onChange={v => set('accessToken', v)}
-        placeholder="Your AdGuard DNS access token" />
+        type="password" placeholder="Your AdGuard DNS access token" />
       <Field label="Refresh Token" value={config.refreshTok} onChange={v => set('refreshTok', v)}
-        placeholder="Your AdGuard DNS refresh token" hint={t('form.fields.adguard.refreshHint')} />
+        type="password" placeholder="Your AdGuard DNS refresh token" hint={t('form.fields.adguard.refreshHint')} />
       <CFAccessSection config={config} set={set} t={t} />
       <ProxySection config={config} set={set} proxies={proxies} />
     </>
@@ -727,7 +739,7 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
   if (type === 'hms') return (
     <>
       <Field label="HMS Token" value={config.hmsToken} onChange={v => set('hmsToken', v)}
-        placeholder="Your HostMyServers API token" hint={t('form.fields.hms.tokenHint')} />
+        type="password" placeholder="Your HostMyServers API token" hint={t('form.fields.hms.tokenHint')} />
       <div>
         <label className="label">{t('form.vpsServers')}</label>
         <div className="space-y-2">
@@ -762,7 +774,7 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
         placeholder="https://nom.serveur.usbx.me/ultra-api/total-stats"
         hint={t('form.fields.ultracc.urlHint')} />
       <Field label="Ultra Token" value={config.ultraToken} onChange={v => set('ultraToken', v)}
-        placeholder="Your Ultra.cc API token" />
+        type="password" placeholder="Your Ultra.cc API token" />
       <CFAccessSection config={config} set={set} t={t} />
       <ProxySection config={config} set={set} proxies={proxies} />
     </>
@@ -773,7 +785,7 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
       <Field label="URL Syncthing" value={config.apiUrl} onChange={v => set('apiUrl', v)}
         placeholder="http://192.168.1.x:8384" />
       <Field label="API Key" value={config.apiKey} onChange={v => set('apiKey', v)}
-        placeholder={t('form.fields.syncthing.apiKeyHint')} />
+        type="password" placeholder={t('form.fields.syncthing.apiKeyHint')} />
       <div>
         <label className="label">{t('form.fields.syncthing.folderIds')}</label>
         <div className="space-y-2">
@@ -880,7 +892,7 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
     <>
       <Field label="URL API" value={config.apiUrl} onChange={v => set('apiUrl', v)} placeholder="https://192.168.1.10:8006" />
       <Field label="API Token" value={config.apiToken} onChange={v => set('apiToken', v)}
-        placeholder="user@pve!tokenid=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+        type="password" placeholder="user@pve!tokenid=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
         hint={t('form.fields.proxmox.tokenHint')} />
       <Field label={t('form.fields.proxmox.node')} value={config.node} onChange={v => set('node', v)} placeholder="pve" />
       <TlsToggle config={config} set={set} t={t} />
@@ -893,7 +905,7 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
     <>
       <Field label="URL Immich" value={config.apiUrl} onChange={v => set('apiUrl', v)} placeholder="https://immich.example.com" />
       <Field label="API Key" value={config.apiKey} onChange={v => set('apiKey', v)}
-        placeholder={t('form.fields.immich.apiKeyHint')} />
+        type="password" placeholder={t('form.fields.immich.apiKeyHint')} />
       <TlsToggle config={config} set={set} t={t} />
       <CFAccessSection config={config} set={set} t={t} />
       <ProxySection config={config} set={set} proxies={proxies} />
@@ -904,7 +916,7 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
     <>
       <Field label="URL Portainer" value={config.apiUrl} onChange={v => set('apiUrl', v)} placeholder="https://portainer.example.com" />
       <Field label="API Key" value={config.apiKey} onChange={v => set('apiKey', v)}
-        placeholder={t('form.fields.portainer.apiKeyHint')} />
+        type="password" placeholder={t('form.fields.portainer.apiKeyHint')} />
       <TlsToggle config={config} set={set} t={t} />
       <CFAccessSection config={config} set={set} t={t} />
       <ProxySection config={config} set={set} proxies={proxies} />
@@ -958,7 +970,7 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
       <Field label="URL Unraid" value={config.apiUrl} onChange={v => set('apiUrl', v)}
         placeholder="http://192.168.1.10:80" />
       <Field label="API Key" value={config.apiKey} onChange={v => set('apiKey', v)}
-        placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        type="password" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
         hint={t('form.fields.unraid.apiKeyHint')} />
       <TlsToggle config={config} set={set} t={t} />
       <ProxySection config={config} set={set} proxies={proxies} />
@@ -998,7 +1010,7 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
         placeholder="https://speedtest.example.com"
         hint={t('form.fields.speedtest.urlHint')} />
       <Field label="API Key" value={config.apiKey} onChange={v => set('apiKey', v)}
-        placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        type="password" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
         hint={t('form.fields.speedtest.apiKeyHint')} />
       <TlsToggle config={config} set={set} t={t} />
       <ProxySection config={config} set={set} proxies={proxies} />
@@ -1010,7 +1022,7 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
       <Field label="URL Jellyfin" value={config.apiUrl} onChange={v => set('apiUrl', v)}
         placeholder="https://jellyfin.example.com" />
       <Field label="API Key" value={config.apiKey} onChange={v => set('apiKey', v)}
-        placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        type="password" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
         hint={t('form.fields.jellyfin.apiKeyHint')} />
       <TlsToggle config={config} set={set} t={t} />
       <ProxySection config={config} set={set} proxies={proxies} />

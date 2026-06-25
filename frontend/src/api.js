@@ -1,20 +1,11 @@
 import axios from 'axios';
 
-const api = axios.create({ baseURL: '/api' });
-
-api.interceptors.request.use(cfg => {
-  const token = localStorage.getItem('nh_token');
-  if (token) cfg.headers.Authorization = `Bearer ${token}`;
-  return cfg;
-});
+const api = axios.create({ baseURL: '/api', withCredentials: true });
 
 api.interceptors.response.use(
   r => r,
   err => {
-    if (err.response?.status === 401) {
-      localStorage.removeItem('nh_token');
-      window.location.href = '/login';
-    }
+    if (err.response?.status === 401) window.location.href = '/login';
     return Promise.reject(err);
   }
 );

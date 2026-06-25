@@ -65,9 +65,31 @@ router.get('/:id', async (req, res) => {
   res.json(monitor);
 });
 
+const { isSafeUrl } = require('../utils/validateUrl');
+
+const MONITOR_ALLOWED_FIELDS = [
+  'name', 'type', 'description', 'enabled', 'checkInterval', 'reportInterval',
+  'config', 'category', 'position', 'cardMetric', 'serviceUrl', 'showOnStatusPage',
+  'dependsOn', 'slaTarget', 'confirmAfter', 'customIconUrl', 'pinned',
+];
+
+function pickAllowed(body) {
+  return Object.fromEntries(
+    Object.entries(body).filter(([k]) => MONITOR_ALLOWED_FIELDS.includes(k))
+  );
+}
+
+function validateUrls(body) {
+  if (!isSafeUrl(body.serviceUrl))   return 'serviceUrl: protocole invalide (http/https uniquement)';
+  if (!isSafeUrl(body.customIconUrl)) return 'customIconUrl: protocole invalide (http/https uniquement)';
+  return null;
+}
+
 router.post('/', async (req, res) => {
+  const urlError = validateUrls(req.body);
+  if (urlError) return res.status(400).json({ error: urlError });
   try {
-    const monitor = await Monitor.create(req.body);
+    const monitor = await Monitor.create(pickAllowed(req.body));
     if (monitor.enabled) triggerNow(monitor._id).catch(() => {});
     res.status(201).json(monitor);
   } catch (err) {
@@ -76,10 +98,12 @@ router.post('/', async (req, res) => {
 });
 
 router.put('/:id', async (req, res) => {
+  const urlError = validateUrls(req.body);
+  if (urlError) return res.status(400).json({ error: urlError });
   try {
     const monitor = await Monitor.findByIdAndUpdate(
       req.params.id,
-      { ...req.body, lastChecked: null },
+      { ...pickAllowed(req.body), lastChecked: null },
       { new: true, runValidators: true }
     );
     if (!monitor) return res.status(404).json({ error: 'Service introuvable' });
@@ -137,6 +161,7 @@ router.delete('/:id', async (req, res) => {
 router.post('/homeassistant/entities', async (req, res) => {
   const { url, token, rejectUnauthorized = true } = req.body;
   if (!url || !token) return res.status(400).json({ error: 'url et token requis' });
+  if (!isSafeUrl(url)) return res.status(400).json({ error: 'url: protocole invalide (http/https uniquement)' });
   const axios = require('axios');
   const base  = url.replace(/\/$/, '');
   const httpsAgent = rejectUnauthorized ? undefined : new (require('https').Agent)({ rejectUnauthorized: false });

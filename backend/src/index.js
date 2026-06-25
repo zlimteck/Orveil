@@ -2,6 +2,7 @@ require('dotenv').config();
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const { connectDB } = require('./db');
 const runner = require('./monitors/runner');
 const { authMiddleware } = require('./middleware/auth');
@@ -9,13 +10,31 @@ const { authMiddleware } = require('./middleware/auth');
 const app = express();
 
 // Security headers
-app.use(require('helmet')({ contentSecurityPolicy: false }));
+app.use(require('helmet')({
+  strictTransportSecurity: false,  // no TLS cert — avoid HSTS forcing HTTPS
+  contentSecurityPolicy: {
+    useDefaults: false,
+    directives: {
+      defaultSrc:              ["'self'"],
+      scriptSrc:               ["'self'"],
+      styleSrc:                ["'self'", "'unsafe-inline'"],
+      imgSrc:                  ["'self'", "data:", "http:", "https:"],
+      connectSrc:              ["'self'"],
+      frameSrc:                ["'none'"],
+      objectSrc:               ["'none'"],
+    },
+  },
+}));
 
 // CORS — open in dev, restricted to FRONTEND_URL in production
-const corsOrigin = process.env.NODE_ENV === 'production' && process.env.FRONTEND_URL
-  ? process.env.FRONTEND_URL
+const corsOrigin = process.env.NODE_ENV === 'production'
+  ? (process.env.FRONTEND_URL || false)
   : true;
+if (process.env.NODE_ENV === 'production' && !process.env.FRONTEND_URL) {
+  console.warn('[CORS] FRONTEND_URL not set — CORS disabled in production');
+}
 app.use(cors({ origin: corsOrigin, credentials: true }));
+app.use(cookieParser());
 
 // Body size limit
 app.use(express.json({ limit: '1mb' }));
@@ -73,10 +92,22 @@ async function initAdmin() {
   const count = await User.countDocuments();
   if (count === 0) {
     const username = process.env.ADMIN_USERNAME || 'admin';
-    const password = process.env.ADMIN_PASSWORD || 'orveil';
+    const envPassword = process.env.ADMIN_PASSWORD;
+    const password = envPassword || require('crypto').randomBytes(12).toString('hex');
     await User.create({ username, password });
-    console.log(`[Auth] Compte admin créé : ${username} / ${password}`);
-    console.log('[Auth] ⚠️  Changez le mot de passe dans Paramètres !');
+    if (!envPassword) {
+      console.log('');
+      console.log('╔══════════════════════════════════════════════════════════╗');
+      console.log('║  ADMIN_PASSWORD not set — generated a random password:  ║');
+      console.log(`║  Username : ${username.padEnd(44)} ║`);
+      console.log(`║  Password : ${password.padEnd(44)} ║`);
+      console.log('║  Save it now — it will NOT be shown again.              ║');
+      console.log('╚══════════════════════════════════════════════════════════╝');
+      console.log('');
+    } else {
+      console.log(`[Auth] Compte admin créé : ${username}`);
+      console.log('[Auth] ⚠️  Changez le mot de passe dans Paramètres !');
+    }
   }
 }
 

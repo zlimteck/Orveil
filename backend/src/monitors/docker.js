@@ -2,9 +2,14 @@ const http = require('http');
 const i18n = require('../i18n');
 
 function dockerRequest(socketPath, path) {
+  // Prefer DOCKER_PROXY_URL env var (TCP proxy) over direct socket
+  const proxyUrl = process.env.DOCKER_PROXY_URL;
+  const options = proxyUrl
+    ? (() => { const u = new URL(path, proxyUrl); return { host: u.hostname, port: u.port || 2375, path: u.pathname + u.search }; })()
+    : { socketPath, path, headers: { Host: 'localhost' } };
+
   return new Promise((resolve, reject) => {
-    const req = http.get(
-      { socketPath, path, headers: { Host: 'localhost' } },
+    const req = http.get(options,
       (res) => {
         let data = '';
         res.on('data', chunk => data += chunk);

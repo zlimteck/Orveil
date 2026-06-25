@@ -121,8 +121,6 @@ export default function Layout() {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem('nh_token');
-
     function fetchIncidents() {
       incidentsApi.list({ open: true, limit: 100 }).then(data => setOpenIncidents(data.length)).catch(() => {});
     }
@@ -131,7 +129,7 @@ export default function Layout() {
 
     aiApi.status().then(({ configured }) => setAiConfigured(configured)).catch(() => {});
 
-    const es = new EventSource(`/api/events?token=${token}`);
+    const es = new EventSource('/api/events', { withCredentials: true });
     es.addEventListener('monitor', (e) => {
       fetchIncidents();
       // Suppress toasts for the first 5s after page load to avoid spamming on connect

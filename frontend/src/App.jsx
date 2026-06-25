@@ -19,18 +19,18 @@ import NotFound from './pages/NotFound';
 import KonamiEasterEgg from './components/KonamiEasterEgg';
 
 function AuthGuard() {
-  const { token, loading } = useAuth();
+  const { user, loading } = useAuth();
   if (loading) return (
     <div className="min-h-screen bg-surface flex items-center justify-center">
       <p className="text-muted text-sm">Chargement…</p>
     </div>
   );
-  return token ? <Outlet /> : <Navigate to="/login" replace />;
+  return user ? <Outlet /> : <Navigate to="/login" replace />;
 }
 
 function LoginGuard() {
-  const { token } = useAuth();
-  return token ? <Navigate to="/" replace /> : <Login />;
+  const { user } = useAuth();
+  return user ? <Navigate to="/" replace /> : <Login />;
 }
 
 export default function App() {

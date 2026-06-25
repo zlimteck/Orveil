@@ -18,12 +18,24 @@ services:
       retries: 6
       start_period: 15s
 
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: orveil-docker-proxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      INFO: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - orveil
+
   apprise:
     image: caronc/apprise:latest
     container_name: orveil-apprise
     restart: unless-stopped
     ports:
-      - "8008:8000"
+      - "127.0.0.1:8008:8000"
     networks:
       - orveil
 
@@ -38,17 +50,19 @@ services:
       APPRISE_API_URL: http://apprise:8000
       PORT: 5050
       NODE_ENV: production
-      JWT_SECRET: ${JWT_SECRET:-orveil-change-me-in-production}
+      JWT_SECRET: "${JWT_SECRET:?JWT_SECRET is required - run: openssl rand -hex 32}"
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      DOCKER_PROXY_URL: http://docker-proxy:2375
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-orveil}
       METRICS_TOKEN: ${METRICS_TOKEN:-}
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
     depends_on:
       mongodb:
         condition: service_healthy
       apprise:
+        condition: service_started
+      docker-proxy:
         condition: service_started
     networks:
       - orveil
@@ -58,7 +72,7 @@ services:
     container_name: orveil-prometheus
     restart: unless-stopped
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus

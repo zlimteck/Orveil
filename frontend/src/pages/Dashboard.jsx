@@ -798,7 +798,7 @@ function SortableCard({ monitor, hist, dailyHist, showGraphs, onSelect, t, sortM
 
 export default function Dashboard() {
   const { t } = useLang();
-  const { token } = useAuth();
+  const { user } = useAuth();
   const [monitors, setMonitors] = useState([]);
   const location = useLocation();
   const navigate = useNavigate();
@@ -860,7 +860,7 @@ export default function Dashboard() {
   useEffect(() => {
     load(true);
 
-    const es = new EventSource(`/api/events?token=${token}`);
+    const es = new EventSource('/api/events', { withCredentials: true });
     es.addEventListener('monitor', (e) => {
       const data = JSON.parse(e.data);
       setMonitors(prev => prev.map(m => m._id === data.id ? { ...m, ...data } : m));
@@ -868,7 +868,7 @@ export default function Dashboard() {
     es.onerror = () => {};
 
     return () => es.close();
-  }, [token]);
+  }, [user]);
 
   useEffect(() => {
     const id = location.state?.openMonitorId;

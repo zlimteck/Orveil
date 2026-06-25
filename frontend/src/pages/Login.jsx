@@ -18,7 +18,7 @@ export default function Login() {
     setLoading(true);
     try {
       const data = await authApi.login(form);
-      login(data.token, data.username);
+      login(data.username);
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.error || t('login.error'));
