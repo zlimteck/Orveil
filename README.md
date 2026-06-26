@@ -79,7 +79,7 @@ services:
       JWT_SECRET: ""                             # REQUIRED: openssl rand -hex 32
       ADMIN_USERNAME: admin
       ADMIN_PASSWORD: ""                         # REQUIRED: random password generated on first start if omitted
-      COOKIE_SECURE: "false"                     # set to "true" if behind an HTTPS reverse proxy
+      FRONTEND_URL: "http://localhost:3050"        # use https://... if behind a reverse proxy — enables Secure cookie automatically
       ENCRYPTION_KEY:                            # optional: openssl rand -hex 32
       METRICS_TOKEN:                             # optional: openssl rand -hex 32
     depends_on:
@@ -221,8 +221,7 @@ Full list: https://github.com/caronc/apprise/wiki
 | `ADMIN_USERNAME` | `admin` | Admin account username |
 | `ADMIN_PASSWORD` | *(random)* | Admin account password — printed in logs on first start if not set. **Set this explicitly.** |
 | `DOCKER_PROXY_URL` | *(none)* | URL of the Docker socket proxy — set to `http://docker-proxy:2375` when using the compose above |
-| `COOKIE_SECURE` | `false` | Set to `true` if serving behind an HTTPS reverse proxy — enables `Secure` flag on the session cookie |
-| `FRONTEND_URL` | *(none)* | Required only for split deployments where frontend and backend are on different origins — restricts CORS to this URL in production |
+| `FRONTEND_URL` | `http://localhost:3050` | Public URL of the app. Controls session cookie security automatically — `http://` disables the `Secure` flag, `https://` enables it. Also restricts CORS in production. |
 | `METRICS_TOKEN` | *(none)* | Static Bearer token for the Prometheus metrics endpoint |
 
 **Generate an encryption key:**

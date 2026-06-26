@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const InvalidToken = require('../models/InvalidToken');
 const { signToken, SECRET } = require('../middleware/auth');
+const { cookieOptions, clearCookieOptions } = require('../utils/cookieOptions');
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -25,13 +26,24 @@ router.post('/login', loginLimiter, async (req, res) => {
   if (!ok) return res.status(401).json({ error: 'Identifiants incorrects' });
 
   const token = signToken({ id: user._id, username: user.username });
-  res.cookie('nh_token', token, {
-    httpOnly: true,
-    secure: process.env.COOKIE_SECURE === 'true',
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+  res.cookie('nh_token', token, cookieOptions);
   res.json({ username: user.username });
+});
+
+// GET /api/auth/session — always 200, user: null when not logged in
+router.get('/session', async (req, res) => {
+  const token = req.cookies?.nh_token;
+  if (!token) return res.json({ user: null });
+  try {
+    const payload = jwt.verify(token, SECRET);
+    if (payload.jti) {
+      const revoked = await InvalidToken.exists({ jti: payload.jti });
+      if (revoked) return res.json({ user: null });
+    }
+    res.json({ user: { username: payload.username } });
+  } catch {
+    res.json({ user: null });
+  }
 });
 
 // GET /api/auth/me
@@ -61,7 +73,7 @@ router.post('/logout', async (req, res) => {
       }
     } catch {}
   }
-  res.clearCookie('nh_token', { httpOnly: true, secure: process.env.COOKIE_SECURE === 'true', sameSite: 'strict' });
+  res.clearCookie('nh_token', clearCookieOptions);
   res.json({ ok: true });
 });
 
