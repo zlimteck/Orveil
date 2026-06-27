@@ -12,7 +12,7 @@ Orveil exposes a [Model Context Protocol](https://modelcontextprotocol.io) serve
 | `get_monitor` | Full details, metrics, recent snapshots, and changelog entries for a specific monitor |
 | `list_incidents` | Recent incidents with severity, duration, postmortem — filterable by open/resolved or monitor |
 | `get_stats` | Global counts per status |
-| `get_stats_detailed` | Full statistics: MTTR, MTTD, uptime per monitor (30d), SLA compliance, incidents/day, severity breakdown |
+| `get_stats_detailed` | Full statistics: MTTR, MTTN, uptime per monitor (30d), SLA compliance, incidents/day, severity breakdown |
 | `list_annotations` | Manual event markers attached to monitors |
 | `list_postmortems` | Incidents with a written post-mortem (summary, root cause, impact, resolution, lessons) |
 | `get_uptime` | Daily uptime history per monitor (up to 90 days) |

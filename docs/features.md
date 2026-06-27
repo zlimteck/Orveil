@@ -27,7 +27,7 @@
 - **War room** — dedicated full-screen view of all active incidents sorted by severity, with auto-refresh every 30 s
 - **Post-mortem reports** — attach a structured post-mortem (summary, root cause, impact, resolution, lessons learned) to any resolved incident
 - **SLA tracking** — set a target uptime % per monitor; met/breached indicator displayed on the Stats page; SLA uptime excludes maintenance periods
-- **Statistics** — 30-day global view: uptime per service with trend (raw + maintenance-adjusted), SLA status, incident count, MTTR, MTTD, severity breakdown, maintenance summary, notification log, incident heatmap by day/hour
+- **Statistics** — 30-day global view: uptime per service with trend (raw + maintenance-adjusted), SLA status, incident count, MTTR, MTTN, severity breakdown, maintenance summary, notification log, incident heatmap by day/hour
 
 ## Maintenance
 

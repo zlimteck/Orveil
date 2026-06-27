@@ -128,7 +128,7 @@ Set `ADMIN_PASSWORD` in your `.env` to control the initial password.
 - War room — full-screen view of all active incidents
 - Post-mortem reports attached to resolved incidents
 - SLA targets per monitor — met/breached indicator on the Stats page
-- 30-day statistics: MTTR, MTTD, incident heatmap, maintenance-adjusted uptime
+- 30-day statistics: MTTR, MTTN, incident heatmap, maintenance-adjusted uptime
 
 ![Stats](docs/screenshots/2-stats.png)
 
