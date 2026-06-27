@@ -2,18 +2,46 @@ import axios from 'axios';
 
 const api = axios.create({ baseURL: '/api', withCredentials: true });
 
+const LOGIN_PATHS = ['/auth/login', '/auth/totp/verify', '/auth/passkey/login'];
+
 api.interceptors.response.use(
   r => r,
   err => {
-    if (err.response?.status === 401) window.location.href = '/login';
+    const url = err.config?.url || '';
+    if (err.response?.status === 401 && !LOGIN_PATHS.some(p => url.endsWith(p))) {
+      window.location.href = '/login';
+    }
     return Promise.reject(err);
   }
 );
 
 export const auth = {
-  login: (data) => api.post('/auth/login', data).then(r => r.data),
-  me: () => api.get('/auth/me').then(r => r.data),
+  login:          (data) => api.post('/auth/login', data).then(r => r.data),
+  me:             ()     => api.get('/auth/me').then(r => r.data),
   changePassword: (data) => api.post('/auth/change-password', data).then(r => r.data),
+};
+
+export const totp = {
+  status:  ()     => api.get('/auth/totp/status').then(r => r.data),
+  setup:   ()     => api.post('/auth/totp/setup').then(r => r.data),
+  enable:  (code) => api.post('/auth/totp/enable', { code }).then(r => r.data),
+  disable: (password) => api.delete('/auth/totp', { data: { password } }).then(r => r.data),
+  login:   (pendingToken, code) => api.post('/auth/totp/login', { pendingToken, code }).then(r => r.data),
+};
+
+export const passkey = {
+  registerOptions: ()             => api.get('/auth/passkey/register-options').then(r => r.data),
+  register:        (body)         => api.post('/auth/passkey/register', body).then(r => r.data),
+  loginOptions:    ()             => api.get('/auth/passkey/login-options').then(r => r.data),
+  login:           (body)         => api.post('/auth/passkey/login', body).then(r => r.data),
+  list:            ()             => api.get('/auth/passkey/list').then(r => r.data),
+  remove:          (id)           => api.delete(`/auth/passkey/${id}`).then(r => r.data),
+};
+
+export const sessions = {
+  list:      ()    => api.get('/auth/sessions').then(r => r.data),
+  revoke:    (jti) => api.delete(`/auth/sessions/${jti}`).then(r => r.data),
+  revokeAll: ()    => api.delete('/auth/sessions').then(r => r.data),
 };
 
 export const monitors = {

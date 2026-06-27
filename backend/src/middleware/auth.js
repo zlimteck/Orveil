@@ -18,6 +18,14 @@ async function authMiddleware(req, res, next) {
         const revoked = await InvalidToken.exists({ jti: payload.jti });
         if (revoked) return res.status(401).json({ error: 'Token révoqué' });
       }
+      if (payload.jti) {
+        const Session = require('../models/Session');
+        const now = new Date();
+        Session.findOneAndUpdate(
+          { jti: payload.jti, lastSeenAt: { $lt: new Date(now - 5 * 60 * 1000) } },
+          { $set: { lastSeenAt: now } },
+        ).catch(() => {});
+      }
       req.user = payload;
       return next();
     } catch {

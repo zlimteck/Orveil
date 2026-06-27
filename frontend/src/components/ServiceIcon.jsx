@@ -133,12 +133,17 @@ export default function ServiceIcon({ type, size = 20, url, faviconUrl, serviceU
   // Some self-hosted types require auth even for /favicon.ico — never attempt a
   // live browser fetch for these, it produces 401/404 console errors.
   const AUTH_GATED = new Set(['adguardhome', 'homeassistant', 'proxmox', 'portainer', 'immich', 'syncthing', 'unraid', 'jellyfin']);
+  const PRIVATE_HOST = /^(localhost|127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|::1$|fe80:)/i;
+  const isPublicUrl = (u) => { try { const h = new URL(u).hostname; return h.includes('.') && !PRIVATE_HOST.test(h); } catch { return false; } };
   const faviconSrc = (() => {
-    if (faviconUrl) return faviconUrl;
+    if (faviconUrl && isPublicUrl(faviconUrl)) return faviconUrl;
     if (AUTH_GATED.has(type)) return null;
     for (const base of [serviceUrl, url]) {
       if (!base) continue;
-      try { return `${new URL(base).origin}/favicon.ico`; } catch {}
+      try {
+        const origin = new URL(base).origin;
+        if (isPublicUrl(origin)) return `${origin}/favicon.ico`;
+      } catch {}
     }
     return null;
   })();

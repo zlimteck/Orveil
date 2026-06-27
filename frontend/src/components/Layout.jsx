@@ -45,7 +45,7 @@ function UserFooter({ onLogout }) {
   const { user } = useAuth();
   const initial = (user?.username?.[0] ?? '?').toUpperCase();
   return (
-    <div className="p-3 border-t border-border flex items-center gap-2.5 safe-bottom">
+    <div className="px-4 pt-3 pb-4 border-t border-border flex items-center gap-2.5">
       <div className="w-7 h-7 rounded-full bg-periwinkle/20 border border-periwinkle/30 flex items-center justify-center shrink-0">
         <span className="text-xs font-semibold text-periwinkle">{initial}</span>
       </div>

@@ -349,7 +349,7 @@ export default function Incidents() {
             </h1>
             <p className="text-xs text-muted mt-0.5">{t('incidents.warRoomHint')}</p>
           </div>
-          <button onClick={() => setWarRoom(false)} className="btn-ghost px-3 py-1.5 rounded-lg text-xs text-muted hover:text-thistle border border-border">
+          <button onClick={() => setWarRoom(false)} className="btn-ghost border border-border">
             ← {t('incidents.title')}
           </button>
         </div>
@@ -383,7 +383,7 @@ export default function Incidents() {
           <p className="text-xs md:text-sm text-muted mt-0.5">{t('incidents.subtitle')(open.length, closed.length)}</p>
         </div>
         {open.length > 0 && (
-          <button onClick={() => setWarRoom(true)} className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-400 bg-red-900/20 border border-red-900/40 hover:bg-red-900/30 transition-colors">
+          <button onClick={() => setWarRoom(true)} className="btn-danger shrink-0">
             <Siren size={13} />
             {t('incidents.warRoom')}
           </button>

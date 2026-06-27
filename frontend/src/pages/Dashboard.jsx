@@ -824,7 +824,6 @@ export default function Dashboard() {
 
   const handleBulkAction = async (action) => {
     if (!bulkSelected.size) return;
-    if (action === 'delete' && !window.confirm(t('dashboard.bulkDeleteConfirm', { count: bulkSelected.size }))) return;
     const ids = [...bulkSelected];
     await monitorsApi.bulk(ids, action);
     setBulkSelected(new Set());

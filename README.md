@@ -146,6 +146,12 @@ Set `ADMIN_PASSWORD` in your `.env` to control the initial password.
 - Per-monitor changelog webhooks for CI/CD integration
 - Backup & restore (JSON export/import)
 
+**Account security**
+- TOTP two-factor authentication with backup codes
+- Passkeys (WebAuthn — Face ID, Touch ID, hardware security key)
+- Active session management — GeoIP location, per-session revocation
+- Password change with automatic revocation of all other sessions
+
 **UX**
 - Public status page — shareable `/status` with 90-day uptime history
 - Global search `Cmd+K` — monitors, incidents, annotations, post-mortems

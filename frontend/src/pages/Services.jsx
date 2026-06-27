@@ -163,7 +163,6 @@ export default function Services() {
   }
 
   async function handleBulkAction(action) {
-    if (action === 'delete' && !window.confirm(t('dashboard.bulkDeleteConfirm', { count: bulkSelected.size }))) return;
     const ids = [...bulkSelected];
     await api.bulk(ids, action);
     setBulkSelected(new Set());

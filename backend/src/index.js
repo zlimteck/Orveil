@@ -44,7 +44,9 @@ const publicDir = path.join(__dirname, '../public');
 app.use(express.static(publicDir));
 
 // Public API routes
-app.use('/api/auth',   require('./routes/auth'));
+app.use('/api/auth',         require('./routes/auth'));
+app.use('/api/auth/totp',    require('./routes/totp'));
+app.use('/api/auth/passkey', require('./routes/passkey'));
 app.use('/api/ping',   require('./routes/ping'));
 app.use('/api/events', require('./routes/sse'));
 app.use('/api/public', require('./routes/public'));

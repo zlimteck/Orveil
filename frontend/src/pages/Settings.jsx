@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { settings as api, auth as authApi, ai as aiApi } from '../api';
-import { Save, Send, Info, KeyRound, CalendarClock, BarChart2, Globe, Copy, Check, RefreshCw, Server, Download, Upload, AlertTriangle, Network, Wifi, Plus, Pencil, Trash2, ChevronDown, ChevronUp, Bot, Zap, BellOff } from 'lucide-react';
+import { settings as api, auth as authApi, ai as aiApi, sessions as sessionsApi, totp as totpApi, passkey as passkeyApi } from '../api';
+import { startRegistration } from '@simplewebauthn/browser';
+import { Save, Send, Info, KeyRound, CalendarClock, BarChart2, Globe, Copy, Check, RefreshCw, Server, Download, Upload, AlertTriangle, Network, Wifi, Plus, Pencil, Trash2, ChevronDown, ChevronUp, Bot, Zap, BellOff, LogOut, Monitor, ShieldCheck, Fingerprint, ShieldOff } from 'lucide-react';
 import { useLang } from '../context/LangContext';
 import { useToast } from '../context/ToastContext';
 
@@ -110,6 +111,7 @@ function ProxiesCard({ proxies, setProxies, t }) {
   const [testing, setTesting] = useState(null);
   const [testResults, setTestResults] = useState({});
   const [saving, setSaving] = useState(false);
+  const [confirmDeleteProxy, setConfirmDeleteProxy] = useState(null);
 
   async function handleAdd(form) {
     setSaving(true);
@@ -134,10 +136,10 @@ function ProxiesCard({ proxies, setProxies, t }) {
   }
 
   async function handleDelete(id) {
-    if (!window.confirm(t('settings.proxies.confirmDelete'))) return;
     try {
       await api.deleteProxy(id);
       setProxies(prev => prev.filter(p => p._id !== id));
+      setConfirmDeleteProxy(null);
     } catch { toast.add('Error', 'error'); }
   }
 
@@ -207,10 +209,23 @@ function ProxiesCard({ proxies, setProxies, t }) {
                   className="btn-ghost border border-border p-1.5">
                   {isEditing ? <ChevronUp size={13} /> : <Pencil size={13} />}
                 </button>
-                <button type="button" onClick={() => handleDelete(proxy._id)}
-                  className="btn-ghost border border-border p-1.5 hover:border-red-400 hover:text-red-400">
-                  <Trash2 size={13} />
-                </button>
+                {confirmDeleteProxy === proxy._id ? (
+                  <>
+                    <button type="button" onClick={() => handleDelete(proxy._id)}
+                      className="btn-danger text-xs px-2 py-1">
+                      {t('settings.proxies.confirmDelete')}
+                    </button>
+                    <button type="button" onClick={() => setConfirmDeleteProxy(null)}
+                      className="btn-ghost border border-border text-xs px-2 py-1">
+                      {t('settings.proxies.cancel')}
+                    </button>
+                  </>
+                ) : (
+                  <button type="button" onClick={() => setConfirmDeleteProxy(proxy._id)}
+                    className="btn-ghost border border-border p-1.5 hover:border-red-400 hover:text-red-400">
+                    <Trash2 size={13} />
+                  </button>
+                )}
               </div>
 
               {result && (
@@ -252,22 +267,404 @@ function ProxiesCard({ proxies, setProxies, t }) {
   );
 }
 
+function TotpCard() {
+  const { t } = useLang();
+  const toast = useToast();
+  const [status, setStatus] = useState(null);
+  const [step, setStep] = useState('idle'); // idle | setup | backup
+  const [qr, setQr] = useState('');
+  const [secret, setSecret] = useState('');
+  const [code, setCode] = useState('');
+  const [enableError, setEnableError] = useState('');
+  const [backupCodes, setBackupCodes] = useState([]);
+  const [disablePassword, setDisablePassword] = useState('');
+  const [disableError, setDisableError] = useState('');
+  const [disabling, setDisabling] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    totpApi.status().then(setStatus).catch(() => {});
+  }, []);
+
+  async function handleSetup() {
+    setSaving(true);
+    try {
+      const data = await totpApi.setup();
+      setQr(data.qrDataUrl);
+      setSecret(data.secret);
+      setStep('setup');
+    } catch (err) { toast.add(err.response?.data?.error || '❌ Error', 'error'); }
+    setSaving(false);
+  }
+
+  async function handleEnable(e) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const data = await totpApi.enable(code);
+      setBackupCodes(data.backupCodes);
+      setStatus({ enabled: true, backupCodesRemaining: data.backupCodes.length });
+      setStep('backup');
+      toast.add(t('settings.totp.setupOk'), 'success');
+    } catch (err) { setEnableError(err.response?.data?.error || t('settings.totp.invalidCode')); }
+    setSaving(false);
+  }
+
+  async function handleDisable() {
+    if (!disablePassword) return;
+    setDisabling(true);
+    setDisableError('');
+    try {
+      await totpApi.disable(disablePassword);
+      setStatus({ enabled: false, backupCodesRemaining: 0 });
+      setDisablePassword('');
+      toast.add(t('settings.totp.disableOk'), 'success');
+    } catch (err) { setDisableError(err.response?.data?.error || '❌ Error'); }
+    setDisabling(false);
+  }
+
+  return (
+    <div className="card space-y-4">
+      <h2 className="font-semibold text-thistle text-sm flex items-center gap-2">
+        <ShieldCheck size={14} className="text-periwinkle" /> {t('settings.totp.title')}
+      </h2>
+
+      {step === 'backup' ? (
+        <div className="space-y-4">
+          <p className="font-medium text-sm text-thistle">{t('settings.totp.backupCodesTitle')}</p>
+          <p className="text-xs text-muted">{t('settings.totp.backupCodesHint')}</p>
+          <div className="grid grid-cols-2 gap-2">
+            {backupCodes.map((c, i) => (
+              <code key={i} className="text-xs bg-granite-3/60 border border-border rounded-lg px-3 py-2 font-mono text-center text-thistle">{c}</code>
+            ))}
+          </div>
+          <button onClick={() => setStep('idle')} className="btn-primary">
+            {t('settings.totp.done')}
+          </button>
+        </div>
+      ) : status?.enabled ? (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-sm text-celadon">
+            <ShieldCheck size={14} /> {t('settings.totp.enabled')} · {status.backupCodesRemaining} {t('settings.totp.backupCodes')}
+          </div>
+          <p className="text-xs text-muted">{t('settings.totp.disableConfirm')}</p>
+          <input className="input" type="password" placeholder={t('settings.totp.passwordPlaceholder')}
+            value={disablePassword} onChange={e => { setDisablePassword(e.target.value); setDisableError(''); }} />
+          {disableError && <p className="text-xs text-red-400 bg-red-900/20 border border-red-900/40 rounded-lg px-3 py-2">{disableError}</p>}
+          <button onClick={handleDisable} disabled={disabling || !disablePassword} className="btn-danger disabled:opacity-40">
+            <ShieldOff size={14} /> {t('settings.totp.disable')}
+          </button>
+        </div>
+      ) : step === 'idle' ? (
+        <div className="space-y-3">
+          <p className="text-xs text-muted">{t('settings.totp.hint')}</p>
+          <button onClick={handleSetup} disabled={saving} className="btn-primary disabled:opacity-40">
+            <ShieldCheck size={14} /> {t('settings.totp.setup')}
+          </button>
+        </div>
+      ) : step === 'setup' ? (
+        <div className="space-y-4">
+          <p className="text-xs text-muted">{t('settings.totp.scanQr')}</p>
+          <img src={qr} alt="QR TOTP" className="w-40 h-40 rounded-lg mx-auto" />
+          <div className="space-y-1">
+            <p className="text-xs text-muted">{t('settings.totp.manualKey')}</p>
+            <code className="block text-xs bg-granite-3/60 border border-border rounded-lg px-3 py-2 font-mono break-all text-thistle">{secret}</code>
+          </div>
+          <form onSubmit={handleEnable} className="space-y-3">
+            <p className="text-xs text-muted">{t('settings.totp.verifyCode')}</p>
+            <input className="input text-center tracking-widest text-lg" type="text" inputMode="numeric"
+              maxLength={6} placeholder={t('settings.totp.codePlaceholder')}
+              value={code} onChange={e => { setCode(e.target.value.replace(/\D/g, '')); setEnableError(''); }} autoFocus />
+            {enableError && <p className="text-xs text-red-400 bg-red-900/20 border border-red-900/40 rounded-lg px-3 py-2">{enableError}</p>}
+            <button type="submit" disabled={saving || code.length !== 6} className="btn-primary w-full justify-center disabled:opacity-40">
+              {t('settings.totp.activate')}
+            </button>
+          </form>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function PasskeysCard() {
+  const { t } = useLang();
+  const toast = useToast();
+  const [list, setList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState('');
+  const [removing, setRemoving] = useState(null);
+  const [confirmRemove, setConfirmRemove] = useState(null);
+
+  useEffect(() => {
+    passkeyApi.list().then(setList).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  async function handleAdd() {
+    if (!window.PublicKeyCredential) {
+      toast.add(t('settings.passkeys.notSupported'), 'error');
+      return;
+    }
+    setAdding(true);
+    try {
+      const { challengeId, options } = await passkeyApi.registerOptions();
+      const credential = await startRegistration(options);
+      const result = await passkeyApi.register({ challengeId, credential, name: name || 'Passkey' });
+      setList(prev => [...prev, result.passkey]);
+      setName('');
+      toast.add(t('settings.passkeys.addOk'), 'success');
+    } catch (err) {
+      if (err.name !== 'NotAllowedError') {
+        toast.add(err.response?.data?.error || err.message || '❌ Error', 'error');
+      }
+    }
+    setAdding(false);
+  }
+
+  async function handleRemove(id) {
+    setRemoving(id);
+    try {
+      await passkeyApi.remove(id);
+      setList(prev => prev.filter(pk => pk._id !== id && pk._id?.toString() !== id));
+      toast.add(t('settings.passkeys.removeOk'), 'success');
+    } catch (err) { toast.add(err.response?.data?.error || '❌ Error', 'error'); }
+    setRemoving(null);
+    setConfirmRemove(null);
+  }
+
+  return (
+    <div className="card space-y-4">
+      <h2 className="font-semibold text-thistle text-sm flex items-center gap-2">
+        <Fingerprint size={14} className="text-periwinkle" /> {t('settings.passkeys.title')}
+      </h2>
+      <p className="text-xs text-muted">{t('settings.passkeys.hint')}</p>
+
+      {loading ? <p className="text-xs text-muted">{t('dashboard.loading')}</p> : (
+        <div className="space-y-2">
+          {list.length === 0 && <p className="text-xs text-muted italic">{t('settings.passkeys.empty')}</p>}
+          {list.map(pk => (
+            <div key={pk._id || pk.credentialID} className="rounded-xl border border-border px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm text-thistle font-medium truncate">{pk.name}</p>
+                  <p className="text-xs text-muted">{t('settings.passkeys.createdAt')} {fmtDate(pk.createdAt)}</p>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {confirmRemove === pk._id ? (
+                    <>
+                      <button onClick={() => handleRemove(pk._id)} disabled={removing === pk._id}
+                        className="btn-danger text-xs px-2 py-1 disabled:opacity-40">
+                        {t('settings.passkeys.confirmRemove')}
+                      </button>
+                      <button onClick={() => setConfirmRemove(null)}
+                        className="btn-ghost border border-border text-xs px-2 py-1">
+                        {t('settings.passkeys.cancel')}
+                      </button>
+                    </>
+                  ) : (
+                    <button onClick={() => setConfirmRemove(pk._id)}
+                      className="btn-ghost border border-border p-1.5 hover:border-red-400 hover:text-red-400">
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="space-y-2 pt-2 border-t border-border">
+        <label className="label">{t('settings.passkeys.nameLabel')}</label>
+        <input className="input" placeholder={t('settings.passkeys.namePlaceholder')}
+          value={name} onChange={e => setName(e.target.value)} />
+        <button onClick={handleAdd} disabled={adding} className="btn-primary disabled:opacity-40">
+          <Fingerprint size={14} /> {adding ? t('login.passkeyWaiting') : t('settings.passkeys.add')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function parseUA(ua) {
+  if (!ua) return 'Unknown';
+  const browser =
+    /Edg\//.test(ua)           ? 'Edge' :
+    /OPR\/|Opera/.test(ua)     ? 'Opera' :
+    /Firefox\//.test(ua)       ? 'Firefox' :
+    /Chrome\//.test(ua)        ? 'Chrome' :
+    /Safari\//.test(ua)        ? 'Safari' :
+    'Browser';
+  const os =
+    /iPhone/.test(ua)          ? 'iPhone' :
+    /iPad/.test(ua)            ? 'iPad' :
+    /Android/.test(ua)         ? 'Android' :
+    /Windows NT/.test(ua)      ? 'Windows' :
+    /Mac OS X/.test(ua)        ? 'macOS' :
+    /Linux/.test(ua)           ? 'Linux' :
+    'Unknown OS';
+  return `${browser} · ${os}`;
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+function SessionsCard() {
+  const { t } = useLang();
+  const toast = useToast();
+  const [list, setList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [revoking, setRevoking] = useState(null);
+  const [revokingAll, setRevokingAll] = useState(false);
+  const [confirmRevoke, setConfirmRevoke] = useState(null);
+  const [confirmRevokeAll, setConfirmRevokeAll] = useState(false);
+
+  async function load() {
+    setLoading(true);
+    try {
+        const data = await sessionsApi.list();
+        setList([...data.filter(s => s.isCurrent), ...data.filter(s => !s.isCurrent)]);
+      } catch {}
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function handleRevoke(jti) {
+    setRevoking(jti);
+    try {
+      await sessionsApi.revoke(jti);
+      setList(prev => prev.filter(s => s.jti !== jti));
+      toast.add(t('settings.sessions.revokeDone'), 'success');
+    } catch (err) {
+      toast.add(err.response?.data?.error || '❌ Error', 'error');
+    }
+    setRevoking(null);
+  }
+
+  async function handleRevokeAll() {
+    setRevokingAll(true);
+    try {
+      await sessionsApi.revokeAll();
+      setList(prev => prev.filter(s => s.isCurrent));
+      toast.add(t('settings.sessions.revokeAllDone'), 'success');
+    } catch (err) {
+      toast.add(err.response?.data?.error || '❌ Error', 'error');
+    }
+    setRevokingAll(false);
+  }
+
+  const others = list.filter(s => !s.isCurrent);
+
+  return (
+    <div className="card space-y-4">
+      <h2 className="font-semibold text-thistle text-sm flex items-center gap-2">
+        <Monitor size={14} className="text-periwinkle" /> {t('settings.sessions.title')}
+      </h2>
+
+      {loading ? (
+        <p className="text-xs text-muted">{t('dashboard.loading')}</p>
+      ) : (
+        <div className="space-y-2">
+          {list.map(s => (
+            <div key={s.jti}
+              className={`rounded-xl border px-4 py-3 space-y-2 transition-colors ${s.isCurrent ? 'border-periwinkle/40 bg-periwinkle/5' : 'border-border bg-granite-3/30'}`}>
+              <div className="flex items-center justify-between gap-3">
+                {/* Icône + nom + badge */}
+                <div className="flex items-center gap-2 min-w-0">
+                  <Monitor size={13} className={`shrink-0 ${s.isCurrent ? 'text-periwinkle' : 'text-muted'}`} />
+                  <span className="text-sm text-thistle font-medium truncate">{parseUA(s.userAgent)}</span>
+                  {s.isCurrent && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-periwinkle/20 text-periwinkle font-medium shrink-0">
+                      {t('settings.sessions.current')}
+                    </span>
+                  )}
+                </div>
+                {/* Bouton révoquer */}
+                {!s.isCurrent && (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {confirmRevoke === s.jti ? (
+                      <>
+                        <button onClick={() => { setConfirmRevoke(null); handleRevoke(s.jti); }}
+                          disabled={revoking === s.jti}
+                          className="btn-danger text-xs px-2 py-1 disabled:opacity-40">
+                          {t('settings.sessions.confirmRevoke')}
+                        </button>
+                        <button onClick={() => setConfirmRevoke(null)}
+                          className="btn-ghost border border-border text-xs px-2 py-1">
+                          {t('settings.sessions.cancel')}
+                        </button>
+                      </>
+                    ) : (
+                      <button onClick={() => setConfirmRevoke(s.jti)} disabled={revoking === s.jti}
+                        className="btn-ghost border border-border p-1.5 hover:border-red-400 hover:text-red-400 disabled:opacity-40">
+                        <LogOut size={13} />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+              {/* Localisation + dates */}
+              <div className="text-xs text-muted pl-5 flex flex-wrap gap-x-4 gap-y-0.5">
+                {s.location && <span>{s.location}</span>}
+                <span>{t('settings.sessions.loginAt')}: {fmtDate(s.createdAt)}</span>
+                <span>{t('settings.sessions.lastSeen')}: {fmtDate(s.lastSeenAt)}</span>
+              </div>
+            </div>
+          ))}
+
+          {others.length === 0 && !loading && (
+            <p className="text-xs text-muted italic">{t('settings.sessions.empty')}</p>
+          )}
+        </div>
+      )}
+
+      {others.length > 0 && (
+        <div className="flex items-center gap-1.5">
+          {confirmRevokeAll ? (
+            <>
+              <button onClick={() => { setConfirmRevokeAll(false); handleRevokeAll(); }}
+                disabled={revokingAll}
+                className="btn-danger disabled:opacity-40">
+                {t('settings.sessions.confirmRevoke')}
+              </button>
+              <button onClick={() => setConfirmRevokeAll(false)}
+                className="btn-ghost border border-border">
+                {t('settings.sessions.cancel')}
+              </button>
+            </>
+          ) : (
+            <button onClick={() => setConfirmRevokeAll(true)} disabled={revokingAll}
+              className="btn-danger disabled:opacity-40">
+              <LogOut size={13} /> {t('settings.sessions.revokeAll')}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ChangePassword() {
   const { t } = useLang();
   const toast = useToast();
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirm: '' });
+  const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (form.newPassword !== form.confirm) { toast.add(t('settings.password.mismatch'), 'error'); return; }
+    if (form.newPassword !== form.confirm) { setError(t('settings.password.mismatch')); return; }
+    setError('');
     setSaving(true);
     try {
       await authApi.changePassword({ currentPassword: form.currentPassword, newPassword: form.newPassword });
       toast.add(t('settings.password.ok'), 'success');
       setForm({ currentPassword: '', newPassword: '', confirm: '' });
     } catch (err) {
-      toast.add(err.response?.data?.error || '❌ Error', 'error');
+      setError(err.response?.data?.error || '❌ Error');
     }
     setSaving(false);
   }
@@ -283,7 +680,8 @@ function ChangePassword() {
         <input className="input" type="password" placeholder={t('settings.password.new')}
           value={form.newPassword} onChange={e => setForm(f => ({ ...f, newPassword: e.target.value }))} />
         <input className="input" type="password" placeholder={t('settings.password.confirm')}
-          value={form.confirm} onChange={e => setForm(f => ({ ...f, confirm: e.target.value }))} />
+          value={form.confirm} onChange={e => { setForm(f => ({ ...f, confirm: e.target.value })); setError(''); }} />
+        {error && <p className="text-xs text-red-400 bg-red-900/20 border border-red-900/40 rounded-lg px-3 py-2">{error}</p>}
         <button type="submit" disabled={saving} className="btn-primary">
           <Save size={14} /> {saving ? t('settings.password.saving') : t('settings.save')}
         </button>
@@ -859,6 +1257,9 @@ export default function Settings() {
       {/* ── Système ── */}
       {tab === 'system' && <>
       <ChangePassword />
+      <TotpCard />
+      <PasskeysCard />
+      <SessionsCard />
 
       <div className="card space-y-4">
         <h2 className="font-semibold text-thistle text-sm flex items-center gap-2">
@@ -871,10 +1272,10 @@ export default function Settings() {
           {t('settings.backup.warning')}
         </div>
         <div className="flex gap-3">
-          <button onClick={handleExport} className="btn-ghost border border-border px-4 py-2 rounded-lg text-sm flex items-center gap-2">
+          <button onClick={handleExport} className="btn-ghost border border-border">
             <Download size={14} /> {t('settings.backup.export')}
           </button>
-          <label className={`btn-ghost border border-border px-4 py-2 rounded-lg text-sm flex items-center gap-2 cursor-pointer ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
+          <label className={`btn-ghost border border-border cursor-pointer ${importing ? 'opacity-50 pointer-events-none' : ''}`}>
             <Upload size={14} /> {importing ? t('settings.backup.importing') : t('settings.backup.import')}
             <input type="file" accept=".json" className="hidden" onChange={handleImport} />
           </label>

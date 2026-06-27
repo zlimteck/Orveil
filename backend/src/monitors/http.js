@@ -5,12 +5,19 @@ const cfHeaders = require('./cfHeaders');
 const { getProxyAgents } = require('./proxyAgent');
 const i18n = require('../i18n');
 
+const PRIVATE_HOST = /^(localhost|127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|::1$|fe80:)/i;
+
 function extractFavicon(html, base) {
   if (!html || typeof html !== 'string') return null;
   const m = html.match(/<link[^>]+rel=["'](?:shortcut icon|icon)["'][^>]+href=["']([^"']+)["']/i)
           || html.match(/<link[^>]+href=["']([^"']+)["'][^>]+rel=["'](?:shortcut icon|icon)["']/i);
   if (!m) return null;
-  try { return new URL(m[1], base).href; } catch { return null; }
+  try {
+    const resolved = new URL(m[1], base).href;
+    const hostname = new URL(resolved).hostname;
+    if (!hostname.includes('.') || PRIVATE_HOST.test(hostname)) return null;
+    return resolved;
+  } catch { return null; }
 }
 
 function checkSSLCert(hostname, port = 443) {

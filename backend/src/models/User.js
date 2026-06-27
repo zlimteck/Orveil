@@ -4,6 +4,19 @@ const bcrypt = require('bcryptjs');
 const schema = new mongoose.Schema({
   username: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: { type: String, required: true },
+  totp: {
+    secret:      { type: String, default: null },
+    enabled:     { type: Boolean, default: false },
+    backupCodes: [{ type: String }],
+  },
+  passkeys: [{
+    credentialID: { type: String, required: true },
+    publicKey:    { type: String, required: true },
+    counter:      { type: Number, default: 0 },
+    deviceType:   { type: String, default: '' },
+    name:         { type: String, default: 'Passkey' },
+    createdAt:    { type: Date, default: Date.now },
+  }],
 }, { timestamps: true });
 
 schema.pre('save', async function () {

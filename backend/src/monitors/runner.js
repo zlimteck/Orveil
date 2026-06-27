@@ -49,7 +49,7 @@ function resolveProxy(monitor, settings, globalProxy) {
   return globalProxy;
 }
 
-async function runCheck(monitor, globalProxy = null, lang = 'fr') {
+async function runCheck(monitor, globalProxy = null, lang = 'fr', settings = null) {
   const handler = handlers[monitor.type];
   if (!handler) return;
 
@@ -303,7 +303,7 @@ async function tick() {
     const lastCheck = monitor.lastChecked ? monitor.lastChecked.getTime() : 0;
     if (now - lastCheck >= checkMs) {
       const proxyForMonitor = resolveProxy(monitor, settings, globalProxy);
-      runCheck(monitor, proxyForMonitor, lang).catch(err => console.error(`[Runner] tick error ${monitor.name}:`, err.message));
+      runCheck(monitor, proxyForMonitor, lang, settings).catch(err => console.error(`[Runner] tick error ${monitor.name}:`, err.message));
     }
 
     if (monitor.reportInterval > 0) {
@@ -377,7 +377,7 @@ async function triggerNow(monitorId) {
     const globalProxy = activeProxy ? decryptConfig(activeProxy) : null;
     const lang = settings?.notificationLanguage || 'fr';
     const m = { ...monitor.toObject(), lastChecked: null };
-    runCheck(m, resolveProxy(m, settings, globalProxy), lang);
+    runCheck(m, resolveProxy(m, settings, globalProxy), lang, settings);
   }
 }
 
