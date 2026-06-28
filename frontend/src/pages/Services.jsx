@@ -136,6 +136,7 @@ export default function Services() {
   const { t } = useLang();
   const toast = useToast();
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const [running, setRunning] = useState({});
   const [runningAll, setRunningAll] = useState(false);
@@ -171,6 +172,7 @@ export default function Services() {
 
   async function load() {
     setItems(await api.list());
+    setLoading(false);
   }
 
   useEffect(() => {
@@ -472,7 +474,28 @@ export default function Services() {
         </div>
       </div>
 
-      {items.length === 0 && (
+      {loading && (
+        <div className="space-y-3">
+          {[0,1,2,3,4].map(i => (
+            <div key={i} className="card">
+              <div className="flex items-start gap-3">
+                <div className="skeleton w-6 h-6 rounded-lg shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="skeleton h-3.5 w-32 rounded" />
+                    <div className="skeleton h-5 w-14 rounded-full" />
+                  </div>
+                  <div className="skeleton h-2.5 w-48 rounded" />
+                  <div className="skeleton h-2.5 w-36 rounded" />
+                </div>
+                <div className="skeleton w-6 h-6 rounded-lg shrink-0" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!loading && items.length === 0 && (
         <div className="card text-center py-14">
           <p className="text-thistle font-medium">{t('services.emptyTitle')}</p>
           <p className="text-sm text-muted mt-1">{t('services.emptyHint')}</p>
