@@ -37,3 +37,6 @@ Icon?
 
 # Local build script
 dev-build.sh
+
+# Memory bank
+memory-bank/
