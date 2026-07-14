@@ -162,6 +162,29 @@ function CloudflareTunnels({ metrics }) {
   );
 }
 
+function OpenWebUIModels({ metrics }) {
+  const names = metrics.modelNames || [];
+  return (
+    <div className="space-y-1.5">
+      <div className="flex gap-3 text-xs text-muted flex-wrap">
+        <span>{metrics.modelsCount ?? '—'} modèle{metrics.modelsCount !== 1 ? 's' : ''}</span>
+        {metrics.modelsRunning != null && <span>· <span className="text-thistle font-medium">{metrics.modelsRunning} en RAM</span></span>}
+        {metrics.responseTime != null && <span>· <span className={metrics.responseTime > 200 ? 'text-amber-400 font-medium' : 'text-thistle font-medium'}>{metrics.responseTime}ms</span></span>}
+      </div>
+      {names.length > 0 && (
+        <div className="space-y-0.5 max-h-28 overflow-y-auto pr-1">
+          {names.map((name, i) => (
+            <div key={i} className="flex items-center gap-1.5 text-xs">
+              <span className="text-celadon">●</span>
+              <span className="text-thistle truncate">{name}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MetricsBlock({ monitor }) {
   const { t } = useLang();
   const { type, metrics, status, lastError } = monitor;
@@ -178,6 +201,7 @@ function MetricsBlock({ monitor }) {
   }
 
   if (type === 'cloudflare') return <CloudflareTunnels metrics={metrics} />;
+  if (type === 'openwebui') return <OpenWebUIModels metrics={metrics} />;
 
   if (type === 'homeassistant') return (
     <div className="space-y-1">
@@ -737,6 +761,7 @@ function metricSummary(monitor) {
     case 'adguardhome': return m.blockedPct != null ? `${m.blockedPct}% bloqués` : null;
     case 'adguard':     return m.pct_requests != null ? `${m.pct_requests}%` : null;
     case 'cloudflare': return m.total != null ? `${m.healthy}/${m.total} tunnels` : null;
+    case 'openwebui':  return m.modelsCount != null ? `${m.modelsCount} modèle${m.modelsCount !== 1 ? 's' : ''}` : null;
     case 'portainer':  return m.containersRunning != null ? `${m.containersRunning} actifs` : null;
     case 'docker':     return m.containersRunning != null ? `${m.containersRunning} actifs` : null;
     case 'syncthing':  return m.folders_synced != null ? `${m.folders_synced} dossiers` : null;

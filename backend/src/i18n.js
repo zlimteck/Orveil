@@ -136,6 +136,26 @@ module.exports = {
       message: `Version: ${state.version || '—'}\nModels: ${state.modelsCount}\n${state.modelNames?.join(', ') || ''}`,
     }),
 
+    // ── OpenWebUI ────────────────────────────────────────────────────────────
+    openwebuiReport: (state) => ({
+      title: 'OpenWebUI Report',
+      message: [
+        `Version: ${state.version || '—'}`,
+        `Models available: ${state.modelsCount}`,
+        state.modelsRunning !== null ? `Models in RAM: ${state.modelsRunning}` : null,
+        state.usersCount !== null ? `Users: ${state.usersCount}` : null,
+        state.modelNames?.length ? state.modelNames.join(', ') : null,
+      ].filter(Boolean).join('\n'),
+    }),
+
+    // ── *arr ─────────────────────────────────────────────────────────────────
+    arrHealthWarning: (svc, msg) => ({ title: `${svc} — Health warning`, message: msg }),
+    sonarrReport: (state) => ({ title: 'Sonarr Report', message: `Series: ${state.seriesCount} | Missing: ${state.missingCount} | Queue: ${state.queueCount}\nVersion: ${state.version || '—'}` }),
+    radarrReport: (state) => ({ title: 'Radarr Report', message: `Movies: ${state.movieCount} | Missing: ${state.missingCount} | Queue: ${state.queueCount}\nVersion: ${state.version || '—'}` }),
+    prowlarrReport: (state) => ({ title: 'Prowlarr Report', message: `Indexers: ${state.indexersEnabled}/${state.indexersTotal} enabled\nVersion: ${state.version || '—'}` }),
+    overseerrPendingRequests: (n) => ({ title: `Overseerr — ${n} pending request${n > 1 ? 's' : ''}`, message: `${n} request${n > 1 ? 's' : ''} awaiting approval.` }),
+    overseerrReport: (state) => ({ title: 'Overseerr Report', message: `Requests: ${state.requestsTotal} total | ${state.requestsPending} pending\nVersion: ${state.version || '—'}` }),
+
     // ── Ping ────────────────────────────────────────────────────────────────
     pingUnreachable: (host, port, attempts) => ({ title: `${host} unreachable`, message: `Port ${port} unreachable (${attempts}/${attempts} failed)` }),
     pingBack: (host, latency, port) => ({ title: `${host} back online`, message: `Latency: ${latency}ms — Port ${port}` }),
@@ -368,6 +388,26 @@ module.exports = {
       title: 'Rapport Ollama',
       message: `Version : ${state.version || '—'}\nModèles : ${state.modelsCount}\n${state.modelNames?.join(', ') || ''}`,
     }),
+
+    // ── OpenWebUI ────────────────────────────────────────────────────────────
+    openwebuiReport: (state) => ({
+      title: 'Rapport OpenWebUI',
+      message: [
+        `Version : ${state.version || '—'}`,
+        `Modèles disponibles : ${state.modelsCount}`,
+        state.modelsRunning !== null ? `Modèles en RAM : ${state.modelsRunning}` : null,
+        state.usersCount !== null ? `Utilisateurs : ${state.usersCount}` : null,
+        state.modelNames?.length ? state.modelNames.join(', ') : null,
+      ].filter(Boolean).join('\n'),
+    }),
+
+    // ── *arr ─────────────────────────────────────────────────────────────────
+    arrHealthWarning: (svc, msg) => ({ title: `${svc} — Alerte santé`, message: msg }),
+    sonarrReport: (state) => ({ title: 'Rapport Sonarr', message: `Séries : ${state.seriesCount} | Manquants : ${state.missingCount} | File : ${state.queueCount}\nVersion : ${state.version || '—'}` }),
+    radarrReport: (state) => ({ title: 'Rapport Radarr', message: `Films : ${state.movieCount} | Manquants : ${state.missingCount} | File : ${state.queueCount}\nVersion : ${state.version || '—'}` }),
+    prowlarrReport: (state) => ({ title: 'Rapport Prowlarr', message: `Indexeurs : ${state.indexersEnabled}/${state.indexersTotal} actifs\nVersion : ${state.version || '—'}` }),
+    overseerrPendingRequests: (n) => ({ title: `Overseerr — ${n} demande${n > 1 ? 's' : ''} en attente`, message: `${n} demande${n > 1 ? 's' : ''} en attente d'approbation.` }),
+    overseerrReport: (state) => ({ title: 'Rapport Overseerr', message: `Demandes : ${state.requestsTotal} total | ${state.requestsPending} en attente\nVersion : ${state.version || '—'}` }),
 
     // ── Ping ────────────────────────────────────────────────────────────────
     pingUnreachable: (host, port, attempts) => ({ title: `${host} inaccessible`, message: `Port ${port} injoignable (${attempts}/${attempts} échecs)` }),

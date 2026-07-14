@@ -1,5 +1,5 @@
 import React from 'react';
-import { siCloudflare, siAdguard, siSyncthing, siProxmox, siImmich, siPortainer, siHomeassistant, siJellyfin, siMysql, siRedis, siOllama, siMongodb, siTailscale } from 'simple-icons';
+import { siCloudflare, siAdguard, siSyncthing, siProxmox, siImmich, siPortainer, siHomeassistant, siJellyfin, siMysql, siRedis, siOllama, siMongodb, siTailscale, siSonarr, siRadarr } from 'simple-icons';
 import { Globe, Activity, Terminal, HeartPulse, Gauge, Network, Database, ArrowLeftRight, Workflow } from 'lucide-react';
 
 function SimpleIcon({ icon, size = 20 }) {
@@ -83,16 +83,19 @@ const FALLBACKS = {
   mysql:          ({ size }) => <SimpleIcon icon={siMysql} size={size} />,
   mongodb:        ({ size }) => <SimpleIcon icon={siMongodb} size={size} />,
   tailscale:      ({ size }) => <SimpleIcon icon={siTailscale} size={size} />,
-  ollama:         ({ size }) => <SimpleIcon icon={siOllama} size={size} />,
+  ollama:         ({ size }) => <span className="icon-theme-adapt"><SimpleIcon icon={siOllama} size={size} /></span>,
+  sonarr:         ({ size }) => <SimpleIcon icon={siSonarr} size={size} />,
+  radarr:         ({ size }) => <SimpleIcon icon={siRadarr} size={size} />,
 };
 
-function FileIcon({ type, size, onError }) {
+function FileIcon({ type, size, onError, className }) {
   const [ext, setExt] = React.useState('png');
   return (
     <img
       src={`/icons/${type}.${ext}`}
       width={size}
       height={size}
+      className={className}
       style={{ objectFit: 'contain' }}
       onError={() => ext === 'png' ? setExt('svg') : onError()}
       alt={type}
@@ -159,7 +162,9 @@ export default function ServiceIcon({ type, size = 20, url, faviconUrl, serviceU
   }
 
   // Types that have a real file in /icons/ — always go through FileIcon first.
-  const HAS_FILE_ICON = new Set(['hms', 'ultracc', 'unraid', 'docker', 'speedtest']);
+  const HAS_FILE_ICON = new Set(['hms', 'ultracc', 'unraid', 'docker', 'speedtest', 'openwebui', 'prowlarr', 'overseerr']);
+  // Icons that are black and need inversion in dark mode
+  const INVERT_IN_DARK = new Set(['openwebui']);
   // For all other types with a Fallback and no favicon, skip the broken-image
   // flicker from FileIcon and render the Fallback directly.
   if (Fallback && !faviconSrc && !HAS_FILE_ICON.has(type)) return <Fallback size={size} />;
@@ -170,6 +175,7 @@ export default function ServiceIcon({ type, size = 20, url, faviconUrl, serviceU
         type={type}
         size={size}
         onError={() => Fallback ? setUseFallback(true) : null}
+        className={INVERT_IN_DARK.has(type) ? 'icon-theme-adapt' : undefined}
       />
     );
   }

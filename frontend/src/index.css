@@ -191,4 +191,7 @@ button, a, [role="button"] {
   .label {
     @apply block text-xs font-medium text-thistle mb-1;
   }
+  /* PNG icons that are black — invert in dark mode, normal in light */
+  .icon-theme-adapt { filter: invert(1); }
+  :root.light .icon-theme-adapt { filter: none; }
 }

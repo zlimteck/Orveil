@@ -39,6 +39,11 @@ const TYPE_DEFAULTS = {
   mongodb:        { checkInterval: 5,  reportInterval: 0,  config: { host: '', port: 27017, user: '', password: '', database: 'admin' } },
   tailscale:      { checkInterval: 5,  reportInterval: 0,  config: { apiKey: '', tailnet: '', deviceName: '' } },
   ollama:         { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', rejectUnauthorized: true } },
+  openwebui:      { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
+  sonarr:         { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
+  radarr:         { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
+  prowlarr:       { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
+  overseerr:      { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
   portforward:    { checkInterval: 2,  reportInterval: 0,  config: { host: '', port: 80 } },
   multistep:      { checkInterval: 5,  reportInterval: 0,  config: { steps: [{ name: '', url: '', method: 'GET', expectedStatus: 200, body: '', headers: '', extract: '' }] } },
 };
@@ -66,6 +71,11 @@ const TYPE_CATEGORIES = {
   jellyfin:      'media',
   immich:        'media',
   ollama:        'ai',
+  openwebui:     'ai',
+  sonarr:        'arr',
+  radarr:        'arr',
+  prowlarr:      'arr',
+  overseerr:     'arr',
   speedtest:     'monitoring',
   heartbeat:     'monitoring',
   hms:           'hosting',
@@ -97,6 +107,11 @@ const TYPE_LABELS = {
   mongodb:       'MongoDB',
   tailscale:     'Tailscale',
   ollama:        'Ollama',
+  openwebui:     'OpenWebUI',
+  sonarr:        'Sonarr',
+  radarr:        'Radarr',
+  prowlarr:      'Prowlarr',
+  overseerr:     'Overseerr',
   portforward:   'Port Forwarding',
   multistep:     'Multi-step HTTP',
 };
@@ -1099,6 +1114,57 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
     <>
       <Field label="URL Ollama" value={config.apiUrl} onChange={v => set('apiUrl', v)} placeholder="http://192.168.1.10:11434" />
       <TlsToggle config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
+    </>
+  );
+
+  if (type === 'openwebui') return (
+    <>
+      <Field label="URL OpenWebUI" value={config.apiUrl} onChange={v => set('apiUrl', v)} placeholder="https://openwebui.example.com" />
+      <Field label="API Key (optionnel)" value={config.apiKey} onChange={v => set('apiKey', v)}
+        type="password" placeholder="sk-..." hint="Laisser vide si OpenWebUI est sans authentification" />
+      <TlsToggle config={config} set={set} t={t} />
+      <CFAccessSection config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
+    </>
+  );
+
+  if (type === 'sonarr') return (
+    <>
+      <Field label="URL Sonarr" value={config.apiUrl} onChange={v => set('apiUrl', v)} placeholder="http://192.168.1.10:8989" />
+      <Field label="API Key" value={config.apiKey} onChange={v => set('apiKey', v)} type="password" placeholder="Sonarr API key" />
+      <TlsToggle config={config} set={set} t={t} />
+      <CFAccessSection config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
+    </>
+  );
+
+  if (type === 'radarr') return (
+    <>
+      <Field label="URL Radarr" value={config.apiUrl} onChange={v => set('apiUrl', v)} placeholder="http://192.168.1.10:7878" />
+      <Field label="API Key" value={config.apiKey} onChange={v => set('apiKey', v)} type="password" placeholder="Radarr API key" />
+      <TlsToggle config={config} set={set} t={t} />
+      <CFAccessSection config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
+    </>
+  );
+
+  if (type === 'prowlarr') return (
+    <>
+      <Field label="URL Prowlarr" value={config.apiUrl} onChange={v => set('apiUrl', v)} placeholder="http://192.168.1.10:9696" />
+      <Field label="API Key" value={config.apiKey} onChange={v => set('apiKey', v)} type="password" placeholder="Prowlarr API key" />
+      <TlsToggle config={config} set={set} t={t} />
+      <CFAccessSection config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
+    </>
+  );
+
+  if (type === 'overseerr') return (
+    <>
+      <Field label="URL Overseerr" value={config.apiUrl} onChange={v => set('apiUrl', v)} placeholder="http://192.168.1.10:5055" />
+      <Field label="API Key" value={config.apiKey} onChange={v => set('apiKey', v)} type="password" placeholder="Overseerr API key" />
+      <TlsToggle config={config} set={set} t={t} />
+      <CFAccessSection config={config} set={set} t={t} />
       <ProxySection config={config} set={set} proxies={proxies} />
     </>
   );

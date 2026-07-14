@@ -439,7 +439,19 @@ function PasskeysCard() {
       </h2>
       <p className="text-xs text-muted">{t('settings.passkeys.hint')}</p>
 
-      {loading ? <p className="text-xs text-muted">{t('dashboard.loading')}</p> : (
+      {loading ? (
+        <div className="space-y-2">
+          {[0, 1].map(i => (
+            <div key={i} className="rounded-xl border border-border px-4 py-3 flex items-center justify-between gap-3">
+              <div className="space-y-1.5">
+                <div className="skeleton h-3.5 w-32 rounded" />
+                <div className="skeleton h-3 w-24 rounded" />
+              </div>
+              <div className="skeleton h-7 w-16 rounded-lg" />
+            </div>
+          ))}
+        </div>
+      ) : (
         <div className="space-y-2">
           {list.length === 0 && <p className="text-xs text-muted italic">{t('settings.passkeys.empty')}</p>}
           {list.map(pk => (
@@ -565,7 +577,20 @@ function SessionsCard() {
       </h2>
 
       {loading ? (
-        <p className="text-xs text-muted">{t('dashboard.loading')}</p>
+        <div className="space-y-2">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="rounded-xl border border-border px-4 py-3 space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="skeleton w-3.5 h-3.5 rounded" />
+                  <div className="skeleton h-3.5 w-36 rounded" />
+                </div>
+                <div className="skeleton h-6 w-14 rounded-lg" />
+              </div>
+              <div className="skeleton h-3 w-48 rounded" />
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="space-y-2">
           {list.map(s => (

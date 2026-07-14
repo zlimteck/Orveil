@@ -111,6 +111,34 @@ const CONFIG = {
     { key: 'modelsCount',  fr: 'Modèles',           en: 'Models',         unit: '' },
     { key: 'responseTime', fr: 'Temps de réponse',  en: 'Response time',  unit: 'ms' },
   ],
+  sonarr: [
+    { key: 'seriesCount',  fr: 'Séries',           en: 'Series',          unit: '' },
+    { key: 'missingCount', fr: 'Épisodes manquants', en: 'Missing episodes', unit: '' },
+    { key: 'queueCount',   fr: 'File de téléch.',  en: 'Queue',           unit: '' },
+    { key: 'responseTime', fr: 'Temps de réponse', en: 'Response time',   unit: 'ms' },
+  ],
+  radarr: [
+    { key: 'movieCount',   fr: 'Films',            en: 'Movies',          unit: '' },
+    { key: 'missingCount', fr: 'Films manquants',  en: 'Missing movies',  unit: '' },
+    { key: 'queueCount',   fr: 'File de téléch.',  en: 'Queue',           unit: '' },
+    { key: 'responseTime', fr: 'Temps de réponse', en: 'Response time',   unit: 'ms' },
+  ],
+  prowlarr: [
+    { key: 'indexersEnabled', fr: 'Indexeurs actifs', en: 'Active indexers', unit: '' },
+    { key: 'indexersTotal',   fr: 'Indexeurs total',  en: 'Total indexers',  unit: '' },
+    { key: 'responseTime',    fr: 'Temps de réponse', en: 'Response time',   unit: 'ms' },
+  ],
+  overseerr: [
+    { key: 'requestsPending', fr: 'Demandes en attente', en: 'Pending requests', unit: '' },
+    { key: 'requestsTotal',   fr: 'Demandes total',      en: 'Total requests',   unit: '' },
+    { key: 'responseTime',    fr: 'Temps de réponse',    en: 'Response time',    unit: 'ms' },
+  ],
+  openwebui: [
+    { key: 'modelsCount',   fr: 'Modèles dispo',      en: 'Available models', unit: '' },
+    { key: 'modelsRunning', fr: 'Modèles en RAM',      en: 'Models in RAM',    unit: '' },
+    { key: 'usersCount',    fr: 'Utilisateurs',        en: 'Users',            unit: '' },
+    { key: 'responseTime',  fr: 'Temps de réponse',   en: 'Response time',    unit: 'ms' },
+  ],
   multistep: [
     { key: 'totalDuration', fr: 'Durée totale',    en: 'Total duration', unit: 'ms' },
     { key: 'stepsPassed',   fr: 'Étapes réussies', en: 'Steps passed',   unit: '' },

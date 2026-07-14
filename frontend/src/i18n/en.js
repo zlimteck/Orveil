@@ -615,6 +615,7 @@ export default {
       databases:      'Databases',
       services:       'Services',
       media:          'Media',
+      arr:            '*arr',
       ai:             'AI',
       monitoring:     'Monitoring',
       hosting:        'Hosting',

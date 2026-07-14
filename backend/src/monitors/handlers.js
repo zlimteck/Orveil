@@ -23,6 +23,11 @@ module.exports = {
   mongodb:        require('./mongodb'),
   tailscale:      require('./tailscale'),
   ollama:         require('./ollama'),
+  openwebui:      require('./openwebui'),
+  sonarr:         require('./sonarr'),
+  radarr:         require('./radarr'),
+  prowlarr:       require('./prowlarr'),
+  overseerr:      require('./overseerr'),
   portforward:    require('./portforward'),
   multistep:      require('./multistep'),
 };

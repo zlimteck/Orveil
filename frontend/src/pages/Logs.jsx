@@ -158,7 +158,23 @@ export default function Logs() {
         </select>
       </div>
 
-      {loading && <p className="text-muted text-sm">{t('logs.loading')}</p>}
+      {loading && (
+        <div className="space-y-2">
+          {[0, 1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="card flex items-start gap-3 py-3 px-4">
+              <div className="skeleton w-3 h-3 rounded-full mt-1 shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="skeleton h-3.5 rounded" style={{ width: `${110 + (i % 3) * 40}px` }} />
+                  <div className="skeleton h-5 w-12 rounded-full" />
+                </div>
+                <div className="skeleton h-3 rounded" style={{ width: `${160 + (i % 4) * 50}px` }} />
+                <div className="skeleton h-3 w-24 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {!loading && data.logs.length === 0 && (
         <div className="card text-center py-14">
