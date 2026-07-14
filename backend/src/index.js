@@ -28,7 +28,7 @@ app.use(require('helmet')({
 
 // CORS — open in dev, restricted to FRONTEND_URL in production
 const corsOrigin = process.env.NODE_ENV === 'production'
-  ? (process.env.FRONTEND_URL || false)
+  ? (process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',').map(s => s.trim()) : false)
   : true;
 if (process.env.NODE_ENV === 'production' && !process.env.FRONTEND_URL) {
   console.warn('[CORS] FRONTEND_URL not set — CORS disabled in production');
@@ -52,7 +52,7 @@ app.use('/api/favicon', require('./routes/favicon'));
 app.use('/api/events', require('./routes/sse'));
 app.use('/api/public', require('./routes/public'));
 app.use('/api/badge',  require('./routes/badge'));
-app.use('/api/mcp',    require('./routes/mcp'));
+app.use('/api/mcp', cors({ origin: true, credentials: false }), require('./routes/mcp'));
 app.use('/api/webhook', require('./routes/webhook'));
 console.log('[MCP] Serveur MCP démarré sur /api/mcp (Streamable HTTP)');
 app.get('/api/health', (req, res) => res.json({ ok: true, ts: new Date() }));
