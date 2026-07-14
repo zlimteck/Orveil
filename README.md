@@ -118,7 +118,7 @@ Set `ADMIN_PASSWORD` in your `.env` to control the initial password.
 ## Features
 
 **Monitoring**
-- **31 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping, TCP, Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Docker, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Portainer, Tailscale, Home Assistant, Syncthing, Immich, Unraid, Speedtest Tracker, Jellyfin, Ollama, OpenWebUI, Sonarr, Radarr, Prowlarr, Overseerr, HMS, Ultra.cc, Heartbeat
+- **33 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping, TCP, Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Docker, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Portainer, Tailscale, Home Assistant, Syncthing, Immich, Unraid, Speedtest Tracker, Jellyfin, Ollama, OpenWebUI, Sonarr, Radarr, Prowlarr, Overseerr, qBittorrent, Autobrr, HMS, Ultra.cc, Heartbeat
 - Adaptive polling — faster rechecks when a service is down
 - Monitor dependencies — suppress alerts when a parent is already down
 - SSL certificate monitoring with expiry warning
@@ -197,6 +197,8 @@ Set `ADMIN_PASSWORD` in your `.env` to control the initial password.
 | **Radarr** | Movie count, missing movies, download queue, health warnings |
 | **Prowlarr** | Active/total indexers, health warnings |
 | **Overseerr** | Pending and total requests |
+| **qBittorrent** | Active/total torrents, download/upload speed, version — username/password auth |
+| **Autobrr** | Active/total filters, releases pushed/rejected, version — API key auth |
 | **HMS (HostMyServers)** | VPS status and specs via API token |
 | **Ultra.cc** | Seedbox storage and traffic via Stats API URL |
 | **Heartbeat** | Cron job / script monitor — alerts if no ping received within expected interval |

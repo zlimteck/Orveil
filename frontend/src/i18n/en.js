@@ -616,6 +616,7 @@ export default {
       services:       'Services',
       media:          'Media',
       arr:            '*arr',
+      p2p:            'P2P',
       ai:             'AI',
       monitoring:     'Monitoring',
       hosting:        'Hosting',

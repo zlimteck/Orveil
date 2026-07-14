@@ -1,5 +1,5 @@
 import React from 'react';
-import { siCloudflare, siAdguard, siSyncthing, siProxmox, siImmich, siPortainer, siHomeassistant, siJellyfin, siMysql, siRedis, siOllama, siMongodb, siTailscale, siSonarr, siRadarr } from 'simple-icons';
+import { siCloudflare, siAdguard, siSyncthing, siProxmox, siImmich, siPortainer, siHomeassistant, siJellyfin, siMysql, siRedis, siOllama, siMongodb, siTailscale, siSonarr, siRadarr, siQbittorrent } from 'simple-icons';
 import { Globe, Activity, Terminal, HeartPulse, Gauge, Network, Database, ArrowLeftRight, Workflow } from 'lucide-react';
 
 function SimpleIcon({ icon, size = 20 }) {
@@ -86,6 +86,7 @@ const FALLBACKS = {
   ollama:         ({ size }) => <span className="icon-theme-adapt"><SimpleIcon icon={siOllama} size={size} /></span>,
   sonarr:         ({ size }) => <SimpleIcon icon={siSonarr} size={size} />,
   radarr:         ({ size }) => <SimpleIcon icon={siRadarr} size={size} />,
+  qbittorrent:    ({ size }) => <SimpleIcon icon={siQbittorrent} size={size} />,
 };
 
 function FileIcon({ type, size, onError, className }) {
@@ -104,12 +105,14 @@ function FileIcon({ type, size, onError, className }) {
 }
 
 function FaviconIcon({ url, size, onError }) {
+  const proxied = `/api/favicon?url=${encodeURIComponent(url)}`;
   return (
     <img
-      src={url}
+      src={proxied}
       width={size}
       height={size}
       style={{ objectFit: 'contain', borderRadius: 3 }}
+      onLoad={e => { if (e.target.naturalWidth <= 1) onError(); }}
       onError={onError}
       alt=""
     />
@@ -162,7 +165,7 @@ export default function ServiceIcon({ type, size = 20, url, faviconUrl, serviceU
   }
 
   // Types that have a real file in /icons/ — always go through FileIcon first.
-  const HAS_FILE_ICON = new Set(['hms', 'ultracc', 'unraid', 'docker', 'speedtest', 'openwebui', 'prowlarr', 'overseerr']);
+  const HAS_FILE_ICON = new Set(['hms', 'ultracc', 'unraid', 'docker', 'speedtest', 'openwebui', 'prowlarr', 'overseerr', 'autobrr']);
   // Icons that are black and need inversion in dark mode
   const INVERT_IN_DARK = new Set(['openwebui']);
   // For all other types with a Fallback and no favicon, skip the broken-image

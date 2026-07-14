@@ -16,9 +16,9 @@ app.use(require('helmet')({
     useDefaults: false,
     directives: {
       defaultSrc:              ["'self'"],
-      scriptSrc:               ["'self'"],
+      scriptSrc:               ["'self'", "'unsafe-eval'"],
       styleSrc:                ["'self'", "'unsafe-inline'"],
-      imgSrc:                  ["'self'", "data:", "http:", "https:"],
+      imgSrc:                  ["'self'", "data:", "blob:", "http:", "https:"],
       connectSrc:              ["'self'", "https://api.github.com"],
       frameSrc:                ["'none'"],
       objectSrc:               ["'none'"],
@@ -48,6 +48,7 @@ app.use('/api/auth',         require('./routes/auth'));
 app.use('/api/auth/totp',    require('./routes/totp'));
 app.use('/api/auth/passkey', require('./routes/passkey'));
 app.use('/api/ping',   require('./routes/ping'));
+app.use('/api/favicon', require('./routes/favicon'));
 app.use('/api/events', require('./routes/sse'));
 app.use('/api/public', require('./routes/public'));
 app.use('/api/badge',  require('./routes/badge'));

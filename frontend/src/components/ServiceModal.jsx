@@ -44,6 +44,8 @@ const TYPE_DEFAULTS = {
   radarr:         { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
   prowlarr:       { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
   overseerr:      { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
+  qbittorrent:    { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', username: 'admin', password: '', rejectUnauthorized: true } },
+  autobrr:        { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
   portforward:    { checkInterval: 2,  reportInterval: 0,  config: { host: '', port: 80 } },
   multistep:      { checkInterval: 5,  reportInterval: 0,  config: { steps: [{ name: '', url: '', method: 'GET', expectedStatus: 200, body: '', headers: '', extract: '' }] } },
 };
@@ -76,6 +78,8 @@ const TYPE_CATEGORIES = {
   radarr:        'arr',
   prowlarr:      'arr',
   overseerr:     'arr',
+  qbittorrent:   'p2p',
+  autobrr:       'arr',
   speedtest:     'monitoring',
   heartbeat:     'monitoring',
   hms:           'hosting',
@@ -112,6 +116,8 @@ const TYPE_LABELS = {
   radarr:        'Radarr',
   prowlarr:      'Prowlarr',
   overseerr:     'Overseerr',
+  qbittorrent:   'qBittorrent',
+  autobrr:       'Autobrr',
   portforward:   'Port Forwarding',
   multistep:     'Multi-step HTTP',
 };
@@ -1163,6 +1169,27 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
     <>
       <Field label="URL Overseerr" value={config.apiUrl} onChange={v => set('apiUrl', v)} placeholder="http://192.168.1.10:5055" />
       <Field label="API Key" value={config.apiKey} onChange={v => set('apiKey', v)} type="password" placeholder="Overseerr API key" />
+      <TlsToggle config={config} set={set} t={t} />
+      <CFAccessSection config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
+    </>
+  );
+
+  if (type === 'qbittorrent') return (
+    <>
+      <Field label="URL qBittorrent" value={config.apiUrl} onChange={v => set('apiUrl', v)} placeholder="http://192.168.1.10:8080" />
+      <Field label="Nom d'utilisateur" value={config.username} onChange={v => set('username', v)} placeholder="admin" />
+      <Field label="Mot de passe" value={config.password} onChange={v => set('password', v)} type="password" placeholder="Mot de passe qBittorrent" />
+      <TlsToggle config={config} set={set} t={t} />
+      <CFAccessSection config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
+    </>
+  );
+
+  if (type === 'autobrr') return (
+    <>
+      <Field label="URL Autobrr" value={config.apiUrl} onChange={v => set('apiUrl', v)} placeholder="http://192.168.1.10:7474" />
+      <Field label="API Key" value={config.apiKey} onChange={v => set('apiKey', v)} type="password" placeholder="Autobrr API key" />
       <TlsToggle config={config} set={set} t={t} />
       <CFAccessSection config={config} set={set} t={t} />
       <ProxySection config={config} set={set} proxies={proxies} />

@@ -34,13 +34,13 @@ async function check(config, lastState, lang = 'fr') {
     const version = versionRes.data?.version || null;
     const models = tagsRes.data?.models || [];
     const modelsCount = models.length;
-    const modelNames = models.map(m => m.name).slice(0, 10);
+    const modelNames = models.map(m => m.name).filter(Boolean);
 
     return {
       status: 'online',
       lastError: null,
       state: { version, modelsCount, modelNames, responseTime },
-      metrics: { version, modelsCount, responseTime, statusCode: versionRes.status },
+      metrics: { version, modelsCount, modelNames, responseTime, statusCode: versionRes.status },
       notifications: [],
     };
   } catch (err) {

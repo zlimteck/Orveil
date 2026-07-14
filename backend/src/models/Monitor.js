@@ -3,7 +3,7 @@ const { encryptConfig, decryptConfig } = require('../utils/crypto');
 
 const monitorSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  type: { type: String, required: true, enum: ['cloudflare', 'adguard', 'adguardhome', 'hms', 'ultracc', 'syncthing', 'http', 'ping', 'proxmox', 'immich', 'portainer', 'ssh', 'heartbeat', 'docker', 'unraid', 'speedtest', 'homeassistant', 'jellyfin', 'dns', 'mysql', 'redis', 'mongodb', 'tailscale', 'ollama', 'openwebui', 'sonarr', 'radarr', 'prowlarr', 'overseerr', 'portforward'] },
+  type: { type: String, required: true, enum: ['cloudflare', 'adguard', 'adguardhome', 'hms', 'ultracc', 'syncthing', 'http', 'ping', 'proxmox', 'immich', 'portainer', 'ssh', 'heartbeat', 'docker', 'unraid', 'speedtest', 'homeassistant', 'jellyfin', 'dns', 'mysql', 'redis', 'mongodb', 'tailscale', 'ollama', 'openwebui', 'sonarr', 'radarr', 'prowlarr', 'overseerr', 'portforward', 'qbittorrent', 'autobrr'] },
   description: { type: String, default: '' },
   enabled: { type: Boolean, default: true },
   checkInterval: { type: Number, default: 5 },   // minutes

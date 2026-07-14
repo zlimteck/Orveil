@@ -29,5 +29,7 @@ module.exports = {
   prowlarr:       require('./prowlarr'),
   overseerr:      require('./overseerr'),
   portforward:    require('./portforward'),
+  qbittorrent:    require('./qbittorrent'),
+  autobrr:        require('./autobrr'),
   multistep:      require('./multistep'),
 };

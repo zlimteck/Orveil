@@ -18,3 +18,7 @@ Additional type-specific alerts:
 | **Ultra.cc** | Low storage · Low traffic |
 | **Unraid** | Array stopped · Disk error |
 | **Home Assistant** | Entity becomes unavailable · Entity restored |
+| **Sonarr / Radarr / Prowlarr** | Health warning detected / resolved |
+| **Overseerr** | New pending requests |
+| **qBittorrent** | *(down/recovery only)* |
+| **Autobrr** | *(down/recovery only)* |

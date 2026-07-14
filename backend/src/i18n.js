@@ -155,6 +155,8 @@ module.exports = {
     prowlarrReport: (state) => ({ title: 'Prowlarr Report', message: `Indexers: ${state.indexersEnabled}/${state.indexersTotal} enabled\nVersion: ${state.version || '—'}` }),
     overseerrPendingRequests: (n) => ({ title: `Overseerr — ${n} pending request${n > 1 ? 's' : ''}`, message: `${n} request${n > 1 ? 's' : ''} awaiting approval.` }),
     overseerrReport: (state) => ({ title: 'Overseerr Report', message: `Requests: ${state.requestsTotal} total | ${state.requestsPending} pending\nVersion: ${state.version || '—'}` }),
+    qbittorrentReport: (state) => ({ title: 'qBittorrent Report', message: `Torrents: ${state.torrentsActive} active / ${state.torrentsTotal} total\nVersion: ${state.version || '—'}` }),
+    autobrrReport: (state) => ({ title: 'Autobrr Report', message: `Filters: ${state.filtersEnabled}/${state.filtersTotal} enabled | Releases pushed: ${state.releasesPushed ?? '—'}\nVersion: ${state.version || '—'}` }),
 
     // ── Ping ────────────────────────────────────────────────────────────────
     pingUnreachable: (host, port, attempts) => ({ title: `${host} unreachable`, message: `Port ${port} unreachable (${attempts}/${attempts} failed)` }),
@@ -408,6 +410,8 @@ module.exports = {
     prowlarrReport: (state) => ({ title: 'Rapport Prowlarr', message: `Indexeurs : ${state.indexersEnabled}/${state.indexersTotal} actifs\nVersion : ${state.version || '—'}` }),
     overseerrPendingRequests: (n) => ({ title: `Overseerr — ${n} demande${n > 1 ? 's' : ''} en attente`, message: `${n} demande${n > 1 ? 's' : ''} en attente d'approbation.` }),
     overseerrReport: (state) => ({ title: 'Rapport Overseerr', message: `Demandes : ${state.requestsTotal} total | ${state.requestsPending} en attente\nVersion : ${state.version || '—'}` }),
+    qbittorrentReport: (state) => ({ title: 'Rapport qBittorrent', message: `Torrents : ${state.torrentsActive} actifs / ${state.torrentsTotal} total\nVersion : ${state.version || '—'}` }),
+    autobrrReport: (state) => ({ title: 'Rapport Autobrr', message: `Filtres : ${state.filtersEnabled}/${state.filtersTotal} actifs | Releases poussées : ${state.releasesPushed ?? '—'}\nVersion : ${state.version || '—'}` }),
 
     // ── Ping ────────────────────────────────────────────────────────────────
     pingUnreachable: (host, port, attempts) => ({ title: `${host} inaccessible`, message: `Port ${port} injoignable (${attempts}/${attempts} échecs)` }),

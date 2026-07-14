@@ -139,6 +139,21 @@ const CONFIG = {
     { key: 'usersCount',    fr: 'Utilisateurs',        en: 'Users',            unit: '' },
     { key: 'responseTime',  fr: 'Temps de réponse',   en: 'Response time',    unit: 'ms' },
   ],
+  qbittorrent: [
+    { key: 'torrentsActive', fr: 'Torrents actifs',   en: 'Active torrents', unit: '' },
+    { key: 'torrentsTotal',  fr: 'Torrents total',    en: 'Total torrents',  unit: '' },
+    { key: 'dlSpeed',        fr: 'Vitesse DL',        en: 'Download speed',  unit: 'B/s' },
+    { key: 'ulSpeed',        fr: 'Vitesse UL',        en: 'Upload speed',    unit: 'B/s' },
+    { key: 'responseTime',   fr: 'Temps de réponse',  en: 'Response time',   unit: 'ms' },
+  ],
+  autobrr: [
+    { key: 'filtersEnabled',    fr: 'Filtres actifs',        en: 'Active filters',    unit: '' },
+    { key: 'filtersTotal',      fr: 'Filtres total',         en: 'Total filters',     unit: '' },
+    { key: 'releasesTotal',     fr: 'Releases total',        en: 'Total releases',    unit: '' },
+    { key: 'releasesPushed',    fr: 'Releases poussées',     en: 'Releases pushed',   unit: '' },
+    { key: 'releasesRejected',  fr: 'Releases rejetées',     en: 'Releases rejected', unit: '' },
+    { key: 'responseTime',      fr: 'Temps de réponse',      en: 'Response time',     unit: 'ms' },
+  ],
   multistep: [
     { key: 'totalDuration', fr: 'Durée totale',    en: 'Total duration', unit: 'ms' },
     { key: 'stepsPassed',   fr: 'Étapes réussies', en: 'Steps passed',   unit: '' },
