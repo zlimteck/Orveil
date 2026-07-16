@@ -603,6 +603,8 @@ export default {
     slaTargetHint: 'e.g. 99.9 — leave empty to disable',
     confirmAfter: 'Confirm after N errors',
     confirmAfterHint: '1 = immediate (default)',
+    appriseUrls: 'Additional Apprise URLs',
+    appriseUrlsHint: 'One URL per line — added on top of global URLs',
     cardMetric: 'Card graph metric',
     cardMetricDefault: 'Default (primary)',
     searchTypePlaceholder: 'Search or browse monitor types…',

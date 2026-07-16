@@ -603,6 +603,8 @@ export default {
     slaTargetHint: 'ex. 99.9 — laisser vide pour désactiver',
     confirmAfter: 'Confirmer après N erreurs',
     confirmAfterHint: '1 = immédiat (défaut)',
+    appriseUrls: 'URLs Apprise supplémentaires',
+    appriseUrlsHint: 'Une URL par ligne — s\'ajoutent aux URLs globales',
     cardMetric: 'Métrique affichée sur la card',
     cardMetricDefault: 'Défaut (primaire)',
     searchTypePlaceholder: 'Rechercher un type de monitor…',

@@ -1513,7 +1513,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
       name: '', type: '', description: '', category: '',
       enabled: true, checkInterval: 5, reportInterval: 0,
       cardMetric: null, serviceUrl: '', showOnStatusPage: true,
-      slaTarget: '', confirmAfter: 1, dependsOn: [], customIconUrl: '',
+      slaTarget: '', confirmAfter: 1, dependsOn: [], customIconUrl: '', appriseUrls: [],
       config: {},
     };
     originalFormRef.current = initial;
@@ -1537,6 +1537,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
         confirmAfter: monitor.confirmAfter ?? 1,
         dependsOn: monitor.dependsOn?.map(id => String(id)) || [],
         customIconUrl: monitor.customIconUrl || '',
+        appriseUrls: monitor.appriseUrls || [],
         config: monitor.config || {},
       };
       originalFormRef.current = monitorForm;
@@ -1616,7 +1617,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
           ))}
         </div>
 
-        <form onSubmit={e => { e.preventDefault(); savedRef.current = true; onSave({ ...form, slaTarget: form.slaTarget !== '' ? parseFloat(form.slaTarget) : null }); }}
+        <form onSubmit={e => { e.preventDefault(); savedRef.current = true; onSave({ ...form, slaTarget: form.slaTarget !== '' ? parseFloat(form.slaTarget) : null, appriseUrls: (form.appriseUrls || []).map(u => u.trim()).filter(Boolean) }); }}
           className="flex flex-col flex-1 min-h-0">
 
           {/* Tab content */}
@@ -1743,6 +1744,17 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
                     </div>
                   </div>
                 )}
+                <div>
+                  <label className="label">{t('form.appriseUrls')}</label>
+                  <textarea
+                    className="input resize-none font-mono text-xs"
+                    rows={3}
+                    placeholder={"tgram://bottoken/chatid\ndiscord://webhook/"}
+                    value={(form.appriseUrls || []).join('\n')}
+                    onChange={e => setForm(f => ({ ...f, appriseUrls: e.target.value.split('\n') }))}
+                  />
+                  <p className="text-xs text-muted mt-1">{t('form.appriseUrlsHint')}</p>
+                </div>
               </div>
             )}
 

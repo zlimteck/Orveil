@@ -286,7 +286,7 @@ async function runCheck(monitor, globalProxy = null, lang = 'fr', settings = nul
   }
 
   for (const notif of toSend) {
-    await sendNotification({ ...notif, monitorId: monitor._id, monitorName: monitor.name });
+    await sendNotification({ ...notif, monitorId: monitor._id, monitorName: monitor.name, monitorAppriseUrls: monitor.appriseUrls });
   }
 }
 

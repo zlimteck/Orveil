@@ -10,9 +10,11 @@ async function getSettings() {
   );
 }
 
-async function sendNotification({ title, message, level = 'info', monitorId = null, monitorName = 'Système', type = 'info' }) {
+async function sendNotification({ title, message, level = 'info', monitorId = null, monitorName = 'Système', type = 'info', monitorAppriseUrls = [] }) {
   const settings = await getSettings();
-  const urls = settings.appriseUrls || [];
+  const globalUrls = settings.appriseUrls || [];
+  const extra = Array.isArray(monitorAppriseUrls) ? monitorAppriseUrls.filter(Boolean) : [];
+  const urls = [...new Set([...globalUrls, ...extra])];
 
   let sent = false;
 
