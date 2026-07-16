@@ -49,6 +49,32 @@ function resolveProxy(monitor, settings, globalProxy) {
   return globalProxy;
 }
 
+// Caps how many checks run at once so a burst of due monitors (SSH/DB connections,
+// Docker API calls, etc.) doesn't spike CPU/RAM all at the same tick.
+const MAX_CONCURRENT_CHECKS = 5;
+
+// Stable per-monitor offset (derived from _id) spread over a window, so monitors
+// created/restarted together desync over time instead of all coming due on the same tick.
+const JITTER_WINDOW_MS = 45 * 1000;
+
+function jitterFor(monitor) {
+  const s = String(monitor._id);
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h) % JITTER_WINDOW_MS;
+}
+
+function runWithConcurrency(tasks, limit) {
+  let i = 0;
+  const workers = new Array(Math.min(limit, tasks.length)).fill(null).map(async () => {
+    while (i < tasks.length) {
+      const task = tasks[i++];
+      await task();
+    }
+  });
+  return Promise.all(workers);
+}
+
 async function runCheck(monitor, globalProxy = null, lang = 'fr', settings = null) {
   const handler = handlers[monitor.type];
   if (!handler) return;
@@ -296,24 +322,31 @@ async function tick() {
   const adaptiveEnabled = settings?.adaptivePolling?.enabled ?? true;
   const adaptiveMs      = (settings?.adaptivePolling?.errorInterval ?? 30) * 1000;
 
+  const dueTasks = [];
+
   for (const monitor of monitors) {
     const isDown       = ['error', 'offline', 'warning'].includes(monitor.status);
     const skipAdaptive = ['speedtest', 'heartbeat'].includes(monitor.type);
-    const checkMs = (isDown && adaptiveEnabled && !skipAdaptive) ? adaptiveMs : monitor.checkInterval * 60 * 1000;
+    // No jitter while adaptively polling a down monitor — we want fast recovery detection there.
+    const checkMs = (isDown && adaptiveEnabled && !skipAdaptive)
+      ? adaptiveMs
+      : monitor.checkInterval * 60 * 1000 + jitterFor(monitor);
     const lastCheck = monitor.lastChecked ? monitor.lastChecked.getTime() : 0;
     if (now - lastCheck >= checkMs) {
       const proxyForMonitor = resolveProxy(monitor, settings, globalProxy);
-      runCheck(monitor, proxyForMonitor, lang, settings).catch(err => console.error(`[Runner] tick error ${monitor.name}:`, err.message));
+      dueTasks.push(() => runCheck(monitor, proxyForMonitor, lang, settings).catch(err => console.error(`[Runner] tick error ${monitor.name}:`, err.message)));
     }
 
     if (monitor.reportInterval > 0) {
       const reportMs = monitor.reportInterval * 60 * 60 * 1000;
       const lastReport = monitor.lastReported ? monitor.lastReported.getTime() : 0;
       if (now - lastReport >= reportMs) {
-        runReport(monitor, lang).catch(err => console.error(`[Runner] report error ${monitor.name}:`, err.message));
+        dueTasks.push(() => runReport(monitor, lang).catch(err => console.error(`[Runner] report error ${monitor.name}:`, err.message)));
       }
     }
   }
+
+  if (dueTasks.length) runWithConcurrency(dueTasks, MAX_CONCURRENT_CHECKS).catch(() => {});
 }
 
 async function checkWeeklyReport() {
