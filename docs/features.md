@@ -14,7 +14,7 @@
 
 ## Monitoring
 
-- **26 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping/TCP, Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Tailscale, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Home Assistant, Portainer, Docker, Syncthing, Immich, HostMyServers, Ultra.cc, Heartbeat, Unraid, Speedtest Tracker, Jellyfin, Ollama
+- **26 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping (TCP/ICMP), Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Tailscale, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Home Assistant, Portainer, Docker, Syncthing, Immich, HostMyServers, Ultra.cc, Heartbeat, Unraid, Speedtest Tracker, Jellyfin, Ollama
 - **Multi-step HTTP** — chain multiple HTTP requests with variable extraction (JSONPath or response headers) and interpolation between steps; full step-by-step failure reporting
 - **Adaptive polling** — when a service goes down, check interval drops automatically to 30 s (configurable) for near-instant recovery detection; reverts to the normal interval once the service is back up
 - **Monitor dependencies** — link a monitor to a parent; down alerts are suppressed when the parent is also down

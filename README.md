@@ -118,7 +118,7 @@ Set `ADMIN_PASSWORD` in your `.env` to control the initial password.
 ## Features
 
 **Monitoring**
-- **33 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping, TCP, Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Docker, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Portainer, Tailscale, Home Assistant, Syncthing, Immich, Unraid, Speedtest Tracker, Jellyfin, Ollama, OpenWebUI, Sonarr, Radarr, Prowlarr, Overseerr, qBittorrent, Autobrr, HMS, Ultra.cc, Heartbeat
+- **33 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping (TCP/ICMP), Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Docker, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Portainer, Tailscale, Home Assistant, Syncthing, Immich, Unraid, Speedtest Tracker, Jellyfin, Ollama, OpenWebUI, Sonarr, Radarr, Prowlarr, Overseerr, qBittorrent, Autobrr, HMS, Ultra.cc, Heartbeat
 - Adaptive polling — faster rechecks when a service is down
 - Monitor dependencies — suppress alerts when a parent is already down
 - SSL certificate monitoring with expiry warning
@@ -171,10 +171,10 @@ Set `ADMIN_PASSWORD` in your `.env` to control the initial password.
 |------|----------------|
 | **HTTP** | HTTP/HTTPS endpoint — status code, keyword match, auth, SSL expiry, response time threshold |
 | **Multi-step HTTP** | Chain multiple requests with variable extraction and interpolation between steps |
-| **Ping / TCP** | ICMP ping or TCP port reachability — latency and packet loss |
+| **Ping** | TCP port check or ICMP ping — latency and packet loss (mode selectable per monitor) |
 | **Port Forwarding** | TCP connect check to verify a forwarded port is reachable from outside |
 | **DNS** | DNS record resolution (A, AAAA, CNAME, MX, TXT, NS) with optional value assertion |
-| **SSH** | CPU / RAM via SSH (password or private key) |
+| **SSH** | CPU / RAM / disk via SSH (password or private key) — optional custom command with expected output check |
 | **MySQL** | Ping a MySQL/MariaDB server and retrieve version |
 | **Redis** | PING a Redis instance and retrieve version |
 | **MongoDB** | Ping a MongoDB instance and retrieve version — supports optional authentication |

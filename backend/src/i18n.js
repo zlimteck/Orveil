@@ -159,11 +159,19 @@ module.exports = {
     autobrrReport: (state) => ({ title: 'Autobrr Report', message: `Filters: ${state.filtersEnabled}/${state.filtersTotal} enabled | Releases pushed: ${state.releasesPushed ?? '—'}\nVersion: ${state.version || '—'}` }),
 
     // ── Ping ────────────────────────────────────────────────────────────────
-    pingUnreachable: (host, port, attempts) => ({ title: `${host} unreachable`, message: `Port ${port} unreachable (${attempts}/${attempts} failed)` }),
-    pingBack: (host, latency, port) => ({ title: `${host} back online`, message: `Latency: ${latency}ms — Port ${port}` }),
+    pingUnreachable: (host, port, attempts, mode) => mode === 'icmp'
+      ? { title: `${host} unreachable`, message: `ICMP ping failed (${attempts}/${attempts} lost)` }
+      : { title: `${host} unreachable`, message: `Port ${port} unreachable (${attempts}/${attempts} failed)` },
+    pingBack: (host, latency, port, mode) => mode === 'icmp'
+      ? { title: `${host} back online`, message: `Latency: ${latency}ms — ICMP` }
+      : { title: `${host} back online`, message: `Latency: ${latency}ms — Port ${port}` },
     pingReport: (host, state) => ({
       title: `Ping Report — ${host}`,
-      message: state ? `${state.host}:${state.port}\nLatency: ${state.latency ?? '—'}ms — Loss: ${state.loss}%` : 'No data.',
+      message: state
+        ? state.mode === 'icmp'
+          ? `${state.host} (ICMP)\nLatency: ${state.latency ?? '—'}ms — Loss: ${state.loss}%`
+          : `${state.host}:${state.port}\nLatency: ${state.latency ?? '—'}ms — Loss: ${state.loss}%`
+        : 'No data.',
     }),
 
     // ── Port Forwarding ─────────────────────────────────────────────────────
@@ -207,6 +215,8 @@ module.exports = {
     sshHighCpu: (host, pct) => ({ title: `High CPU — ${host}`, message: `CPU at ${pct}%` }),
     sshHighRam: (host, pct) => ({ title: `High RAM — ${host}`, message: `RAM at ${pct}%` }),
     sshHighDisk: (host, pct) => ({ title: `High disk usage — ${host}`, message: `Disk at ${pct}%` }),
+    sshCustomMismatch: (host, cmd, output) => ({ title: `SSH ${host} — Command mismatch`, message: `\`${cmd}\` → "${output || '(empty)'}"` }),
+    sshCustomMatch: (host, cmd) => ({ title: `SSH ${host} — Command OK`, message: `\`${cmd}\` matches expected output.` }),
     sshReport: (state) => {
       const cpu = state.cpuPct != null ? `\nCPU: ${state.cpuPct}%` : '';
       return {
@@ -414,11 +424,19 @@ module.exports = {
     autobrrReport: (state) => ({ title: 'Rapport Autobrr', message: `Filtres : ${state.filtersEnabled}/${state.filtersTotal} actifs | Releases poussées : ${state.releasesPushed ?? '—'}\nVersion : ${state.version || '—'}` }),
 
     // ── Ping ────────────────────────────────────────────────────────────────
-    pingUnreachable: (host, port, attempts) => ({ title: `${host} inaccessible`, message: `Port ${port} injoignable (${attempts}/${attempts} échecs)` }),
-    pingBack: (host, latency, port) => ({ title: `${host} de retour`, message: `Latence : ${latency}ms — Port ${port}` }),
+    pingUnreachable: (host, port, attempts, mode) => mode === 'icmp'
+      ? { title: `${host} inaccessible`, message: `Ping ICMP échoué (${attempts}/${attempts} perdus)` }
+      : { title: `${host} inaccessible`, message: `Port ${port} injoignable (${attempts}/${attempts} échecs)` },
+    pingBack: (host, latency, port, mode) => mode === 'icmp'
+      ? { title: `${host} de retour`, message: `Latence : ${latency}ms — ICMP` }
+      : { title: `${host} de retour`, message: `Latence : ${latency}ms — Port ${port}` },
     pingReport: (host, state) => ({
       title: `Rapport Ping — ${host}`,
-      message: state ? `${state.host}:${state.port}\nLatence : ${state.latency ?? '—'}ms — Perte : ${state.loss}%` : 'Aucune donnée.',
+      message: state
+        ? state.mode === 'icmp'
+          ? `${state.host} (ICMP)\nLatence : ${state.latency ?? '—'}ms — Perte : ${state.loss}%`
+          : `${state.host}:${state.port}\nLatence : ${state.latency ?? '—'}ms — Perte : ${state.loss}%`
+        : 'Aucune donnée.',
     }),
 
     // ── Port Forwarding ─────────────────────────────────────────────────────
@@ -462,6 +480,8 @@ module.exports = {
     sshHighCpu: (host, pct) => ({ title: `CPU élevé — ${host}`, message: `CPU à ${pct}%` }),
     sshHighRam: (host, pct) => ({ title: `RAM élevée — ${host}`, message: `RAM à ${pct}%` }),
     sshHighDisk: (host, pct) => ({ title: `Disque plein — ${host}`, message: `Disque à ${pct}%` }),
+    sshCustomMismatch: (host, cmd, output) => ({ title: `SSH ${host} — Commande incorrecte`, message: `\`${cmd}\` → "${output || '(vide)'}"` }),
+    sshCustomMatch: (host, cmd) => ({ title: `SSH ${host} — Commande OK`, message: `\`${cmd}\` correspond à la sortie attendue.` }),
     sshReport: (state) => {
       const cpu = state.cpuPct != null ? `\nCPU : ${state.cpuPct}%` : '';
       return {

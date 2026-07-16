@@ -3,8 +3,9 @@ const i18n = require('../i18n');
 
 function sshExec(config) {
   return new Promise((resolve, reject) => {
-    const { host, port = 22, username, password, privateKey } = config;
-    const cmd = 'uptime && free -m | grep Mem && df -h / | tail -1 && top -bn1 | grep -iE "^(%Cpu|Cpu\\(s\\))" | head -1';
+    const { host, port = 22, username, password, privateKey, customCommand } = config;
+    const systemCmd = 'uptime && free -m | grep Mem && df -h / | tail -1 && top -bn1 | grep -iE "^(%Cpu|Cpu\\(s\\))" | head -1';
+    const cmd = customCommand ? `${systemCmd} && echo __CUSTOM__ && ${customCommand}` : systemCmd;
     const conn = new Client();
 
     const timer = setTimeout(() => { conn.end(); reject(new Error('SSH timeout')); }, 12000);
@@ -29,27 +30,39 @@ function sshExec(config) {
   });
 }
 
-function parseOutput(out) {
+function parseOutput(out, config) {
   const metrics = {};
 
-  const uptimeMatch = out.match(/up\s+([^,]+(?:,\s*\d+:\d+)?)/);
+  let systemOut = out;
+  if (config.customCommand && out.includes('__CUSTOM__')) {
+    const parts = out.split('__CUSTOM__\n');
+    systemOut = parts[0];
+    metrics.customOutput = (parts[1] || '').trim();
+    metrics.customCommand = config.customCommand;
+    if (config.expectedOutput) {
+      const expected = config.expectedOutput.trim().toLowerCase();
+      metrics.customMatch = metrics.customOutput.toLowerCase().includes(expected);
+    }
+  }
+
+  const uptimeMatch = systemOut.match(/up\s+([^,]+(?:,\s*\d+:\d+)?)/);
   if (uptimeMatch) metrics.uptime = uptimeMatch[1].trim();
 
-  const memMatch = out.match(/Mem:\s+(\d+)\s+(\d+)/);
+  const memMatch = systemOut.match(/Mem:\s+(\d+)\s+(\d+)/);
   if (memMatch) {
     metrics.memTotal = parseInt(memMatch[1]);
     metrics.memUsed  = parseInt(memMatch[2]);
     metrics.memPct   = Math.round((metrics.memUsed / metrics.memTotal) * 100);
   }
 
-  const dfMatch = out.match(/(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\d+)%\s+\/$/m);
+  const dfMatch = systemOut.match(/(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\d+)%\s+\/$/m);
   if (dfMatch) {
     metrics.diskSize = dfMatch[2];
     metrics.diskUsed = dfMatch[3];
     metrics.diskPct  = parseInt(dfMatch[5]);
   }
 
-  const idleMatch = out.match(/(\d+[\.,]\d*)\s*%?\s*id/i);
+  const idleMatch = systemOut.match(/(\d+[\.,]\d*)\s*%?\s*id/i);
   if (idleMatch) {
     const idle = parseFloat(idleMatch[1].replace(',', '.'));
     metrics.cpuPct = Math.round((100 - idle) * 10) / 10;
@@ -69,7 +82,7 @@ async function check(config, lastState, lang = 'fr') {
 
   try {
     const out = await sshExec(config);
-    const metrics = { host, ...parseOutput(out) };
+    const metrics = { host, ...parseOutput(out, config) };
 
     const notifications = [];
     if (!wasOnline) notifications.push({ ...L.sshConnected(host, metrics.uptime), level: 'success', type: 'status_change' });
@@ -80,7 +93,15 @@ async function check(config, lastState, lang = 'fr') {
     if (lastState && metrics.diskPct > 90 && (lastState.diskPct ?? 0) <= 90)
       notifications.push({ ...L.sshHighDisk(host, metrics.diskPct), level: 'warning', type: 'status_change' });
 
-    return { status: 'online', state: metrics, metrics, notifications };
+    // Alert if expected output doesn't match
+    const wasMatching = lastState?.customMatch !== false;
+    if (config.customCommand && config.expectedOutput && metrics.customMatch === false && wasMatching)
+      notifications.push({ ...L.sshCustomMismatch(host, config.customCommand, metrics.customOutput), level: 'warning', type: 'status_change' });
+    if (config.customCommand && config.expectedOutput && metrics.customMatch === true && !wasMatching)
+      notifications.push({ ...L.sshCustomMatch(host, config.customCommand), level: 'success', type: 'status_change' });
+
+    const status = (config.expectedOutput && metrics.customMatch === false) ? 'warning' : 'online';
+    return { status, state: metrics, metrics, notifications };
   } catch (err) {
     const notifications = wasOnline ? [{
       ...L.sshConnectionFailed(host),

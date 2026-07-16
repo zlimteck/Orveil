@@ -710,8 +710,10 @@ export default {
       },
       ping: {
         host: 'Host',
+        mode: 'Protocol',
         port: 'TCP Port',
         attempts: 'Attempts',
+        icmpHint: 'Requires the `ping` binary in the container (iputils-ping).',
       },
       portforward: {
         host: 'Host / External IP',
@@ -771,6 +773,10 @@ export default {
         password: 'Password',
         passwordHint: 'Or fill in the private key below.',
         privateKeyPlaceholder: '-----BEGIN OPENSSH PRIVATE KEY-----\n…',
+        customCommand: 'Custom command (optional)',
+        customCommandPlaceholder: 'systemctl is-active nginx',
+        expectedOutput: 'Expected output (optional)',
+        expectedOutputHint: 'If set, the monitor turns to warning if the output does not contain this text (case-insensitive).',
       },
     },
   },

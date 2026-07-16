@@ -447,6 +447,12 @@ function MetricsBlock({ monitor }) {
           {metrics.diskPct != null && <span>{t('metrics.disk')} <span className={metrics.diskPct > 80 ? 'text-amber-400 font-medium' : 'text-thistle font-medium'}>{metrics.diskPct}%</span></span>}
         </div>
       )}
+      {metrics.customOutput != null && (
+        <div className="text-xs font-mono overflow-hidden">
+          <p className="truncate text-muted/80"><span className="text-muted/60">$ </span>{metrics.customCommand}</p>
+          <p className="truncate"><span className="text-muted/60">→ </span><span className={metrics.customMatch === false ? 'text-amber-400' : 'text-thistle'}>{metrics.customOutput || '(empty)'}</span></p>
+        </div>
+      )}
     </div>
   );
 
@@ -931,10 +937,14 @@ export default function Dashboard() {
     const map = new Map();
     const pinned = filtered.filter(m => m.pinned);
     if (pinned.length) map.set('__pinned__', pinned);
+    const catKeyMap = new Map();
     filtered.filter(m => !m.pinned).forEach(m => {
       const cat = m.category?.trim() || '';
-      if (!map.has(cat)) map.set(cat, []);
-      map.get(cat).push(m);
+      const key = cat.toLowerCase();
+      if (!catKeyMap.has(key)) catKeyMap.set(key, cat);
+      const displayCat = catKeyMap.get(key);
+      if (!map.has(displayCat)) map.set(displayCat, []);
+      map.get(displayCat).push(m);
     });
     return map;
   }, [filtered]);

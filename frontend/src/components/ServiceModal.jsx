@@ -22,7 +22,7 @@ const TYPE_DEFAULTS = {
   ultracc:    { checkInterval: 5,  reportInterval: 0,  config: { apiUrl: '', ultraToken: '' } },
   syncthing:  { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', folderIds: [], rejectUnauthorized: true } },
   http:       { checkInterval: 5,  reportInterval: 0,  config: { url: '', method: 'GET', body: '', expectedStatus: 200, acceptedStatusCodes: '', keyword: '', keywordMode: 'present', timeout: 10000, sslAlertDays: 30, responseTimeThreshold: 0, bearerToken: '', basicUser: '', basicPass: '', customHeaderName: '', customHeaderValue: '', rejectUnauthorized: true } },
-  ping:       { checkInterval: 2,  reportInterval: 0,  config: { host: '', port: 80, attempts: 3 } },
+  ping:       { checkInterval: 2,  reportInterval: 0,  config: { host: '', port: 80, attempts: 3, mode: 'tcp' } },
   proxmox:    { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiToken: '', node: 'pve', rejectUnauthorized: false } },
   immich:     { checkInterval: 30, reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
   portainer:  { checkInterval: 5,  reportInterval: 0,  config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
@@ -94,7 +94,7 @@ const TYPE_LABELS = {
   ultracc:    'Ultra.cc Seedbox',
   syncthing:  'Syncthing',
   http:       'HTTP Monitor',
-  ping:       'Ping / TCP',
+  ping:       'Ping',
   proxmox:    'Proxmox',
   immich:     'Immich',
   portainer:  'Portainer',
@@ -893,8 +893,25 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
   if (type === 'ping') return (
     <>
       <Field label={t('form.fields.ping.host')} value={config.host} onChange={v => set('host', v)} placeholder="192.168.1.1" />
-      <div className="grid grid-cols-2 gap-3">
-        <Field label={t('form.fields.ping.port')} value={config.port} onChange={v => set('port', +v)} type="number" placeholder="80" />
+      <div>
+        <label className="label">{t('form.fields.ping.mode')}</label>
+        <div className="flex gap-2">
+          {['tcp', 'icmp'].map(m => (
+            <button key={m} type="button"
+              onClick={() => set('mode', m)}
+              className={`flex-1 py-1.5 rounded-lg text-sm border transition-colors ${(config.mode || 'tcp') === m ? 'bg-periwinkle/20 border-periwinkle text-periwinkle' : 'border-border text-muted hover:border-muted'}`}>
+              {m.toUpperCase()}
+            </button>
+          ))}
+        </div>
+        {(config.mode || 'tcp') === 'icmp' && (
+          <p className="text-xs text-muted mt-1">{t('form.fields.ping.icmpHint')}</p>
+        )}
+      </div>
+      <div className={`grid gap-3 ${(config.mode || 'tcp') === 'tcp' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+        {(config.mode || 'tcp') === 'tcp' && (
+          <Field label={t('form.fields.ping.port')} value={config.port} onChange={v => set('port', +v)} type="number" placeholder="80" />
+        )}
         <Field label={t('form.fields.ping.attempts')} value={config.attempts} onChange={v => set('attempts', +v)} type="number" placeholder="3" />
       </div>
     </>
@@ -961,6 +978,15 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
           placeholder={t('form.fields.ssh.privateKeyPlaceholder')}
           value={config.privateKey} onChange={e => set('privateKey', e.target.value)} />
       </div>
+      <Field label={t('form.fields.ssh.customCommand')} value={config.customCommand || ''}
+        onChange={v => set('customCommand', v || undefined)}
+        placeholder={t('form.fields.ssh.customCommandPlaceholder')} />
+      {config.customCommand && (
+        <Field label={t('form.fields.ssh.expectedOutput')} value={config.expectedOutput || ''}
+          onChange={v => set('expectedOutput', v || undefined)}
+          hint={t('form.fields.ssh.expectedOutputHint')}
+          placeholder="active" />
+      )}
     </>
   );
 
@@ -1310,7 +1336,7 @@ function AdvancedSection({ form, setForm, allMonitors, monitor, lang, t, default
   const tabs = [
     { id: 'general',       label: lang === 'fr' ? 'Général' : 'General' },
     { id: 'monitoring',    label: 'Monitoring' },
-    { id: 'notifications', label: lang === 'fr' ? 'Notifs' : 'Notifs' },
+    { id: 'notifications', label: 'Notifications' },
     ...(monitor ? [{ id: 'integrations', label: lang === 'fr' ? 'Intégrations' : 'Integrations' }] : []),
   ];
 
@@ -1582,7 +1608,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
     { id: 'config',        label: 'Config' },
     { id: 'general',       label: lang === 'fr' ? 'Général' : 'General' },
     { id: 'monitoring',    label: 'Monitoring' },
-    { id: 'notifications', label: lang === 'fr' ? 'Notifs' : 'Notifs' },
+    { id: 'notifications', label: 'Notifications' },
     ...(monitor ? [{ id: 'integrations', label: lang === 'fr' ? 'Intégrations' : 'Integrations' }] : []),
   ];
 
@@ -1744,6 +1770,12 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Notifications */}
+            {tab === 'notifications' && (
+              <div className="space-y-3">
                 <div>
                   <label className="label">{t('form.appriseUrls')}</label>
                   <textarea
@@ -1755,12 +1787,6 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
                   />
                   <p className="text-xs text-muted mt-1">{t('form.appriseUrlsHint')}</p>
                 </div>
-              </div>
-            )}
-
-            {/* Notifications */}
-            {tab === 'notifications' && (
-              <div className="space-y-3">
                 <div className="bg-granite-3/50 border border-border rounded-lg px-3 py-2 space-y-1">
                   <p className="text-xs text-muted">{t('form.notifTemplates.hint')}</p>
                   <div className="flex flex-wrap gap-1 pt-0.5">
