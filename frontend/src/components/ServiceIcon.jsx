@@ -1,5 +1,5 @@
 import React from 'react';
-import { siCloudflare, siAdguard, siSyncthing, siProxmox, siImmich, siPortainer, siHomeassistant, siJellyfin, siMysql, siRedis, siOllama, siMongodb, siTailscale, siSonarr, siRadarr, siQbittorrent } from 'simple-icons';
+import { siCloudflare, siAdguard, siSyncthing, siProxmox, siImmich, siPortainer, siHomeassistant, siJellyfin, siMysql, siRedis, siOllama, siMongodb, siTailscale, siSonarr, siRadarr, siQbittorrent, siRclone, siHetzner } from 'simple-icons';
 import { Globe, Activity, Terminal, HeartPulse, Gauge, Network, Database, ArrowLeftRight, Workflow } from 'lucide-react';
 
 function SimpleIcon({ icon, size = 20 }) {
@@ -87,6 +87,8 @@ const FALLBACKS = {
   sonarr:         ({ size }) => <SimpleIcon icon={siSonarr} size={size} />,
   radarr:         ({ size }) => <SimpleIcon icon={siRadarr} size={size} />,
   qbittorrent:    ({ size }) => <SimpleIcon icon={siQbittorrent} size={size} />,
+  rclone:         ({ size }) => <SimpleIcon icon={siRclone} size={size} />,
+  hetzner:        ({ size }) => <SimpleIcon icon={siHetzner} size={size} />,
 };
 
 function FileIcon({ type, size, onError, className }) {

@@ -46,6 +46,8 @@ const TYPE_DEFAULTS = {
   overseerr:      { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
   qbittorrent:    { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', username: 'admin', password: '', rejectUnauthorized: true } },
   autobrr:        { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
+  rclone:         { checkInterval: 1,  reportInterval: 24, config: { apiUrl: '', username: '', password: '', remoteName: '', rejectUnauthorized: true } },
+  hetzner:        { checkInterval: 30, reportInterval: 24, config: { apiToken: '', storageBoxId: '' } },
   portforward:    { checkInterval: 2,  reportInterval: 0,  config: { host: '', port: 80 } },
   multistep:      { checkInterval: 5,  reportInterval: 0,  config: { steps: [{ name: '', url: '', method: 'GET', expectedStatus: 200, body: '', headers: '', extract: '' }] } },
 };
@@ -80,6 +82,8 @@ const TYPE_CATEGORIES = {
   overseerr:     'arr',
   qbittorrent:   'p2p',
   autobrr:       'arr',
+  rclone:        'storage',
+  hetzner:       'storage',
   speedtest:     'monitoring',
   heartbeat:     'monitoring',
   hms:           'hosting',
@@ -118,6 +122,8 @@ const TYPE_LABELS = {
   overseerr:     'Overseerr',
   qbittorrent:   'qBittorrent',
   autobrr:       'Autobrr',
+  rclone:        'rclone',
+  hetzner:       'Hetzner Storage Box',
   portforward:   'Port Forwarding',
   multistep:     'Multi-step HTTP',
 };
@@ -1219,6 +1225,24 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
       <TlsToggle config={config} set={set} t={t} />
       <CFAccessSection config={config} set={set} t={t} />
       <ProxySection config={config} set={set} proxies={proxies} />
+    </>
+  );
+
+  if (type === 'rclone') return (
+    <>
+      <Field label="URL RC rclone" value={config.apiUrl} onChange={v => set('apiUrl', v)} placeholder="http://192.168.1.10:5572" />
+      <Field label="Utilisateur (optionnel)" value={config.username} onChange={v => set('username', v)} placeholder="Laissez vide si pas d'auth" />
+      <Field label="Mot de passe (optionnel)" value={config.password} onChange={v => set('password', v)} type="password" placeholder="Mot de passe RC" />
+      <Field label="Remote (optionnel, pour quota)" value={config.remoteName} onChange={v => set('remoteName', v)} placeholder="ex: gdrive: ou sftp-backup:" />
+      <TlsToggle config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
+    </>
+  );
+
+  if (type === 'hetzner') return (
+    <>
+      <Field label="API Token Hetzner" value={config.apiToken} onChange={v => set('apiToken', v)} type="password" placeholder="Token API depuis console.hetzner.com" />
+      <Field label="ID Storage Box" value={config.storageBoxId} onChange={v => set('storageBoxId', v)} placeholder="ex: 123456 (visible dans l'URL et le panneau)" />
     </>
   );
 

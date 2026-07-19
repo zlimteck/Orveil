@@ -157,6 +157,8 @@ module.exports = {
     overseerrReport: (state) => ({ title: 'Overseerr Report', message: `Requests: ${state.requestsTotal} total | ${state.requestsPending} pending\nVersion: ${state.version || '—'}` }),
     qbittorrentReport: (state) => ({ title: 'qBittorrent Report', message: `Torrents: ${state.torrentsActive} active / ${state.torrentsTotal} total\nVersion: ${state.version || '—'}` }),
     autobrrReport: (state) => ({ title: 'Autobrr Report', message: `Filters: ${state.filtersEnabled}/${state.filtersTotal} enabled | Releases pushed: ${state.releasesPushed ?? '—'}\nVersion: ${state.version || '—'}` }),
+    rcloneReport: (state) => ({ title: 'rclone Report', message: `Transfers: ${state.transfersActive} active | DL: ${state.dlSpeed} B/s | Errors: ${state.errors}\nMounts: ${state.mountCount} | Jobs: ${state.jobCount}\nVersion: ${state.version || '—'}` }),
+    hetznerReport: (state) => ({ title: 'Hetzner Storage Box Report', message: `Disk: ${state.diskUsedGB} / ${state.diskTotalGB} GB (${state.diskPct}%)\nLocation: ${state.location || '—'} | Snapshots: ${state.snapUsedGB ?? 0} GB` }),
 
     // ── Ping ────────────────────────────────────────────────────────────────
     pingUnreachable: (host, port, attempts, mode) => mode === 'icmp'
@@ -422,6 +424,8 @@ module.exports = {
     overseerrReport: (state) => ({ title: 'Rapport Overseerr', message: `Demandes : ${state.requestsTotal} total | ${state.requestsPending} en attente\nVersion : ${state.version || '—'}` }),
     qbittorrentReport: (state) => ({ title: 'Rapport qBittorrent', message: `Torrents : ${state.torrentsActive} actifs / ${state.torrentsTotal} total\nVersion : ${state.version || '—'}` }),
     autobrrReport: (state) => ({ title: 'Rapport Autobrr', message: `Filtres : ${state.filtersEnabled}/${state.filtersTotal} actifs | Releases poussées : ${state.releasesPushed ?? '—'}\nVersion : ${state.version || '—'}` }),
+    rcloneReport: (state) => ({ title: 'Rapport rclone', message: `Transferts : ${state.transfersActive} actifs | DL : ${state.dlSpeed} B/s | Erreurs : ${state.errors}\nMontages : ${state.mountCount} | Jobs : ${state.jobCount}\nVersion : ${state.version || '—'}` }),
+    hetznerReport: (state) => ({ title: 'Rapport Hetzner Storage Box', message: `Disque : ${state.diskUsedGB} / ${state.diskTotalGB} GB (${state.diskPct}%)\nLocation : ${state.location || '—'} | Snapshots : ${state.snapUsedGB ?? 0} GB` }),
 
     // ── Ping ────────────────────────────────────────────────────────────────
     pingUnreachable: (host, port, attempts, mode) => mode === 'icmp'

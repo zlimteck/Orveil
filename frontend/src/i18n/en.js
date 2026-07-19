@@ -619,6 +619,7 @@ export default {
       media:          'Media',
       arr:            '*arr',
       p2p:            'P2P',
+      storage:        'Storage',
       ai:             'AI',
       monitoring:     'Monitoring',
       hosting:        'Hosting',

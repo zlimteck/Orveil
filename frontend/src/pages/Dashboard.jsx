@@ -594,6 +594,56 @@ function MetricsBlock({ monitor }) {
     </div>
   );
 
+  if (type === 'rclone') {
+    const fmtSpeed = (b) => {
+      if (b == null || b === 0) return '0 B/s';
+      if (b < 1024) return `${b} B/s`;
+      if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB/s`;
+      return `${(b / 1024 / 1024).toFixed(2)} MB/s`;
+    };
+    return (
+      <div className="space-y-1.5">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+          <span>Transferts : <span className={metrics.transfersActive > 0 ? 'text-celadon font-medium' : 'text-thistle font-medium'}>{metrics.transfersActive ?? '—'}</span></span>
+          {metrics.errors > 0 && <span className="text-red-400 font-medium">{metrics.errors} erreur{metrics.errors > 1 ? 's' : ''}</span>}
+          {metrics.mountCount > 0 && <span>Montages : <span className="text-thistle font-medium">{metrics.mountCount}</span></span>}
+          {metrics.jobCount > 0 && <span>Jobs : <span className="text-thistle font-medium">{metrics.jobCount}</span></span>}
+        </div>
+        <div className="flex gap-4 text-xs text-muted">
+          <span>↓ <span className="text-thistle font-medium">{fmtSpeed(metrics.dlSpeed)}</span></span>
+          <span>↑ <span className="text-thistle font-medium">{fmtSpeed(metrics.ulSpeed)}</span></span>
+        </div>
+        {metrics.diskPct != null && (
+          <div className="space-y-0.5">
+            <div className="flex justify-between text-xs text-muted">
+              <span>Remote — {metrics.diskUsedGB != null ? `${metrics.diskUsedGB} / ${metrics.diskTotalGB} GB` : 'quota'}</span>
+              <span>{metrics.diskPct}%</span>
+            </div>
+            <ProgressBar value={metrics.diskPct} warn={80} danger={90} />
+          </div>
+        )}
+        {metrics.version && <p className="text-xs text-muted/60">v{metrics.version}</p>}
+      </div>
+    );
+  }
+
+  if (type === 'hetzner') return (
+    <div className="space-y-1.5">
+      {metrics.diskPct != null && (
+        <div className="space-y-0.5">
+          <div className="flex justify-between text-xs text-muted">
+            <span>Disque — {metrics.diskUsedGB} / {metrics.diskTotalGB} GB</span>
+            <span>{metrics.diskPct}%</span>
+          </div>
+          <ProgressBar value={metrics.diskPct} warn={80} danger={90} />
+        </div>
+      )}
+      {metrics.snapUsedGB != null && metrics.snapUsedGB > 0 && (
+        <p className="text-xs text-muted">Snapshots : <span className="text-thistle font-medium">{metrics.snapUsedGB} GB</span></p>
+      )}
+    </div>
+  );
+
   return null;
 }
 
@@ -779,6 +829,8 @@ function metricSummary(monitor) {
     case 'openwebui':    return m.modelsCount != null ? `${m.modelsCount} modèle${m.modelsCount !== 1 ? 's' : ''}` : null;
     case 'qbittorrent':  return m.torrentsActive != null ? `${m.torrentsActive} actif${m.torrentsActive !== 1 ? 's' : ''}` : null;
     case 'autobrr':      return m.filtersEnabled != null ? `${m.filtersEnabled} filtre${m.filtersEnabled !== 1 ? 's' : ''}` : null;
+    case 'rclone':       return m.transfersActive != null ? `${m.transfersActive} transfert${m.transfersActive !== 1 ? 's' : ''}` : null;
+    case 'hetzner':      return m.diskPct != null ? `${m.diskPct}% utilisé` : null;
     case 'portainer':  return m.containersRunning != null ? `${m.containersRunning} actifs` : null;
     case 'docker':     return m.containersRunning != null ? `${m.containersRunning} actifs` : null;
     case 'syncthing':  return m.folders_synced != null ? `${m.folders_synced} dossiers` : null;

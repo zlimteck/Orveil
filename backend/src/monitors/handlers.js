@@ -31,5 +31,7 @@ module.exports = {
   portforward:    require('./portforward'),
   qbittorrent:    require('./qbittorrent'),
   autobrr:        require('./autobrr'),
+  rclone:         require('./rclone'),
+  hetzner:        require('./hetzner'),
   multistep:      require('./multistep'),
 };
