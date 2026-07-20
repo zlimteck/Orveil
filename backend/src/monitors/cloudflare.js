@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { getProxyAgents } = require('./proxyAgent');
 const i18n = require('../i18n');
+const { ruleConfig } = require('../config/alertRules');
 
 async function withRetry(fn, retries = 3) {
   for (let i = 0; i < retries; i++) {
@@ -83,24 +84,25 @@ async function check(config, lastState, lang = 'fr') {
     ? Object.fromEntries(lastState.tunnels.map(t => [t.id, t]))
     : null;
 
+  const tunnelRule = ruleConfig(config.alertRules, 'cloudflare', 'tunnel_offline');
   for (const tunnel of Object.values(currentTunnelMap)) {
     const prev = prevMap?.[tunnel.id];
     const isHealthy = tunnel.status === 'active' || tunnel.status === 'healthy';
 
-    if (prev !== undefined) {
+    if (tunnelRule.enabled && prev !== undefined) {
       const wasHealthy = prev.status === 'active' || prev.status === 'healthy';
       if (isHealthy && !wasHealthy) {
-        notifications.push({ ...L.tunnelRestored(tunnel.name), level: 'success', type: 'status_change' });
+        notifications.push({ ...L.tunnelRestored(tunnel.name), level: 'success', type: 'alert' });
       } else if (!isHealthy && wasHealthy) {
-        notifications.push({ ...L.tunnelDown(tunnel.name, tunnel.status), level: 'error', type: 'status_change' });
+        notifications.push({ ...L.tunnelDown(tunnel.name, tunnel.status), level: 'error', type: 'alert' });
       }
     }
   }
 
-  if (prevMap) {
+  if (tunnelRule.enabled && prevMap) {
     for (const prevId of Object.keys(prevMap)) {
       if (!currentTunnelMap[prevId]) {
-        notifications.push({ ...L.tunnelGone(prevMap[prevId].name), level: 'warning', type: 'status_change' });
+        notifications.push({ ...L.tunnelGone(prevMap[prevId].name), level: 'warning', type: 'alert' });
       }
     }
   }

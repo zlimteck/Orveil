@@ -3,6 +3,7 @@ const https = require('https');
 const cfHeaders = require('./cfHeaders');
 const { getProxyAgents } = require('./proxyAgent');
 const i18n = require('../i18n');
+const { ruleConfig } = require('../config/alertRules');
 
 async function check(config, lastState, lang = 'fr') {
   const L = i18n[lang] || i18n.fr;
@@ -55,12 +56,14 @@ async function check(config, lastState, lang = 'fr') {
     const vmRunning  = vms.filter(v => v.status === 'running').length;
     const lxcRunning = lxcs.filter(l => l.status === 'running').length;
 
+    const cpuRule = ruleConfig(config.alertRules, 'proxmox', 'high_cpu');
+    const ramRule = ruleConfig(config.alertRules, 'proxmox', 'high_ram');
     const notifications = [];
     if (lastState) {
-      if (cpuPct > 90 && (lastState.cpuPct ?? 0) <= 90)
-        notifications.push({ ...L.proxmoxHighCpu(cpuPct, node), level: 'warning', type: 'status_change' });
-      if (memPct > 90 && (lastState.memPct ?? 0) <= 90)
-        notifications.push({ ...L.proxmoxHighRam(memPct, node), level: 'warning', type: 'status_change' });
+      if (cpuRule.enabled && cpuPct > cpuRule.threshold && (lastState.cpuPct ?? 0) <= cpuRule.threshold)
+        notifications.push({ ...L.proxmoxHighCpu(cpuPct, node), level: 'warning', type: 'alert' });
+      if (ramRule.enabled && memPct > ramRule.threshold && (lastState.memPct ?? 0) <= ramRule.threshold)
+        notifications.push({ ...L.proxmoxHighRam(memPct, node), level: 'warning', type: 'alert' });
     }
 
     const responseTime = Date.now() - start;

@@ -1,5 +1,6 @@
 const http = require('http');
 const i18n = require('../i18n');
+const { ruleConfig } = require('../config/alertRules');
 
 function dockerRequest(socketPath, path) {
   // Prefer DOCKER_PROXY_URL env var (TCP proxy) over direct socket
@@ -55,7 +56,24 @@ async function check(config, lastState, lang = 'fr') {
 
     const status = 'online'; // socket reachable = healthy, stopped containers are informational
 
-    return { status, state: metrics, metrics, notifications: [] };
+    const containerRule = ruleConfig(config.alertRules, 'docker', 'container_stopped');
+    const notifications = [];
+    if (containerRule.enabled && lastState) {
+      const prevNames = new Set((lastState.containers || []).filter(c => c.state === 'running').map(c => c.name));
+      const currNames = new Set(containerList.filter(c => c.state === 'running').map(c => c.name));
+
+      const newlyStopped = [...prevNames].filter(n => !currNames.has(n));
+      const newlyStarted = [...currNames].filter(n => !prevNames.has(n) && (lastState.containers || []).some(c => c.name === n));
+
+      if (newlyStopped.length > 0) {
+        notifications.push({ ...L.dockerContainerStopped(newlyStopped.join(', ')), level: 'warning', type: 'alert' });
+      }
+      if (newlyStarted.length > 0) {
+        notifications.push({ ...L.dockerContainerRecovered(newlyStarted.join(', ')), level: 'success', type: 'alert' });
+      }
+    }
+
+    return { status, state: metrics, metrics, notifications };
   } catch (err) {
     return {
       status: 'error', state: lastState, metrics: null,

@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { getProxyAgents } = require('./proxyAgent');
 const i18n = require('../i18n');
+const { ruleConfig } = require('../config/alertRules');
 
 const BASE = 'https://api.adguard-dns.io/oapi/v1';
 
@@ -74,13 +75,14 @@ async function check(config, lastState, lang = 'fr') {
     }
   }
 
+  const protRule = ruleConfig(config.alertRules, 'adguard', 'protection_disabled');
   const notifications = [];
 
-  if (lastState !== null) {
+  if (protRule.enabled && lastState !== null) {
     if (!data.protection_enabled && lastState.protection_enabled) {
-      notifications.push({ ...L.adguardProtectionDisabled(data.server_name), level: 'warning', type: 'status_change' });
+      notifications.push({ ...L.adguardProtectionDisabled(data.server_name), level: 'warning', type: 'alert' });
     } else if (data.protection_enabled && lastState.protection_enabled === false) {
-      notifications.push({ ...L.adguardProtectionEnabled(data.server_name), level: 'success', type: 'status_change' });
+      notifications.push({ ...L.adguardProtectionEnabled(data.server_name), level: 'success', type: 'alert' });
     }
   }
 

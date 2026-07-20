@@ -4,10 +4,15 @@ const Incident = require('../models/Incident');
 const MaintenanceWindow = require('../models/MaintenanceWindow');
 const { triggerNow } = require('../monitors/runner');
 const handlers = require('../monitors/handlers');
+const { ALERT_RULES } = require('../config/alertRules');
 
 router.get('/', async (req, res) => {
   const monitors = await Monitor.find().sort({ position: 1, createdAt: 1 });
   res.json(monitors);
+});
+
+router.get('/alert-rules', (req, res) => {
+  res.json(ALERT_RULES);
 });
 
 router.patch('/bulk', async (req, res) => {
@@ -70,7 +75,7 @@ const { isSafeUrl } = require('../utils/validateUrl');
 const MONITOR_ALLOWED_FIELDS = [
   'name', 'type', 'description', 'enabled', 'checkInterval', 'reportInterval',
   'config', 'category', 'position', 'cardMetric', 'serviceUrl', 'showOnStatusPage',
-  'dependsOn', 'slaTarget', 'confirmAfter', 'customIconUrl', 'pinned', 'appriseUrls',
+  'dependsOn', 'slaTarget', 'confirmAfter', 'customIconUrl', 'pinned', 'appriseUrls', 'alertRules',
 ];
 
 function pickAllowed(body) {

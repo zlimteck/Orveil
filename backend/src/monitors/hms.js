@@ -2,6 +2,7 @@ const axios = require('axios');
 const cfHeaders = require('./cfHeaders');
 const { getProxyAgents } = require('./proxyAgent');
 const i18n = require('../i18n');
+const { ruleConfig } = require('../config/alertRules');
 
 async function fetchVps(hmsToken, vpsId, vpsName, extraHeaders = {}, proxy = null) {
   const auth = hmsToken.startsWith('Bearer ') ? hmsToken : `Bearer ${hmsToken}`;
@@ -61,22 +62,25 @@ async function check(config, lastState, lang = 'fr') {
     ? Object.fromEntries(lastState.vps.map(v => [v.id, v]))
     : null;
 
+  const vpsRule  = ruleConfig(config.alertRules, 'hms', 'vps_unreachable');
+  const cpuRule  = ruleConfig(config.alertRules, 'hms', 'high_cpu');
+  const memRule  = ruleConfig(config.alertRules, 'hms', 'high_memory');
   if (prevMap) {
     for (const vps of results) {
       const prev = prevMap[vps.id];
       if (prev) {
-        if (vps.cpu > 90 && prev.cpu <= 90) {
-          notifications.push({ ...L.hmsHighCpu(vps.name, vps.ipv4 || vps.id, vps.cpu), level: 'warning', type: 'status_change' });
+        if (cpuRule.enabled && vps.cpu > cpuRule.threshold && prev.cpu <= cpuRule.threshold) {
+          notifications.push({ ...L.hmsHighCpu(vps.name, vps.ipv4 || vps.id, vps.cpu), level: 'warning', type: 'alert' });
         }
-        if (vps.memory_pct > 90 && prev.memory_pct <= 90) {
-          notifications.push({ ...L.hmsHighMemory(vps.name, vps.memory_used, vps.max_memory, vps.memory_pct), level: 'warning', type: 'status_change' });
+        if (memRule.enabled && vps.memory_pct > memRule.threshold && prev.memory_pct <= memRule.threshold) {
+          notifications.push({ ...L.hmsHighMemory(vps.name, vps.memory_used, vps.max_memory, vps.memory_pct), level: 'warning', type: 'alert' });
         }
       }
     }
     for (const err of errors) {
       const prev = prevMap[err.id];
-      if (prev && !prev.error) {
-        notifications.push({ ...L.hmsVpsUnreachable(err.name, err.error), level: 'error', type: 'status_change' });
+      if (vpsRule.enabled && prev && !prev.error) {
+        notifications.push({ ...L.hmsVpsUnreachable(err.name, err.error), level: 'error', type: 'alert' });
       }
     }
   }

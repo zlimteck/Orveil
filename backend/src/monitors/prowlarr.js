@@ -3,6 +3,7 @@ const https = require('https');
 const cfHeaders = require('./cfHeaders');
 const { getProxyAgents } = require('./proxyAgent');
 const i18n = require('../i18n');
+const { ruleConfig } = require('../config/alertRules');
 
 async function check(config, lastState, lang = 'fr') {
   const L = i18n[lang] || i18n.fr;
@@ -37,9 +38,10 @@ async function check(config, lastState, lang = 'fr') {
     const indexersTotal = indexers.length;
     const indexersEnabled = indexers.filter(i => i.enable).length;
 
+    const healthRule = ruleConfig(config.alertRules, 'prowlarr', 'health_warning');
     const notifications = [];
-    if (warnings.length > 0 && (!lastState || lastState.warningsCount === 0)) {
-      notifications.push({ ...L.arrHealthWarning('Prowlarr', warnings[0].message), level: 'warning', type: 'status_change' });
+    if (healthRule.enabled && warnings.length > 0 && (!lastState || lastState.warningsCount === 0)) {
+      notifications.push({ ...L.arrHealthWarning('Prowlarr', warnings[0].message), level: 'warning', type: 'alert' });
     }
 
     const state = { version, indexersTotal, indexersEnabled, warningsCount: warnings.length };

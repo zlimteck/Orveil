@@ -3,6 +3,7 @@ const https = require('https');
 const cfHeaders = require('./cfHeaders');
 const { getProxyAgents } = require('./proxyAgent');
 const i18n = require('../i18n');
+const { ruleConfig } = require('../config/alertRules');
 
 async function check(config, lastState, lang = 'fr') {
   const L = i18n[lang] || i18n.fr;
@@ -36,9 +37,10 @@ async function check(config, lastState, lang = 'fr') {
     const diskTotal = storage.diskSizeRaw ?? 0;
     const diskPct = diskTotal > 0 ? Math.round((diskUsed / diskTotal) * 100) : 0;
 
+    const storageRule = ruleConfig(config.alertRules, 'immich', 'storage_critical');
     const notifications = [];
-    if (lastState && diskPct > 90 && (lastState.diskPct ?? 0) <= 90) {
-      notifications.push({ ...L.immichStorageCritical(diskPct, storage.diskUse, storage.diskSize), level: 'warning', type: 'status_change' });
+    if (storageRule.enabled && lastState && diskPct > storageRule.threshold && (lastState.diskPct ?? 0) <= storageRule.threshold) {
+      notifications.push({ ...L.immichStorageCritical(diskPct, storage.diskUse, storage.diskSize), level: 'warning', type: 'alert' });
     }
 
     const state = { photos: stats.photos, videos: stats.videos, diskPct };

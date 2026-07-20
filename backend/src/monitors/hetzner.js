@@ -1,7 +1,9 @@
 const axios = require('axios');
 const i18n = require('../i18n');
+const { ruleConfig } = require('../config/alertRules');
 
-async function check(config) {
+async function check(config, lastState, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
   const { apiToken, storageBoxId } = config;
   if (!apiToken || !storageBoxId) throw new Error('apiToken and storageBoxId required');
 
@@ -36,12 +38,19 @@ async function check(config) {
   const snapshots   = null;
   const subaccounts = null;
 
+  const storageRule = ruleConfig(config.alertRules, 'hetzner', 'storage_critical');
+  const notifications = [];
+  if (storageRule.enabled && lastState && diskPct > storageRule.threshold && (lastState.diskPct ?? 0) <= storageRule.threshold) {
+    notifications.push({ ...L.hetznerStorageCritical(diskPct, diskUsedGB, diskTotalGB), level: 'warning', type: 'alert' });
+  }
+
   return {
     status: 'online',
     statusCode: 200,
     responseTime,
     state: { name, username, hostname, location, status, diskTotalGB, diskUsedGB, diskFreeGB, diskPct, snapUsedGB },
     metrics: { diskTotalGB, diskUsedGB, diskFreeGB, diskPct, snapUsedGB, responseTime, statusCode: 200 },
+    notifications,
   };
 }
 

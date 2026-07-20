@@ -2,6 +2,7 @@ const axios = require('axios');
 const https = require('https');
 const { getProxyAgents } = require('./proxyAgent');
 const i18n = require('../i18n');
+const { ruleConfig } = require('../config/alertRules');
 
 function makeClient(config) {
   const { token, rejectUnauthorized = true, proxy } = config;
@@ -78,13 +79,14 @@ async function check(config, lastState, lang = 'fr') {
     }
 
     // Alert on entity becoming unavailable
-    if (lastState?.entityStates) {
+    const entityRule = ruleConfig(config.alertRules, 'homeassistant', 'entity_unavailable');
+    if (entityRule.enabled && lastState?.entityStates) {
       for (const entity of entityStates) {
         const prev = lastState.entityStates.find(e => e.entity_id === entity.entity_id);
         if (entity.state === 'unavailable' && prev && prev.state !== 'unavailable') {
-          notifications.push({ ...L.haEntityUnavailable(entity.friendly_name, entity.entity_id), level: 'warning', type: 'status_change' });
+          notifications.push({ ...L.haEntityUnavailable(entity.friendly_name, entity.entity_id), level: 'warning', type: 'alert' });
         } else if (entity.state !== 'unavailable' && prev?.state === 'unavailable') {
-          notifications.push({ ...L.haEntityRestored(entity.friendly_name, entity.entity_id, entity.state, entity.unit), level: 'success', type: 'status_change' });
+          notifications.push({ ...L.haEntityRestored(entity.friendly_name, entity.entity_id, entity.state, entity.unit), level: 'success', type: 'alert' });
         }
       }
     }

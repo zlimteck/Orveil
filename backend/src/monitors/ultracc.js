@@ -2,6 +2,7 @@ const axios = require('axios');
 const cfHeaders = require('./cfHeaders');
 const { getProxyAgents } = require('./proxyAgent');
 const i18n = require('../i18n');
+const { ruleConfig } = require('../config/alertRules');
 
 const COOLDOWN_MS = 60 * 1000;
 const lastCall = {};
@@ -72,13 +73,15 @@ async function check(config, lastState, lang = 'fr') {
     return errResult;
   }
 
+  const storageRule = ruleConfig(config.alertRules, 'ultracc', 'low_storage');
+  const trafficRule = ruleConfig(config.alertRules, 'ultracc', 'low_traffic');
   const notifications = [];
   if (lastState) {
-    if (data.free_storage < 50 && lastState.free_storage >= 50) {
-      notifications.push({ ...L.ultraccLowStorage(data.free_storage, data.total_storage), level: 'warning', type: 'status_change' });
+    if (storageRule.enabled && data.free_storage < 50 && lastState.free_storage >= 50) {
+      notifications.push({ ...L.ultraccLowStorage(data.free_storage, data.total_storage), level: 'warning', type: 'alert' });
     }
-    if (data.traffic_available < 10 && lastState.traffic_available >= 10) {
-      notifications.push({ ...L.ultraccLowTraffic(data.traffic_available, data.traffic_reset), level: 'warning', type: 'status_change' });
+    if (trafficRule.enabled && data.traffic_available < 10 && lastState.traffic_available >= 10) {
+      notifications.push({ ...L.ultraccLowTraffic(data.traffic_available, data.traffic_reset), level: 'warning', type: 'alert' });
     }
   }
 

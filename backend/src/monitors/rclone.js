@@ -2,6 +2,7 @@ const axios = require('axios');
 const https = require('https');
 const { getProxyAgents } = require('./proxyAgent');
 const i18n = require('../i18n');
+const { ruleConfig } = require('../config/alertRules');
 
 function fmtBytes(b) {
   if (b == null) return '—';
@@ -10,7 +11,8 @@ function fmtBytes(b) {
   return `${(b / 1024 / 1024).toFixed(2)} MB/s`;
 }
 
-async function check(config) {
+async function check(config, lastState, lang = 'fr') {
+  const L = i18n[lang] || i18n.fr;
   const { apiUrl, username, password, remoteName, rejectUnauthorized = true, proxy } = config;
   if (!apiUrl) throw new Error('apiUrl required');
 
@@ -56,12 +58,24 @@ async function check(config) {
   const mountCount = mounts.length;
   const jobCount = jobs.length;
 
+  const errRule = ruleConfig(config.alertRules, 'rclone', 'transfer_errors');
+  const notifications = [];
+  const prevErrors = lastState?.errors ?? 0;
+  if (errRule.enabled) {
+    if (errors > 0 && prevErrors === 0) {
+      notifications.push({ ...L.rcloneTransferErrors(errors), level: 'warning', type: 'alert' });
+    } else if (errors === 0 && prevErrors > 0) {
+      notifications.push({ ...L.rcloneTransferErrorsResolved(), level: 'success', type: 'alert' });
+    }
+  }
+
   return {
     status: 'online',
     statusCode: 200,
     responseTime,
     state: { version, dlSpeed, ulSpeed, transfersActive, transfersTotal, errors, checks, diskTotal, diskUsed, diskFree, diskPct, mountCount, jobCount, mounts },
     metrics: { version, dlSpeed, ulSpeed, transfersActive, transfersTotal, errors, checks, diskTotal, diskUsed, diskFree, diskPct, mountCount, jobCount, responseTime, statusCode: 200 },
+    notifications,
   };
 }
 

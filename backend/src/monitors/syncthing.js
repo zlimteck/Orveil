@@ -3,6 +3,7 @@ const https = require('https');
 const cfHeaders = require('./cfHeaders');
 const { getProxyAgents } = require('./proxyAgent');
 const i18n = require('../i18n');
+const { ruleConfig } = require('../config/alertRules');
 
 function makeClient(rejectUnauthorized = false, extraHeaders = {}, proxy = null) {
   const proxyAgents = getProxyAgents(proxy);
@@ -104,22 +105,24 @@ async function check(config, lastState, lang = 'fr') {
     ? Object.fromEntries(lastState.devices.map(d => [d.id, d]))
     : null;
 
+  const deviceRule = ruleConfig(config.alertRules, 'syncthing', 'device_disconnected');
+  const folderRule = ruleConfig(config.alertRules, 'syncthing', 'folder_error');
   if (prevDeviceMap) {
     for (const dev of devices) {
       const prev = prevDeviceMap[dev.id];
-      if (prev) {
+      if (prev && deviceRule.enabled) {
         if (!dev.connected && prev.connected) {
-          notifications.push({ ...L.syncthingDeviceDisconnected(dev.name), level: 'warning', type: 'status_change' });
+          notifications.push({ ...L.syncthingDeviceDisconnected(dev.name), level: 'warning', type: 'alert' });
         } else if (dev.connected && !prev.connected) {
-          notifications.push({ ...L.syncthingDeviceReconnected(dev.name), level: 'success', type: 'status_change' });
+          notifications.push({ ...L.syncthingDeviceReconnected(dev.name), level: 'success', type: 'alert' });
         }
       }
     }
 
     for (const folder of folders) {
       const prevF = lastState?.folders?.find(f => f.id === folder.id);
-      if (prevF && folder.state === 'error' && prevF.state !== 'error') {
-        notifications.push({ ...L.syncthingFolderError(folder.label), level: 'error', type: 'status_change' });
+      if (folderRule.enabled && prevF && folder.state === 'error' && prevF.state !== 'error') {
+        notifications.push({ ...L.syncthingFolderError(folder.label), level: 'error', type: 'alert' });
       }
     }
   }

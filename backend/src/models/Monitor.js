@@ -33,6 +33,7 @@ const monitorSchema = new mongoose.Schema({
   pinned: { type: Boolean, default: false },
   webhookToken: { type: String, default: null, sparse: true },
   appriseUrls: { type: [String], default: [] },
+  alertRules: { type: mongoose.Schema.Types.Mixed, default: {} },
 }, { timestamps: true });
 
 // Encrypt sensitive config fields before any save

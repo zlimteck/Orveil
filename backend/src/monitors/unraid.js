@@ -2,6 +2,7 @@ const axios = require('axios');
 const https = require('https');
 const { getProxyAgents } = require('./proxyAgent');
 const i18n = require('../i18n');
+const { ruleConfig } = require('../config/alertRules');
 
 const QUERY = `query Orveil {
   info {
@@ -103,13 +104,15 @@ async function check(config, lastState, lang = 'fr') {
     const arrayOk = array.state === 'STARTED';
     const status  = !arrayOk || diskErrors > 0 ? 'warning' : 'online';
 
+    const diskRule  = ruleConfig(config.alertRules, 'unraid', 'disk_error');
+    const arrayRule = ruleConfig(config.alertRules, 'unraid', 'array_stopped');
     const notifications = [];
     if (lastState) {
-      if (diskErrors > 0 && (lastState.diskErrors || 0) === 0) {
-        notifications.push({ ...L.unraidDiskError(diskErrors), level: 'error', type: 'status_change' });
+      if (diskRule.enabled && diskErrors > 0 && (lastState.diskErrors || 0) === 0) {
+        notifications.push({ ...L.unraidDiskError(diskErrors), level: 'error', type: 'alert' });
       }
-      if (!arrayOk && lastState.arrayState === 'STARTED') {
-        notifications.push({ ...L.unraidArrayStopped(array.state), level: 'warning', type: 'status_change' });
+      if (arrayRule.enabled && !arrayOk && lastState.arrayState === 'STARTED') {
+        notifications.push({ ...L.unraidArrayStopped(array.state), level: 'warning', type: 'alert' });
       }
     }
 

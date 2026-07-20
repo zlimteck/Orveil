@@ -1534,11 +1534,14 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
   const originalFormRef = useRef(null);
   const [allMonitors, setAllMonitors] = useState([]);
   const [savedProxies, setSavedProxies] = useState([]);
+  const [availableAlertRules, setAvailableAlertRules] = useState({});
   const [tab, setTab] = useState('config');
 
   useEffect(() => {
     monitorsApi.list().then(setAllMonitors).catch(() => {});
     settingsApi.get().then(s => setSavedProxies(s.proxies || [])).catch(() => {});
+    fetch('/api/monitors/alert-rules', { credentials: 'include' })
+      .then(r => r.json()).then(setAvailableAlertRules).catch(() => {});
   }, []);
 
   async function handleTest() {
@@ -1564,7 +1567,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
       enabled: true, checkInterval: 5, reportInterval: 0,
       cardMetric: null, serviceUrl: '', showOnStatusPage: true,
       slaTarget: '', confirmAfter: 1, dependsOn: [], customIconUrl: '', appriseUrls: [],
-      config: {},
+      alertRules: {}, config: {},
     };
     originalFormRef.current = initial;
     return initial;
@@ -1588,6 +1591,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
         dependsOn: monitor.dependsOn?.map(id => String(id)) || [],
         customIconUrl: monitor.customIconUrl || '',
         appriseUrls: monitor.appriseUrls || [],
+        alertRules: monitor.alertRules || {},
         config: monitor.config || {},
       };
       originalFormRef.current = monitorForm;
@@ -1811,6 +1815,48 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
                   />
                   <p className="text-xs text-muted mt-1">{t('form.appriseUrlsHint')}</p>
                 </div>
+                {/* Alert rules */}
+                {form.type && (availableAlertRules[form.type] || []).length > 0 && (
+                  <div className="space-y-2">
+                    <label className="label">{t('form.alertRules')}</label>
+                    <p className="text-xs text-muted -mt-1">{t('form.alertRulesHint')}</p>
+                    <div className="space-y-2">
+                      {(availableAlertRules[form.type] || []).map(rule => {
+                        const saved = form.alertRules?.[rule.key] || {};
+                        const enabled = saved.enabled !== undefined ? saved.enabled : rule.defaultEnabled;
+                        const threshold = saved.threshold !== undefined ? saved.threshold : rule.threshold?.default;
+                        const label = t(`form.alertRuleLabels.${rule.key}`) || rule.key;
+                        return (
+                          <div key={rule.key} className="flex items-center gap-3 bg-granite-3/40 border border-border rounded-lg px-3 py-2">
+                            <label className="flex items-center gap-2 cursor-pointer flex-1">
+                              <input
+                                type="checkbox"
+                                checked={enabled}
+                                onChange={e => setForm(f => ({ ...f, alertRules: { ...f.alertRules, [rule.key]: { ...f.alertRules?.[rule.key], enabled: e.target.checked } } }))}
+                                className="w-3.5 h-3.5 rounded accent-periwinkle"
+                              />
+                              <span className="text-xs">{label}</span>
+                            </label>
+                            {rule.threshold && enabled && (
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="number"
+                                  min={rule.threshold.min}
+                                  max={rule.threshold.max}
+                                  value={threshold}
+                                  onChange={e => setForm(f => ({ ...f, alertRules: { ...f.alertRules, [rule.key]: { ...f.alertRules?.[rule.key], threshold: Number(e.target.value) } } }))}
+                                  className="input w-16 text-xs px-2 py-1 text-center"
+                                />
+                                <span className="text-xs text-muted">{rule.threshold.unit}</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className="bg-granite-3/50 border border-border rounded-lg px-3 py-2 space-y-1">
                   <p className="text-xs text-muted">{t('form.notifTemplates.hint')}</p>
                   <div className="flex flex-wrap gap-1 pt-0.5">

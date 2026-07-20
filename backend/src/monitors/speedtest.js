@@ -2,6 +2,7 @@ const axios = require('axios');
 const https = require('https');
 const { getProxyAgents } = require('./proxyAgent');
 const i18n = require('../i18n');
+const { ruleConfig } = require('../config/alertRules');
 
 async function check(config, lastState, lang = 'fr') {
   const L = i18n[lang] || i18n.fr;
@@ -47,10 +48,11 @@ async function check(config, lastState, lang = 'fr') {
 
     const metrics = { downloadMbps, uploadMbps, pingMs, jitterMs };
 
+    const testRule = ruleConfig(config.alertRules, 'speedtest', 'test_failed');
     const notifications = [];
-    if (lastState && successful !== (lastState.successful ?? true)) {
+    if (testRule.enabled && lastState && successful !== (lastState.successful ?? true)) {
       const notif = L.speedtestResult(successful, failReason);
-      notifications.push({ ...notif, level: successful ? 'info' : 'warning', type: 'status_change' });
+      notifications.push({ ...notif, level: successful ? 'info' : 'warning', type: 'alert' });
     }
 
     return { status, lastError: failReason, state: { ...metrics, successful }, metrics, notifications };

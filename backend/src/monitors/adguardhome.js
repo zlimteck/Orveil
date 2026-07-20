@@ -2,6 +2,7 @@ const axios = require('axios');
 const https = require('https');
 const { getProxyAgents } = require('./proxyAgent');
 const i18n = require('../i18n');
+const { ruleConfig } = require('../config/alertRules');
 
 async function fetchData(config) {
   const { url, username, password, rejectUnauthorized = true, proxy } = config;
@@ -57,11 +58,12 @@ async function check(config, lastState, lang = 'fr') {
       notifications.push({ ...L.adguardhomeOnline(url, totalQueries, blockedPct), level: 'success', type: 'status_change' });
     }
 
-    if (lastState !== null) {
+    const protRule = ruleConfig(config.alertRules, 'adguardhome', 'protection_disabled');
+    if (protRule.enabled && lastState !== null) {
       if (!protectionEnabled && lastState.protectionEnabled !== false) {
-        notifications.push({ ...L.adguardhomeProtectionDisabled(url), level: 'warning', type: 'status_change' });
+        notifications.push({ ...L.adguardhomeProtectionDisabled(url), level: 'warning', type: 'alert' });
       } else if (protectionEnabled && lastState.protectionEnabled === false) {
-        notifications.push({ ...L.adguardhomeProtectionEnabled(url), level: 'success', type: 'status_change' });
+        notifications.push({ ...L.adguardhomeProtectionEnabled(url), level: 'success', type: 'alert' });
       }
     }
 

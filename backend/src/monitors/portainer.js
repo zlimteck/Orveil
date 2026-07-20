@@ -3,6 +3,7 @@ const https = require('https');
 const cfHeaders = require('./cfHeaders');
 const { getProxyAgents } = require('./proxyAgent');
 const i18n = require('../i18n');
+const { ruleConfig } = require('../config/alertRules');
 
 async function check(config, lastState, lang = 'fr') {
   const L = i18n[lang] || i18n.fr;
@@ -72,7 +73,24 @@ async function check(config, lastState, lang = 'fr') {
     const metrics = { environments: endpoints.length, containersRunning, containersStopped, containers: containerList, responseTime, statusCode: endpointsRes.status };
     const status = endpoints.length > 0 ? 'online' : 'warning';
 
-    return { status, state, metrics, notifications: [] };
+    const containerRule = ruleConfig(config.alertRules, 'portainer', 'container_stopped');
+    const notifications = [];
+    if (containerRule.enabled && lastState) {
+      const prevRunning = new Set((lastState.containers || []).filter(c => c.state === 'running').map(c => `${c.env}/${c.name}`));
+      const currRunning = new Set(containerList.filter(c => c.state === 'running').map(c => `${c.env}/${c.name}`));
+
+      const newlyStopped = [...prevRunning].filter(k => !currRunning.has(k)).map(k => k.split('/')[1]);
+      const newlyStarted = [...currRunning].filter(k => !prevRunning.has(k) && (lastState.containers || []).some(c => `${c.env}/${c.name}` === k)).map(k => k.split('/')[1]);
+
+      if (newlyStopped.length > 0) {
+        notifications.push({ ...L.portainerContainerStopped(newlyStopped.join(', ')), level: 'warning', type: 'alert' });
+      }
+      if (newlyStarted.length > 0) {
+        notifications.push({ ...L.portainerContainerRecovered(newlyStarted.join(', ')), level: 'success', type: 'alert' });
+      }
+    }
+
+    return { status, state, metrics, notifications };
   } catch (err) {
     return { status: 'error', lastError: err.message, state: lastState, metrics: null, notifications: [
       { ...L.apiError('Portainer', err.message), level: 'error', type: 'status_change' }

@@ -69,6 +69,8 @@ module.exports = {
 
     // ── Docker ──────────────────────────────────────────────────────────────
     dockerSocketError: (msg) => ({ title: 'Docker — Socket error', message: msg }),
+    dockerContainerStopped: (names) => ({ title: 'Docker — Container(s) stopped', message: `The following container(s) are no longer running: ${names}` }),
+    dockerContainerRecovered: (names) => ({ title: 'Docker — Container(s) running again', message: `The following container(s) are running again: ${names}` }),
     dockerReport: (state) => {
       const lines = (state.containers || []).map(c => `${c.name} (${c.state})`).join('\n');
       return { title: 'Docker Report', message: `Running: ${state.containersRunning} | Stopped: ${state.containersStopped}\n\n${lines}` };
@@ -157,6 +159,9 @@ module.exports = {
     overseerrReport: (state) => ({ title: 'Overseerr Report', message: `Requests: ${state.requestsTotal} total | ${state.requestsPending} pending\nVersion: ${state.version || '—'}` }),
     qbittorrentReport: (state) => ({ title: 'qBittorrent Report', message: `Torrents: ${state.torrentsActive} active / ${state.torrentsTotal} total\nVersion: ${state.version || '—'}` }),
     autobrrReport: (state) => ({ title: 'Autobrr Report', message: `Filters: ${state.filtersEnabled}/${state.filtersTotal} enabled | Releases pushed: ${state.releasesPushed ?? '—'}\nVersion: ${state.version || '—'}` }),
+    rcloneTransferErrors: (count) => ({ title: 'rclone — Transfer errors', message: `${count} transfer error${count > 1 ? 's' : ''} detected.` }),
+    rcloneTransferErrorsResolved: () => ({ title: 'rclone — Transfer errors resolved', message: 'No more transfer errors.' }),
+    hetznerStorageCritical: (pct, usedGB, totalGB) => ({ title: 'Hetzner Storage Box — Disk critical', message: `Disk at ${pct}% — ${usedGB} GB used / ${totalGB} GB` }),
     rcloneReport: (state) => ({ title: 'rclone Report', message: `Transfers: ${state.transfersActive} active | DL: ${state.dlSpeed} B/s | Errors: ${state.errors}\nMounts: ${state.mountCount} | Jobs: ${state.jobCount}\nVersion: ${state.version || '—'}` }),
     hetznerReport: (state) => ({ title: 'Hetzner Storage Box Report', message: `Disk: ${state.diskUsedGB} / ${state.diskTotalGB} GB (${state.diskPct}%)\nLocation: ${state.location || '—'} | Snapshots: ${state.snapUsedGB ?? 0} GB` }),
 
@@ -183,6 +188,8 @@ module.exports = {
     multistepBack:   (total, ms) => ({ title: 'Multi-step back online', message: `All ${total} step${total > 1 ? 's' : ''} passed (${ms}ms total).` }),
 
     // ── Portainer ───────────────────────────────────────────────────────────
+    portainerContainerStopped: (names) => ({ title: 'Portainer — Container(s) stopped', message: `The following container(s) are no longer running: ${names}` }),
+    portainerContainerRecovered: (names) => ({ title: 'Portainer — Container(s) running again', message: `The following container(s) are running again: ${names}` }),
     portainerReport: (state) => ({
       title: 'Portainer Report',
       message: `Environments: ${state.environments}\nRunning containers: ${state.containersRunning}\nStopped: ${state.containersStopped}`,
@@ -336,6 +343,8 @@ module.exports = {
 
     // ── Docker ──────────────────────────────────────────────────────────────
     dockerSocketError: (msg) => ({ title: 'Docker — Erreur socket', message: msg }),
+    dockerContainerStopped: (names) => ({ title: 'Docker — Container(s) arrêté(s)', message: `Les containers suivants ne sont plus en cours d'exécution : ${names}` }),
+    dockerContainerRecovered: (names) => ({ title: 'Docker — Container(s) de nouveau actifs', message: `Les containers suivants sont de nouveau en cours d'exécution : ${names}` }),
     dockerReport: (state) => {
       const lines = (state.containers || []).map(c => `${c.name} (${c.state})`).join('\n');
       return { title: 'Rapport Docker', message: `Actifs : ${state.containersRunning} | Arrêtés : ${state.containersStopped}\n\n${lines}` };
@@ -424,6 +433,9 @@ module.exports = {
     overseerrReport: (state) => ({ title: 'Rapport Overseerr', message: `Demandes : ${state.requestsTotal} total | ${state.requestsPending} en attente\nVersion : ${state.version || '—'}` }),
     qbittorrentReport: (state) => ({ title: 'Rapport qBittorrent', message: `Torrents : ${state.torrentsActive} actifs / ${state.torrentsTotal} total\nVersion : ${state.version || '—'}` }),
     autobrrReport: (state) => ({ title: 'Rapport Autobrr', message: `Filtres : ${state.filtersEnabled}/${state.filtersTotal} actifs | Releases poussées : ${state.releasesPushed ?? '—'}\nVersion : ${state.version || '—'}` }),
+    rcloneTransferErrors: (count) => ({ title: 'rclone — Erreurs de transfert', message: `${count} erreur${count > 1 ? 's' : ''} de transfert détectée${count > 1 ? 's' : ''}.` }),
+    rcloneTransferErrorsResolved: () => ({ title: 'rclone — Erreurs résolues', message: 'Plus aucune erreur de transfert.' }),
+    hetznerStorageCritical: (pct, usedGB, totalGB) => ({ title: 'Hetzner Storage Box — Disque critique', message: `Disque à ${pct}% — ${usedGB} GB utilisés / ${totalGB} GB` }),
     rcloneReport: (state) => ({ title: 'Rapport rclone', message: `Transferts : ${state.transfersActive} actifs | DL : ${state.dlSpeed} B/s | Erreurs : ${state.errors}\nMontages : ${state.mountCount} | Jobs : ${state.jobCount}\nVersion : ${state.version || '—'}` }),
     hetznerReport: (state) => ({ title: 'Rapport Hetzner Storage Box', message: `Disque : ${state.diskUsedGB} / ${state.diskTotalGB} GB (${state.diskPct}%)\nLocation : ${state.location || '—'} | Snapshots : ${state.snapUsedGB ?? 0} GB` }),
 
@@ -450,6 +462,8 @@ module.exports = {
     multistepBack:   (total, ms) => ({ title: 'Multi-step de nouveau en ligne', message: `Les ${total} étape${total > 1 ? 's' : ''} passent toutes (${ms}ms au total).` }),
 
     // ── Portainer ───────────────────────────────────────────────────────────
+    portainerContainerStopped: (names) => ({ title: 'Portainer — Container(s) arrêté(s)', message: `Les containers suivants ne sont plus en cours d'exécution : ${names}` }),
+    portainerContainerRecovered: (names) => ({ title: 'Portainer — Container(s) de nouveau actifs', message: `Les containers suivants sont de nouveau en cours d'exécution : ${names}` }),
     portainerReport: (state) => ({
       title: 'Rapport Portainer',
       message: `Environnements : ${state.environments}\nContainers actifs : ${state.containersRunning}\nArrêtés : ${state.containersStopped}`,

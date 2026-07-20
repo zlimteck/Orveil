@@ -3,6 +3,7 @@ const https = require('https');
 const cfHeaders = require('./cfHeaders');
 const { getProxyAgents } = require('./proxyAgent');
 const i18n = require('../i18n');
+const { ruleConfig } = require('../config/alertRules');
 
 async function check(config, lastState, lang = 'fr') {
   const L = i18n[lang] || i18n.fr;
@@ -35,9 +36,10 @@ async function check(config, lastState, lang = 'fr') {
     const requestsTotal = requestsRes.data?.pageInfo?.results ?? 0;
     const requestsPending = pendingRes.data?.pageInfo?.results ?? 0;
 
+    const pendingRule = ruleConfig(config.alertRules, 'overseerr', 'pending_requests');
     const notifications = [];
-    if (requestsPending > 0 && (!lastState || lastState.requestsPending === 0)) {
-      notifications.push({ ...L.overseerrPendingRequests(requestsPending), level: 'info', type: 'status_change' });
+    if (pendingRule.enabled && requestsPending > 0 && (!lastState || lastState.requestsPending === 0)) {
+      notifications.push({ ...L.overseerrPendingRequests(requestsPending), level: 'info', type: 'alert' });
     }
 
     const state = { version, requestsTotal, requestsPending };

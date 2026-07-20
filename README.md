@@ -118,7 +118,7 @@ Set `ADMIN_PASSWORD` in your `.env` to control the initial password.
 ## Features
 
 **Monitoring**
-- **33 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping (TCP/ICMP), Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Docker, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Portainer, Tailscale, Home Assistant, Syncthing, Immich, Unraid, Speedtest Tracker, Jellyfin, Ollama, OpenWebUI, Sonarr, Radarr, Prowlarr, Overseerr, qBittorrent, Autobrr, HMS, Ultra.cc, Heartbeat
+- **35 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping (TCP/ICMP), Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Docker, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Portainer, Tailscale, Home Assistant, Syncthing, Immich, Unraid, Speedtest Tracker, Jellyfin, Ollama, OpenWebUI, Sonarr, Radarr, Prowlarr, Overseerr, qBittorrent, Autobrr, rclone, Hetzner Storage Box, HMS, Ultra.cc, Heartbeat
 - Adaptive polling — faster rechecks when a service is down
 - Monitor dependencies — suppress alerts when a parent is already down
 - SSL certificate monitoring with expiry warning
@@ -137,6 +137,7 @@ Set `ADMIN_PASSWORD` in your `.env` to control the initial password.
 **Alerts**
 - Apprise notifications — [100+ channels](https://github.com/caronc/apprise/wiki): Pushover, Telegram, Discord, Slack, email and more
 - Notification cooldown — prevents alert storms during flapping
+- Per-monitor configurable alert rules — enable/disable specific alerts (container stopped, high CPU, disk critical…) and adjust thresholds per service
 - Weekly summary report
 
 **Automation & integrations**
@@ -201,6 +202,8 @@ Set `ADMIN_PASSWORD` in your `.env` to control the initial password.
 | **Autobrr** | Active/total filters, releases pushed/rejected, version — API key auth |
 | **HMS (HostMyServers)** | VPS status and specs via API token |
 | **Ultra.cc** | Seedbox storage and traffic via Stats API URL |
+| **rclone** | Transfer stats (DL/UL speed, active transfers, errors), active mounts, jobs, remote quota and version via rclone RC API |
+| **Hetzner Storage Box** | Disk usage/free/total, snapshot size and location via Hetzner API (Bearer token) |
 | **Heartbeat** | Cron job / script monitor — alerts if no ping received within expected interval |
 
 → [Alerts sent per monitor type](docs/alerts.md)
@@ -220,6 +223,42 @@ mailto://user:pass@gmail.com       # Email
 ```
 
 Full list: https://github.com/caronc/apprise/wiki
+
+---
+
+## Changelog webhooks
+
+Each monitor has a **webhook token** (visible in its config panel) that lets external tools push changelog entries automatically — useful for CI/CD pipelines or redeploy scripts.
+
+**Endpoint:** `POST /api/webhook/changelog`
+
+```json
+{
+  "token": "YOUR_MONITOR_WEBHOOK_TOKEN",
+  "version": "1.2.3",
+  "description": "Updated dependencies",
+  "deployedAt": "2026-07-20T14:00:00Z"
+}
+```
+
+`version` is required. `description` and `deployedAt` are optional (defaults to empty string and current time).
+
+**Example — redeploy via Portainer + log to Orveil:**
+
+```bash
+#!/bin/bash
+# Usage: ./redeploy.sh "1.2.3" "Updated dependencies"
+VERSION="${1:-$(date +%Y%m%d)}"
+DESCRIPTION="${2:-Redeploy}"
+PORTAINER_WEBHOOK="https://portainer.example.com/api/webhooks/YOUR_WEBHOOK_ID"
+ORVEIL_URL="https://orveil.example.com/api/webhook/changelog"
+ORVEIL_TOKEN="YOUR_MONITOR_WEBHOOK_TOKEN"
+
+curl -X POST "$PORTAINER_WEBHOOK"
+curl -X POST "$ORVEIL_URL" \
+  -H "Content-Type: application/json" \
+  -d "{\"token\":\"$ORVEIL_TOKEN\",\"version\":\"$VERSION\",\"description\":\"$DESCRIPTION\"}"
+```
 
 ---
 

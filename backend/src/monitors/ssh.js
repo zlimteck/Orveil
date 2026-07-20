@@ -1,5 +1,6 @@
 const { Client } = require('ssh2');
 const i18n = require('../i18n');
+const { ruleConfig } = require('../config/alertRules');
 
 function sshExec(config) {
   return new Promise((resolve, reject) => {
@@ -86,19 +87,24 @@ async function check(config, lastState, lang = 'fr') {
 
     const notifications = [];
     if (!wasOnline) notifications.push({ ...L.sshConnected(host, metrics.uptime), level: 'success', type: 'status_change' });
-    if (lastState && metrics.cpuPct > 90 && (lastState.cpuPct ?? 0) <= 90)
-      notifications.push({ ...L.sshHighCpu(host, metrics.cpuPct), level: 'warning', type: 'status_change' });
-    if (lastState && metrics.memPct > 90 && (lastState.memPct ?? 0) <= 90)
-      notifications.push({ ...L.sshHighRam(host, metrics.memPct), level: 'warning', type: 'status_change' });
-    if (lastState && metrics.diskPct > 90 && (lastState.diskPct ?? 0) <= 90)
-      notifications.push({ ...L.sshHighDisk(host, metrics.diskPct), level: 'warning', type: 'status_change' });
+    const cpuRule  = ruleConfig(config.alertRules, 'ssh', 'high_cpu');
+    const ramRule  = ruleConfig(config.alertRules, 'ssh', 'high_ram');
+    const diskRule = ruleConfig(config.alertRules, 'ssh', 'high_disk');
+    const cmdRule  = ruleConfig(config.alertRules, 'ssh', 'custom_command_mismatch');
+
+    if (cpuRule.enabled && lastState && metrics.cpuPct > cpuRule.threshold && (lastState.cpuPct ?? 0) <= cpuRule.threshold)
+      notifications.push({ ...L.sshHighCpu(host, metrics.cpuPct), level: 'warning', type: 'alert' });
+    if (ramRule.enabled && lastState && metrics.memPct > ramRule.threshold && (lastState.memPct ?? 0) <= ramRule.threshold)
+      notifications.push({ ...L.sshHighRam(host, metrics.memPct), level: 'warning', type: 'alert' });
+    if (diskRule.enabled && lastState && metrics.diskPct > diskRule.threshold && (lastState.diskPct ?? 0) <= diskRule.threshold)
+      notifications.push({ ...L.sshHighDisk(host, metrics.diskPct), level: 'warning', type: 'alert' });
 
     // Alert if expected output doesn't match
     const wasMatching = lastState?.customMatch !== false;
-    if (config.customCommand && config.expectedOutput && metrics.customMatch === false && wasMatching)
-      notifications.push({ ...L.sshCustomMismatch(host, config.customCommand, metrics.customOutput), level: 'warning', type: 'status_change' });
-    if (config.customCommand && config.expectedOutput && metrics.customMatch === true && !wasMatching)
-      notifications.push({ ...L.sshCustomMatch(host, config.customCommand), level: 'success', type: 'status_change' });
+    if (cmdRule.enabled && config.customCommand && config.expectedOutput && metrics.customMatch === false && wasMatching)
+      notifications.push({ ...L.sshCustomMismatch(host, config.customCommand, metrics.customOutput), level: 'warning', type: 'alert' });
+    if (cmdRule.enabled && config.customCommand && config.expectedOutput && metrics.customMatch === true && !wasMatching)
+      notifications.push({ ...L.sshCustomMatch(host, config.customCommand), level: 'success', type: 'alert' });
 
     const status = (config.expectedOutput && metrics.customMatch === false) ? 'warning' : 'online';
     return { status, state: metrics, metrics, notifications };

@@ -14,8 +14,9 @@
 
 ## Monitoring
 
-- **26 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping (TCP/ICMP), Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Tailscale, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Home Assistant, Portainer, Docker, Syncthing, Immich, HostMyServers, Ultra.cc, Heartbeat, Unraid, Speedtest Tracker, Jellyfin, Ollama
+- **35 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping (TCP/ICMP), Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Tailscale, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Home Assistant, Portainer, Docker, Syncthing, Immich, HostMyServers, Ultra.cc, Heartbeat, Unraid, Speedtest Tracker, Jellyfin, Ollama, OpenWebUI, Sonarr, Radarr, Prowlarr, Overseerr, qBittorrent, Autobrr, rclone, Hetzner Storage Box
 - **Multi-step HTTP** — chain multiple HTTP requests with variable extraction (JSONPath or response headers) and interpolation between steps; full step-by-step failure reporting
+- **SSH custom command** — optional command run on the remote host with expected output check (case-insensitive); mismatch triggers an alert; command and result displayed on the monitor card
 - **Adaptive polling** — when a service goes down, check interval drops automatically to 30 s (configurable) for near-instant recovery detection; reverts to the normal interval once the service is back up
 - **Monitor dependencies** — link a monitor to a parent; down alerts are suppressed when the parent is also down
 - **Metric graphs** — sparkline graphs on dashboard cards and in service detail; smooth Bézier curves, incident overlays, user annotations, and per-monitor changelog markers
@@ -36,6 +37,8 @@
 ## Alerts & notifications
 
 - **Apprise notifications** — Pushover, Telegram, Discord, Slack, email, and [100+ more](https://github.com/caronc/apprise/wiki)
+- **Per-monitor Apprise URLs** — each monitor can define its own Apprise URLs (merged with global ones at send time); useful for routing alerts to different channels per service
+- **Configurable specific alerts** — each monitor exposes type-specific alert rules (e.g. container stopped, high CPU, disk critical) that can be individually enabled or disabled in the Notifications tab; threshold-based rules (disk %, CPU %) are also adjustable per monitor
 - **Notification cooldown** — configurable minimum delay between repeated down alerts for the same service; prevents alert storms during flapping; recovery notifications always pass through
 - **Weekly report** — optional weekly Apprise summary (services in error, average uptime)
 - **Manual notifications** — send a message to all channels directly from the UI

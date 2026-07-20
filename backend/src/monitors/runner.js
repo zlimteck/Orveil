@@ -104,9 +104,10 @@ async function runCheck(monitor, globalProxy = null, lang = 'fr', settings = nul
 
   console.log(`[Runner] Check: ${monitor.name} (${monitor.type})`);
 
-  const effectiveConfig = globalProxy
-    ? { ...monitor.config, proxy: { ...globalProxy, enabled: true } }
-    : monitor.config;
+  const effectiveConfig = {
+    ...(globalProxy ? { ...monitor.config, proxy: { ...globalProxy, enabled: true } } : monitor.config),
+    alertRules: monitor.alertRules || {},
+  };
 
   const L = i18n[lang] || i18n.fr;
 

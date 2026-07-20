@@ -3,6 +3,7 @@ const https = require('https');
 const cfHeaders = require('./cfHeaders');
 const { getProxyAgents } = require('./proxyAgent');
 const i18n = require('../i18n');
+const { ruleConfig } = require('../config/alertRules');
 
 async function check(config, lastState, lang = 'fr') {
   const L = i18n[lang] || i18n.fr;
@@ -39,9 +40,10 @@ async function check(config, lastState, lang = 'fr') {
     const missingCount = missingRes.data?.totalRecords ?? 0;
     const queueCount = queueRes.data?.totalRecords ?? 0;
 
+    const healthRule = ruleConfig(config.alertRules, 'radarr', 'health_warning');
     const notifications = [];
-    if (warnings.length > 0 && (!lastState || lastState.warningsCount === 0)) {
-      notifications.push({ ...L.arrHealthWarning('Radarr', warnings[0].message), level: 'warning', type: 'status_change' });
+    if (healthRule.enabled && warnings.length > 0 && (!lastState || lastState.warningsCount === 0)) {
+      notifications.push({ ...L.arrHealthWarning('Radarr', warnings[0].message), level: 'warning', type: 'alert' });
     }
 
     const state = { version, movieCount, missingCount, queueCount, warningsCount: warnings.length };
