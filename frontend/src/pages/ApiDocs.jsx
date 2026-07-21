@@ -55,6 +55,7 @@ function buildSections(t) {
         { method: 'GET',    path: '/api/monitors/qbittorrent',           descKey: 'monitorsByType' },
         { method: 'GET',    path: '/api/monitors/autobrr',               descKey: 'monitorsByType' },
         { method: 'GET',    path: '/api/monitors/dispatcharr',           descKey: 'monitorsByType' },
+        { method: 'GET',    path: '/api/monitors/navidrome',             descKey: 'monitorsByType' },
         { method: 'GET',    path: '/api/monitors/rclone',                descKey: 'monitorsByType' },
         { method: 'GET',    path: '/api/monitors/hetzner',               descKey: 'monitorsByType' },
         { method: 'GET',    path: '/api/monitors/portforward',            descKey: 'monitorsByType' },
@@ -115,6 +116,14 @@ function buildSections(t) {
         { method: 'GET',    path: '/api/logs',       descKey: 'logsList',  params: '?level=error&limit=50&monitorId=xxx' },
         { method: 'POST',   path: '/api/logs/send',  descKey: 'logsSend',  body: '{ "title": "…", "message": "…", "level": "info" }' },
         { method: 'DELETE', path: '/api/logs',       descKey: 'logsClear' },
+      ],
+    },
+    {
+      key: 'webhooks',
+      routes: [
+        { method: 'POST', path: '/api/webhook/changelog',    descKey: 'webhookChangelog',    body: '{ "token": "…", "version": "1.0.0", "description": "…" }' },
+        { method: 'POST', path: '/api/webhook/github/:token', descKey: 'webhookGithub' },
+        { method: 'POST', path: '/api/webhook/dispatcharr',  descKey: 'webhookDispatcharr' },
       ],
     },
     {

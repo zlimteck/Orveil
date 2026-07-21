@@ -47,6 +47,7 @@ const TYPE_DEFAULTS = {
   qbittorrent:    { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', username: 'admin', password: '', rejectUnauthorized: true } },
   autobrr:        { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
   dispatcharr:    { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
+  navidrome:      { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', username: '', password: '', rejectUnauthorized: true } },
   rclone:         { checkInterval: 1,  reportInterval: 24, config: { apiUrl: '', username: '', password: '', remoteName: '', rejectUnauthorized: true } },
   hetzner:        { checkInterval: 30, reportInterval: 24, config: { apiToken: '', storageBoxId: '' } },
   portforward:    { checkInterval: 2,  reportInterval: 0,  config: { host: '', port: 80 } },
@@ -74,6 +75,7 @@ const TYPE_CATEGORIES = {
   homeassistant: 'services',
   syncthing:     'services',
   jellyfin:      'media',
+  navidrome:     'media',
   immich:        'media',
   ollama:        'ai',
   openwebui:     'ai',
@@ -111,6 +113,7 @@ const TYPE_LABELS = {
   speedtest:     'Speedtest Tracker',
   homeassistant: 'Home Assistant',
   jellyfin:      'Jellyfin',
+  navidrome:     'Navidrome',
   dns:           'DNS',
   mysql:         'MySQL',
   redis:         'Redis',
@@ -1102,6 +1105,18 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
       <ProxySection config={config} set={set} proxies={proxies} />
     </>
   );
+
+  if (type === 'navidrome') return (
+    <>
+      <Field label="URL Navidrome" value={config.apiUrl} onChange={v => set('apiUrl', v)} placeholder="http://192.168.1.10:4533" />
+      <Field label="Utilisateur" value={config.username} onChange={v => set('username', v)} placeholder="admin" />
+      <Field label="Mot de passe" value={config.password} onChange={v => set('password', v)} type="password" placeholder="••••••••" />
+      <TlsToggle config={config} set={set} t={t} />
+      <CFAccessSection config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
+    </>
+  );
+
 
   if (type === 'dns') return (
     <>

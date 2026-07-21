@@ -53,7 +53,7 @@ app.use('/api/events', require('./routes/sse'));
 app.use('/api/public', require('./routes/public'));
 app.use('/api/badge',  require('./routes/badge'));
 app.use('/api/mcp', cors({ origin: true, credentials: false }), require('./routes/mcp'));
-app.use('/api/webhook', require('./routes/webhook'));
+app.use('/api/webhook', require('./routes/webhooks'));
 console.log('[MCP] Serveur MCP démarré sur /api/mcp (Streamable HTTP)');
 app.get('/api/health', (req, res) => res.json({ ok: true, ts: new Date() }));
 

@@ -178,7 +178,7 @@ export default function ServiceIcon({ type, size = 20, url, faviconUrl, serviceU
   }
 
   // Types that have a real file in /icons/ — always go through FileIcon first.
-  const HAS_FILE_ICON = new Set(['hms', 'ultracc', 'unraid', 'docker', 'speedtest', 'openwebui', 'prowlarr', 'overseerr', 'autobrr', 'dispatcharr']);
+  const HAS_FILE_ICON = new Set(['hms', 'ultracc', 'unraid', 'docker', 'speedtest', 'openwebui', 'prowlarr', 'overseerr', 'autobrr', 'dispatcharr', 'navidrome']);
   // Icons that are black and need inversion in dark mode
   const INVERT_IN_DARK = new Set(['openwebui']);
   // For all other types with a Fallback and no favicon, skip the broken-image

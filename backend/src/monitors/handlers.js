@@ -17,6 +17,7 @@ module.exports = {
   speedtest:      require('./speedtest'),
   homeassistant:  require('./homeassistant'),
   jellyfin:       require('./jellyfin'),
+  navidrome:      require('./navidrome'),
   dns:            require('./dns'),
   mysql:          require('./mysql'),
   redis:          require('./redis'),

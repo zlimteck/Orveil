@@ -830,6 +830,7 @@ function metricSummary(monitor) {
     case 'qbittorrent':  return m.torrentsActive != null ? `${m.torrentsActive} actif${m.torrentsActive !== 1 ? 's' : ''}` : null;
     case 'autobrr':       return m.filtersEnabled != null ? `${m.filtersEnabled} filtre${m.filtersEnabled !== 1 ? 's' : ''}` : null;
     case 'dispatcharr':   return m.activeStreams != null ? `${m.activeStreams} stream${m.activeStreams !== 1 ? 's' : ''}` : null;
+    case 'navidrome':     return m.nowPlaying != null ? `${m.nowPlaying} en écoute` : null;
     case 'rclone':       return m.transfersActive != null ? `${m.transfersActive} transfert${m.transfersActive !== 1 ? 's' : ''}` : null;
     case 'hetzner':      return m.diskPct != null ? `${m.diskPct}% utilisé` : null;
     case 'portainer':  return m.containersRunning != null ? `${m.containersRunning} actifs` : null;

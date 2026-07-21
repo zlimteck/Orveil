@@ -118,7 +118,7 @@ Set `ADMIN_PASSWORD` in your `.env` to control the initial password.
 ## Features
 
 **Monitoring**
-- **36 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping (TCP/ICMP), Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Docker, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Portainer, Tailscale, Home Assistant, Syncthing, Immich, Unraid, Speedtest Tracker, Jellyfin, Ollama, OpenWebUI, Sonarr, Radarr, Prowlarr, Overseerr, qBittorrent, Autobrr, Dispatcharr, rclone, Hetzner Storage Box, HMS, Ultra.cc, Heartbeat
+- **37 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping (TCP/ICMP), Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Docker, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Portainer, Tailscale, Home Assistant, Syncthing, Immich, Unraid, Speedtest Tracker, Jellyfin, Ollama, OpenWebUI, Sonarr, Radarr, Prowlarr, Overseerr, qBittorrent, Autobrr, Dispatcharr, Navidrome, rclone, Hetzner Storage Box, HMS, Ultra.cc, Heartbeat
 - Adaptive polling — faster rechecks when a service is down
 - Monitor dependencies — suppress alerts when a parent is already down
 - SSL certificate monitoring with expiry warning
@@ -201,6 +201,7 @@ Set `ADMIN_PASSWORD` in your `.env` to control the initial password.
 | **qBittorrent** | Active/total torrents, download/upload speed, version — username/password auth |
 | **Autobrr** | Active/total filters, releases pushed/rejected, version — API key auth |
 | **Dispatcharr** | Active streams, total viewers, channel count and version — API key auth (`X-API-Key`) |
+| **Navidrome** | Artist count, now playing, version — Subsonic MD5 auth (username + password) |
 | **HMS (HostMyServers)** | VPS status and specs via API token |
 | **Ultra.cc** | Seedbox storage and traffic via Stats API URL |
 | **rclone** | Transfer stats (DL/UL speed, active transfers, errors), active mounts, jobs, remote quota and version via rclone RC API |
@@ -231,7 +232,11 @@ Full list: https://github.com/caronc/apprise/wiki
 
 Each monitor has a **webhook token** (visible in its config panel) that lets external tools push changelog entries automatically — useful for CI/CD pipelines or redeploy scripts.
 
+### Standard CI/CD
+
 **Endpoint:** `POST /api/webhook/changelog`
+
+Token can be passed in the request body or in a `token` / `Authorization: Bearer` header.
 
 ```json
 {
@@ -248,7 +253,6 @@ Each monitor has a **webhook token** (visible in its config panel) that lets ext
 
 ```bash
 #!/bin/bash
-# Usage: ./redeploy.sh "1.2.3" "Updated dependencies"
 VERSION="${1:-$(date +%Y%m%d)}"
 DESCRIPTION="${2:-Redeploy}"
 PORTAINER_WEBHOOK="https://portainer.example.com/api/webhooks/YOUR_WEBHOOK_ID"
@@ -260,6 +264,36 @@ curl -X POST "$ORVEIL_URL" \
   -H "Content-Type: application/json" \
   -d "{\"token\":\"$ORVEIL_TOKEN\",\"version\":\"$VERSION\",\"description\":\"$DESCRIPTION\"}"
 ```
+
+### GitHub
+
+**Endpoint:** `POST /api/webhook/github/:token`
+
+Put your monitor webhook token directly in the URL. Supports `release`, `push` (branch and tag), and `create` (tag) events.
+
+In GitHub → repository Settings → Webhooks:
+- **Payload URL**: `https://orveil.example.com/api/webhook/github/YOUR_MONITOR_WEBHOOK_TOKEN`
+- **Content type**: `application/json`
+- **Events**: *Releases* and/or *Pushes*
+
+Entries created automatically:
+| GitHub event | Version | Description |
+|---|---|---|
+| Release published | tag name (e.g. `v1.2.3`) | Release title + body |
+| Push tag | tag name | Last commit message |
+| Push branch | `branch@abc1234` | Last commit message |
+
+### Dispatcharr
+
+**Endpoint:** `POST /api/webhook/dispatcharr`
+
+Pass the monitor token in the `token` header. Configure a **Payload Template** in Dispatcharr to include the event name:
+
+```json
+{"event": "{{ event }}", "channel_name": "{{ channel_name }}", "stream_name": "{{ stream_name }}"}
+```
+
+Events are automatically mapped to human-readable labels (`EPG Refreshed`, `Channel Started`, etc.).
 
 ---
 
