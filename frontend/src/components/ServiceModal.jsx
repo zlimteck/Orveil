@@ -1301,7 +1301,8 @@ function WebhookSection({ monitor }) {
   const [copied, setCopied] = React.useState(false);
 
   const baseUrl = window.location.origin;
-  const webhookUrl = `${baseUrl}/api/webhook/changelog`;
+  const webhookPath = monitor?.type === 'dispatcharr' ? 'dispatcharr' : 'changelog';
+  const webhookUrl = `${baseUrl}/api/webhook/${webhookPath}`;
 
   async function generate() {
     setLoading(true);
@@ -1330,8 +1331,12 @@ function WebhookSection({ monitor }) {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  const isDispatcharr = monitor?.type === 'dispatcharr';
+
   function copyCurl() {
-    const cmd = `curl -X POST ${webhookUrl} \\\n  -H "Content-Type: application/json" \\\n  -d '{"token":"${token}","version":"v1.0.0","description":"Deploy description"}'`;
+    const cmd = isDispatcharr
+      ? `curl -X POST ${webhookUrl} \\\n  -H "Content-Type: application/json" \\\n  -H "token: ${token}" \\\n  -d '{"event":"epg_refresh"}'`
+      : `curl -X POST ${webhookUrl} \\\n  -H "Content-Type: application/json" \\\n  -d '{"token":"${token}","version":"v1.0.0","description":"Deploy description"}'`;
     copyToClipboard(cmd);
     setCopied('curl');
     setTimeout(() => setCopied(false), 2000);
@@ -1341,10 +1346,12 @@ function WebhookSection({ monitor }) {
     <div className="border-t border-border pt-3 space-y-3">
       <div className="flex items-center gap-2">
         <Webhook size={13} className="text-periwinkle shrink-0" />
-        <p className="text-xs font-medium text-thistle">Webhook changelog</p>
+        <p className="text-xs font-medium text-thistle">{isDispatcharr ? 'Webhook Dispatcharr' : 'Webhook changelog'}</p>
       </div>
       <p className="text-xs text-muted">
-        Permet à tes pipelines CI/CD de créer automatiquement une entrée changelog sur ce monitor via une requête HTTP.
+        {isDispatcharr
+          ? 'Configure Dispatcharr pour envoyer ses événements à cette URL. Le token doit être passé dans le header token.'
+          : 'Permet à tes pipelines CI/CD de créer automatiquement une entrée changelog sur ce monitor via une requête HTTP.'}
       </p>
 
       {!token ? (
@@ -1382,9 +1389,9 @@ function WebhookSection({ monitor }) {
                 {copied === 'curl' ? <><Check size={11} className="text-celadon" /> Copié</> : <><Copy size={11} /> Copier</>}
               </button>
             </div>
-            <pre className="text-xs bg-granite-3 border border-border rounded-lg p-2.5 text-periwinkle/80 overflow-x-auto whitespace-pre-wrap break-all leading-relaxed">{`curl -X POST ${webhookUrl} \\
-  -H "Content-Type: application/json" \\
-  -d '{"token":"${token.slice(0, 8)}…","version":"v1.0.0","description":"Deploy"}'`}</pre>
+            <pre className="text-xs bg-granite-3 border border-border rounded-lg p-2.5 text-periwinkle/80 overflow-x-auto whitespace-pre-wrap break-all leading-relaxed">{isDispatcharr
+              ? `curl -X POST ${webhookUrl} \\\n  -H "Content-Type: application/json" \\\n  -H "token: ${token.slice(0, 8)}…" \\\n  -d '{"event":"epg_refresh"}'`
+              : `curl -X POST ${webhookUrl} \\\n  -H "Content-Type: application/json" \\\n  -d '{"token":"${token.slice(0, 8)}…","version":"v1.0.0","description":"Deploy"}'`}</pre>
           </div>
 
           {/* Revoke */}

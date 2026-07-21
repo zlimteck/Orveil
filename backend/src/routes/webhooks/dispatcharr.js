@@ -23,10 +23,21 @@ const EVENT_LABELS = {
 
 function buildDescription(body) {
   const parts = [];
-  if (body.channel_name) parts.push(`Channel: ${body.channel_name}`);
-  if (body.stream_name)  parts.push(`Stream: ${body.stream_name}`);
-  if (body.client_ip)    parts.push(`Client: ${body.client_ip}`);
-  return parts.join(' · ') || (body.payload ? JSON.stringify(body.payload) : '');
+  if (body.channel_name)      parts.push(`Channel: ${body.channel_name}`);
+  if (body.stream_name)       parts.push(`Stream: ${body.stream_name}`);
+  if (body.client_ip)         parts.push(`Client: ${body.client_ip}`);
+  if (body.message)           parts.push(body.message);
+  if (body.source)            parts.push(`Source: ${body.source}`);
+  if (body.url)               parts.push(`URL: ${body.url}`);
+  // EPG/M3U refresh fields
+  if (body.source_name)       parts.push(`Source: ${body.source_name}`);
+  if (body.channels)          parts.push(`Channels: ${body.channels}`);
+  if (body.programs)          parts.push(`Programs: ${body.programs}`);
+  if (body.skipped_programs)  parts.push(`Skipped: ${body.skipped_programs}`);
+  if (body.unmapped_channels) parts.push(`Unmapped: ${body.unmapped_channels}`);
+  if (parts.length) return parts.join(' · ');
+  if (body.payload && typeof body.payload === 'object') return JSON.stringify(body.payload);
+  return '';
 }
 
 // POST /api/webhook/dispatcharr
@@ -39,10 +50,17 @@ async function handleDispatcharr(req, res) {
     const monitor = await Monitor.findOne({ webhookToken: token }).lean();
     if (!monitor) return res.status(401).json({ error: 'Token invalide' });
 
-    const body = req.body || {};
+    let body = req.body || {};
+    // Dispatcharr sends content-type: form-urlencoded even with JSON templates
+    // If body has a single key that looks like a JSON string, parse it
+    const keys = Object.keys(body);
+    if (keys.length === 1 && keys[0].trimStart().startsWith('{')) {
+      try { body = JSON.parse(keys[0]); } catch (_) {}
+    }
     const eventName = body.event || body.event_type || null;
-    const version = EVENT_LABELS[eventName] || eventName || 'event';
-    const description = body.description || buildDescription(body);
+    const label = EVENT_LABELS[eventName] || eventName || 'Event';
+    const version = label;
+    const description = body.description || buildDescription(body) || label;
     const deployedAt = body.timestamp ? new Date(body.timestamp) : new Date();
 
     const entry = await Changelog.create({

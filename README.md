@@ -287,11 +287,19 @@ Entries created automatically:
 
 **Endpoint:** `POST /api/webhook/dispatcharr`
 
-Pass the monitor token in the `token` header. Configure a **Payload Template** in Dispatcharr to include the event name:
+Pass the monitor token in the `token` header. Configure a **Payload Template** in Dispatcharr for each event type with the event name hardcoded:
 
+**EPG Refresh:**
 ```json
-{"event": "{{ event }}", "channel_name": "{{ channel_name }}", "stream_name": "{{ stream_name }}"}
+{"event": "epg_refresh", "source_name": "{{source_name}}", "channels": "{{channels}}", "programs": "{{programs}}", "skipped_programs": "{{skipped_programs}}", "unmapped_channels": "{{unmapped_channels}}"}
 ```
+
+**Channel events:**
+```json
+{"event": "channel_start", "channel_name": "{{channel_name}}", "stream_name": "{{stream_name}}", "client_ip": "{{client_ip}}"}
+```
+
+Supported events: `channel_start`, `channel_stop`, `channel_reconnect`, `channel_error`, `channel_failover`, `stream_switch`, `recording_start`, `recording_end`, `epg_refresh`, `m3u_refresh`, `client_connect`, `client_disconnect`, `login_failed`, `epg_blocked`, `m3u_blocked`, `vod_start`, `vod_stop`.
 
 Events are automatically mapped to human-readable labels (`EPG Refreshed`, `Channel Started`, etc.).
 
