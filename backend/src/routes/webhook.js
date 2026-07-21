@@ -4,21 +4,31 @@ const Monitor = require('../models/Monitor');
 const Changelog = require('../models/Changelog');
 
 // POST /api/webhook/changelog
-// Public — authenticated by webhookToken in body
+// Public — authenticated by webhookToken in body or Authorization/token header
 router.post('/changelog', async (req, res) => {
   try {
-    const { token, version, description, deployedAt } = req.body;
+    // Token can come from body or headers (for tools like Dispatcharr)
+    const headerToken = req.headers['token'] || req.headers['authorization']?.replace(/^Bearer\s+/i, '');
+    const { token: bodyToken, version: bodyVersion, description, deployedAt } = req.body || {};
+    const token = bodyToken || headerToken;
+
     if (!token) return res.status(401).json({ error: 'Token manquant' });
-    if (!version) return res.status(400).json({ error: 'version requis' });
 
     const monitor = await Monitor.findOne({ webhookToken: token }).lean();
     if (!monitor) return res.status(401).json({ error: 'Token invalide' });
 
+    // Support Dispatcharr event format: { event, data } or flat payload
+    const body = req.body || {};
+    const eventName = body.event || body.event_type || null;
+    const version = bodyVersion || eventName || 'event';
+    const description = body.description || body.message || (eventName ? JSON.stringify(body.data || {}) : '') || '';
+    const deployedAtVal = body.deployedAt || body.timestamp || null;
+
     const entry = await Changelog.create({
       monitorId: monitor._id,
       version,
-      description: description || '',
-      deployedAt: deployedAt ? new Date(deployedAt) : new Date(),
+      description,
+      deployedAt: deployedAtVal ? new Date(deployedAtVal) : new Date(),
     });
 
     res.status(201).json({ ok: true, entry });
