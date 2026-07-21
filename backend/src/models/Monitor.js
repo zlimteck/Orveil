@@ -30,6 +30,7 @@ const monitorSchema = new mongoose.Schema({
   confirmAfter: { type: Number, default: 1 }, // consecutive errors before opening an incident
   consecutiveErrors: { type: Number, default: 0 },
   customIconUrl: { type: String, default: '' },
+  faviconUrl: { type: String, default: '' },
   pinned: { type: Boolean, default: false },
   webhookToken: { type: String, default: null, sparse: true },
   appriseUrls: { type: [String], default: [] },

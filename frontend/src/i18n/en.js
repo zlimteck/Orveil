@@ -603,6 +603,7 @@ export default {
     category: 'Category',
     categoryPlaceholder: 'Network, Apps…',
     serviceUrl: 'Service URL (optional)',
+    faviconUrl: 'Favicon URL (optional)',
     showOnStatusPage: 'Show on public status page',
     slaTarget: 'SLA target (%)',
     slaTargetHint: 'e.g. 99.9 — leave empty to disable',

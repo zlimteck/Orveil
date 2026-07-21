@@ -75,7 +75,7 @@ const { isSafeUrl } = require('../utils/validateUrl');
 const MONITOR_ALLOWED_FIELDS = [
   'name', 'type', 'description', 'enabled', 'checkInterval', 'reportInterval',
   'config', 'category', 'position', 'cardMetric', 'serviceUrl', 'showOnStatusPage',
-  'dependsOn', 'slaTarget', 'confirmAfter', 'customIconUrl', 'pinned', 'appriseUrls', 'alertRules',
+  'dependsOn', 'slaTarget', 'confirmAfter', 'customIconUrl', 'faviconUrl', 'pinned', 'appriseUrls', 'alertRules',
 ];
 
 function pickAllowed(body) {
@@ -87,6 +87,7 @@ function pickAllowed(body) {
 function validateUrls(body) {
   if (!isSafeUrl(body.serviceUrl))   return 'serviceUrl: protocole invalide (http/https uniquement)';
   if (!isSafeUrl(body.customIconUrl)) return 'customIconUrl: protocole invalide (http/https uniquement)';
+  if (!isSafeUrl(body.faviconUrl))    return 'faviconUrl: protocole invalide (http/https uniquement)';
   return null;
 }
 

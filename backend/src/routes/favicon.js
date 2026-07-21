@@ -6,7 +6,7 @@ const Monitor = require('../models/Monitor');
 // In-memory cache: url → { data, contentType, ts }
 const cache = new Map();
 const CACHE_TTL = 6 * 3600 * 1000; // 6h
-const MAX_SIZE = 200 * 1024;        // 200 KB
+const MAX_SIZE = 1024 * 1024;       // 1 MB
 
 function fetchUrl(url) {
   return new Promise((resolve, reject) => {
@@ -47,9 +47,9 @@ router.get('/', async (req, res) => {
 
   // SSRF guard: the requested origin must match an origin of a registered monitor
   const origin = `${parsed.protocol}//${parsed.host}`;
-  const monitors = await Monitor.find({}, 'url serviceUrl faviconUrl').lean();
+  const monitors = await Monitor.find({}, 'config serviceUrl faviconUrl').lean();
   const allowed = monitors.some(m => {
-    for (const field of [m.url, m.serviceUrl, m.faviconUrl]) {
+    for (const field of [m.config?.url, m.config?.apiUrl, m.serviceUrl, m.faviconUrl]) {
       try { if (field && new URL(field).origin === origin) return true; } catch {}
     }
     return false;
@@ -63,8 +63,27 @@ router.get('/', async (req, res) => {
     return res.send(cached.data);
   }
 
+  // If the requested URL is /favicon.ico and it fails, try parsing the HTML for a <link rel="icon">
+  async function resolveFavicon(faviconUrl) {
+    try {
+      const result = await fetchUrl(faviconUrl);
+      if (!result.contentType.startsWith('image/')) throw new Error('not an image');
+      return result;
+    } catch {
+      if (!faviconUrl.endsWith('/favicon.ico')) throw new Error('not found');
+      const origin = new URL(faviconUrl).origin;
+      const html = await fetchUrl(origin + '/').catch(() => fetchUrl(origin));
+      const text = html.data.toString('utf8', 0, 20000);
+      const match = text.match(/<link[^>]+rel=["'][^"']*icon[^"']*["'][^>]+href=["']([^"']+)["']/i)
+                 || text.match(/<link[^>]+href=["']([^"']+)["'][^>]+rel=["'][^"']*icon[^"']*["']/i);
+      if (!match) throw new Error('no icon link found');
+      const iconUrl = new URL(match[1], origin).href;
+      return await fetchUrl(iconUrl);
+    }
+  }
+
   try {
-    const { data, contentType } = await fetchUrl(url);
+    const { data, contentType } = await resolveFavicon(url);
     cache.set(url, { data, contentType, ts: Date.now() });
     // Evict oldest if cache grows beyond 500 entries
     if (cache.size > 500) cache.delete(cache.keys().next().value);
@@ -75,7 +94,7 @@ router.get('/', async (req, res) => {
     // Return a transparent 1×1 PNG — prevents browser console errors from img/fetch 404
     const TRANSPARENT_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
     res.set('Content-Type', 'image/png');
-    res.set('Cache-Control', 'public, max-age=300');
+    res.set('Cache-Control', 'public, max-age=21600');
     res.send(TRANSPARENT_PNG);
   }
 });

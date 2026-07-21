@@ -647,20 +647,17 @@ function CFAccessSection({ config, set, t }) {
 }
 
 function copyToClipboard(text) {
-  function fallback() {
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).catch(() => {});
+  } else {
     const el = document.createElement('textarea');
     el.value = text;
-    el.style.position = 'fixed';
-    el.style.opacity = '0';
+    el.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
     document.body.appendChild(el);
+    el.focus();
     el.select();
-    document.execCommand('copy');
+    try { document.execCommand('copy'); } catch {}
     document.body.removeChild(el);
-  }
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).catch(fallback);
-  } else {
-    fallback();
   }
 }
 
@@ -1446,6 +1443,8 @@ function AdvancedSection({ form, setForm, allMonitors, monitor, lang, t, default
                 onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="…" />
               <Field label={t('form.serviceUrl')} value={form.serviceUrl}
                 onChange={v => setForm(f => ({ ...f, serviceUrl: v }))} placeholder="https://…" />
+              <Field label={t('form.faviconUrl')} value={form.faviconUrl}
+                onChange={v => setForm(f => ({ ...f, faviconUrl: v }))} placeholder="https://example.com/favicon.ico" />
               <div>
                 <label className="label">{t('form.customIcon')}</label>
                 <IconPicker value={form.customIconUrl} onChange={v => setForm(f => ({ ...f, customIconUrl: v }))} t={t} name={form.name} />
@@ -1619,7 +1618,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
       name: '', type: '', description: '', category: '',
       enabled: true, checkInterval: 5, reportInterval: 0,
       cardMetric: null, serviceUrl: '', showOnStatusPage: true,
-      slaTarget: '', confirmAfter: 1, dependsOn: [], customIconUrl: '', appriseUrls: [],
+      slaTarget: '', confirmAfter: 1, dependsOn: [], customIconUrl: '', faviconUrl: '', appriseUrls: [],
       alertRules: {}, config: {},
     };
     originalFormRef.current = initial;
@@ -1643,6 +1642,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
         confirmAfter: monitor.confirmAfter ?? 1,
         dependsOn: monitor.dependsOn?.map(id => String(id)) || [],
         customIconUrl: monitor.customIconUrl || '',
+        faviconUrl: monitor.faviconUrl || '',
         appriseUrls: monitor.appriseUrls || [],
         alertRules: monitor.alertRules || {},
         config: monitor.config || {},
@@ -1705,7 +1705,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
-            {form.type && <ServiceIcon type={form.type} size={16} customIconUrl={form.customIconUrl} />}
+            {form.type && <ServiceIcon type={form.type} size={16} customIconUrl={form.customIconUrl} faviconUrl={form.faviconUrl} url={form.url} />}
             <h2 className="font-semibold text-thistle">{monitor ? (form.name || t('form.titleEdit')) : t('form.titleNew')}</h2>
           </div>
           <button onClick={handleClose} className="btn-ghost p-1.5 rounded-lg"><X size={16} /></button>
@@ -1778,6 +1778,8 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
               <div className="space-y-4">
                 <Field label={t('form.description')} value={form.description}
                   onChange={v => setForm(f => ({ ...f, description: v }))} placeholder="…" />
+                <Field label={t('form.faviconUrl')} value={form.faviconUrl}
+                  onChange={v => setForm(f => ({ ...f, faviconUrl: v }))} placeholder="https://example.com/favicon.ico" />
                 <div>
                   <label className="label">{t('form.customIcon')}</label>
                   <IconPicker value={form.customIconUrl} onChange={v => setForm(f => ({ ...f, customIconUrl: v }))} t={t} name={form.name} />

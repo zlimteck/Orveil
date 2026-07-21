@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, AlertTriangle, CheckCircle, Tag, Trash2, Wrench, GitCommitHorizontal, Pencil } from 'lucide-react';
+import { X, AlertTriangle, CheckCircle, Check, Tag, Trash2, Wrench, GitCommitHorizontal, Pencil } from 'lucide-react';
 import { history as historyApi, incidents as incidentsApi, annotations as annotationsApi, monitors as monitorsApi, changelog as changelogApi } from '../api';
 import { useLang } from '../context/LangContext';
 import Portal from './Portal';
@@ -17,20 +17,17 @@ const STATUS_COLOR = {
 };
 
 function copyToClipboard(text) {
-  function fallback() {
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).catch(() => {});
+  } else {
     const el = document.createElement('textarea');
     el.value = text;
-    el.style.position = 'fixed';
-    el.style.opacity = '0';
+    el.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
     document.body.appendChild(el);
+    el.focus();
     el.select();
-    document.execCommand('copy');
+    try { document.execCommand('copy'); } catch {}
     document.body.removeChild(el);
-  }
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).catch(fallback);
-  } else {
-    fallback();
   }
 }
 
@@ -92,6 +89,16 @@ function duration(ms) {
   if (s < 60) return `${s}s`;
   if (s < 3600) return `${Math.floor(s / 60)}min`;
   return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}min`;
+}
+
+function CopyButton({ text, lang }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button type="button" onClick={() => { copyToClipboard(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+      className="btn-ghost px-3 py-1.5 text-xs shrink-0 flex items-center gap-1">
+      {copied ? <><Check size={12} className="text-celadon" />{lang === 'fr' ? 'Copié' : 'Copied'}</> : (lang === 'fr' ? 'Copier' : 'Copy')}
+    </button>
+  );
 }
 
 export default function ServiceDetail({ monitor, onClose }) {
@@ -228,7 +235,7 @@ export default function ServiceDetail({ monitor, onClose }) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
           <div className="flex items-center gap-2.5">
-            <ServiceIcon type={monitor.type} size={20} url={monitor.config?.url} faviconUrl={monitor.metrics?.faviconUrl} serviceUrl={monitor.serviceUrl} customIconUrl={monitor.customIconUrl} />
+            <ServiceIcon type={monitor.type} size={20} url={monitor.config?.url} faviconUrl={monitor.faviconUrl || monitor.metrics?.faviconUrl} serviceUrl={monitor.serviceUrl} customIconUrl={monitor.customIconUrl} />
             <div>
               <p className="font-semibold text-thistle text-sm">{monitor.name}</p>
               {monitor.description && <p className="text-xs text-muted">{monitor.description}</p>}
@@ -461,20 +468,17 @@ export default function ServiceDetail({ monitor, onClose }) {
                   <p className="text-xs font-semibold text-muted uppercase tracking-wider">Markdown</p>
                   <div className="flex items-center gap-2">
                     <input readOnly value={mdSnippet} className="input text-xs font-mono flex-1 text-muted h-8" />
-                    <button type="button" onClick={() => copyToClipboard(mdSnippet)}
-                      className="btn-ghost px-3 py-1.5 text-xs shrink-0">{lang === 'fr' ? 'Copier' : 'Copy'}</button>
+                    <CopyButton text={mdSnippet} lang={lang} />
                   </div>
                   <p className="text-xs font-semibold text-muted uppercase tracking-wider">HTML</p>
                   <div className="flex items-center gap-2">
                     <input readOnly value={htmlSnippet} className="input text-xs font-mono flex-1 text-muted h-8" />
-                    <button type="button" onClick={() => copyToClipboard(htmlSnippet)}
-                      className="btn-ghost px-3 py-1.5 text-xs shrink-0">{lang === 'fr' ? 'Copier' : 'Copy'}</button>
+                    <CopyButton text={htmlSnippet} lang={lang} />
                   </div>
                   <p className="text-xs font-semibold text-muted uppercase tracking-wider">URL</p>
                   <div className="flex items-center gap-2">
                     <input readOnly value={badgeUrl} className="input text-xs font-mono flex-1 text-muted h-8" />
-                    <button type="button" onClick={() => copyToClipboard(badgeUrl)}
-                      className="btn-ghost px-3 py-1.5 text-xs shrink-0">{lang === 'fr' ? 'Copier' : 'Copy'}</button>
+                    <CopyButton text={badgeUrl} lang={lang} />
                   </div>
                 </div>
               </div>
