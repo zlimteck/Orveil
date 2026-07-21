@@ -28,6 +28,7 @@ module.exports = {
   radarr:         require('./radarr'),
   prowlarr:       require('./prowlarr'),
   overseerr:      require('./overseerr'),
+  dispatcharr:    require('./dispatcharr'),
   portforward:    require('./portforward'),
   qbittorrent:    require('./qbittorrent'),
   autobrr:        require('./autobrr'),

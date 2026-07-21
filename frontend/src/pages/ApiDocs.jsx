@@ -54,6 +54,7 @@ function buildSections(t) {
         { method: 'GET',    path: '/api/monitors/overseerr',             descKey: 'monitorsByType' },
         { method: 'GET',    path: '/api/monitors/qbittorrent',           descKey: 'monitorsByType' },
         { method: 'GET',    path: '/api/monitors/autobrr',               descKey: 'monitorsByType' },
+        { method: 'GET',    path: '/api/monitors/dispatcharr',           descKey: 'monitorsByType' },
         { method: 'GET',    path: '/api/monitors/rclone',                descKey: 'monitorsByType' },
         { method: 'GET',    path: '/api/monitors/hetzner',               descKey: 'monitorsByType' },
         { method: 'GET',    path: '/api/monitors/portforward',            descKey: 'monitorsByType' },

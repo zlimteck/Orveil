@@ -46,6 +46,7 @@ const TYPE_DEFAULTS = {
   overseerr:      { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
   qbittorrent:    { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', username: 'admin', password: '', rejectUnauthorized: true } },
   autobrr:        { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
+  dispatcharr:    { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
   rclone:         { checkInterval: 1,  reportInterval: 24, config: { apiUrl: '', username: '', password: '', remoteName: '', rejectUnauthorized: true } },
   hetzner:        { checkInterval: 30, reportInterval: 24, config: { apiToken: '', storageBoxId: '' } },
   portforward:    { checkInterval: 2,  reportInterval: 0,  config: { host: '', port: 80 } },
@@ -82,6 +83,7 @@ const TYPE_CATEGORIES = {
   overseerr:     'arr',
   qbittorrent:   'p2p',
   autobrr:       'arr',
+  dispatcharr:   'arr',
   rclone:        'storage',
   hetzner:       'storage',
   speedtest:     'monitoring',
@@ -122,6 +124,7 @@ const TYPE_LABELS = {
   overseerr:     'Overseerr',
   qbittorrent:   'qBittorrent',
   autobrr:       'Autobrr',
+  dispatcharr:   'Dispatcharr',
   rclone:        'rclone',
   hetzner:       'Hetzner Storage Box',
   portforward:   'Port Forwarding',
@@ -640,6 +643,24 @@ function CFAccessSection({ config, set, t }) {
   );
 }
 
+function copyToClipboard(text) {
+  function fallback() {
+    const el = document.createElement('textarea');
+    el.value = text;
+    el.style.position = 'fixed';
+    el.style.opacity = '0';
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+  }
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).catch(fallback);
+  } else {
+    fallback();
+  }
+}
+
 const STEP_DEFAULT = { name: '', url: '', method: 'GET', expectedStatus: 200, body: '', headers: '', extract: '' };
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'];
 
@@ -1007,7 +1028,7 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
           <label className="label">{t('form.fields.heartbeat.pingUrl')}</label>
           <div className="flex items-center gap-2">
             <input readOnly value={pingUrl} className="input text-xs font-mono flex-1 text-muted" />
-            <button type="button" onClick={() => navigator.clipboard.writeText(pingUrl)}
+            <button type="button" onClick={() => copyToClipboard(pingUrl)}
               className="btn-ghost px-3 py-2 text-xs shrink-0">
               {t('form.fields.heartbeat.copy')}
             </button>
@@ -1228,6 +1249,16 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
     </>
   );
 
+  if (type === 'dispatcharr') return (
+    <>
+      <Field label="URL Dispatcharr" value={config.apiUrl} onChange={v => set('apiUrl', v)} placeholder="http://192.168.1.10:9191" />
+      <Field label="API Key" value={config.apiKey} onChange={v => set('apiKey', v)} type="password" placeholder="Dispatcharr API key" />
+      <TlsToggle config={config} set={set} t={t} />
+      <CFAccessSection config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
+    </>
+  );
+
   if (type === 'rclone') return (
     <>
       <Field label="URL RC rclone" value={config.apiUrl} onChange={v => set('apiUrl', v)} placeholder="http://192.168.1.10:5572" />
@@ -1279,14 +1310,14 @@ function WebhookSection({ monitor }) {
   }
 
   function copyToken() {
-    navigator.clipboard.writeText(token);
+    copyToClipboard(token);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
   function copyCurl() {
     const cmd = `curl -X POST ${webhookUrl} \\\n  -H "Content-Type: application/json" \\\n  -d '{"token":"${token}","version":"v1.0.0","description":"Deploy description"}'`;
-    navigator.clipboard.writeText(cmd);
+    copyToClipboard(cmd);
     setCopied('curl');
     setTimeout(() => setCopied(false), 2000);
   }

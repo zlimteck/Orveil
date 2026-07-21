@@ -118,7 +118,7 @@ Set `ADMIN_PASSWORD` in your `.env` to control the initial password.
 ## Features
 
 **Monitoring**
-- **35 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping (TCP/ICMP), Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Docker, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Portainer, Tailscale, Home Assistant, Syncthing, Immich, Unraid, Speedtest Tracker, Jellyfin, Ollama, OpenWebUI, Sonarr, Radarr, Prowlarr, Overseerr, qBittorrent, Autobrr, rclone, Hetzner Storage Box, HMS, Ultra.cc, Heartbeat
+- **36 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping (TCP/ICMP), Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Docker, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Portainer, Tailscale, Home Assistant, Syncthing, Immich, Unraid, Speedtest Tracker, Jellyfin, Ollama, OpenWebUI, Sonarr, Radarr, Prowlarr, Overseerr, qBittorrent, Autobrr, Dispatcharr, rclone, Hetzner Storage Box, HMS, Ultra.cc, Heartbeat
 - Adaptive polling — faster rechecks when a service is down
 - Monitor dependencies — suppress alerts when a parent is already down
 - SSL certificate monitoring with expiry warning
@@ -200,6 +200,7 @@ Set `ADMIN_PASSWORD` in your `.env` to control the initial password.
 | **Overseerr** | Pending and total requests |
 | **qBittorrent** | Active/total torrents, download/upload speed, version — username/password auth |
 | **Autobrr** | Active/total filters, releases pushed/rejected, version — API key auth |
+| **Dispatcharr** | Active streams, total viewers, channel count and version — API key auth (`X-API-Key`) |
 | **HMS (HostMyServers)** | VPS status and specs via API token |
 | **Ultra.cc** | Seedbox storage and traffic via Stats API URL |
 | **rclone** | Transfer stats (DL/UL speed, active transfers, errors), active mounts, jobs, remote quota and version via rclone RC API |

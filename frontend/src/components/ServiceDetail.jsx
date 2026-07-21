@@ -16,6 +16,24 @@ const STATUS_COLOR = {
   unknown: 'bg-granite/40',
 };
 
+function copyToClipboard(text) {
+  function fallback() {
+    const el = document.createElement('textarea');
+    el.value = text;
+    el.style.position = 'fixed';
+    el.style.opacity = '0';
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+  }
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).catch(fallback);
+  } else {
+    fallback();
+  }
+}
+
 function StatusTimeline({ points, period, lang }) {
   const [tooltip, setTooltip] = useState(null);
   if (!points || points.length === 0) return null;
@@ -443,19 +461,19 @@ export default function ServiceDetail({ monitor, onClose }) {
                   <p className="text-xs font-semibold text-muted uppercase tracking-wider">Markdown</p>
                   <div className="flex items-center gap-2">
                     <input readOnly value={mdSnippet} className="input text-xs font-mono flex-1 text-muted h-8" />
-                    <button type="button" onClick={() => navigator.clipboard.writeText(mdSnippet)}
+                    <button type="button" onClick={() => copyToClipboard(mdSnippet)}
                       className="btn-ghost px-3 py-1.5 text-xs shrink-0">{lang === 'fr' ? 'Copier' : 'Copy'}</button>
                   </div>
                   <p className="text-xs font-semibold text-muted uppercase tracking-wider">HTML</p>
                   <div className="flex items-center gap-2">
                     <input readOnly value={htmlSnippet} className="input text-xs font-mono flex-1 text-muted h-8" />
-                    <button type="button" onClick={() => navigator.clipboard.writeText(htmlSnippet)}
+                    <button type="button" onClick={() => copyToClipboard(htmlSnippet)}
                       className="btn-ghost px-3 py-1.5 text-xs shrink-0">{lang === 'fr' ? 'Copier' : 'Copy'}</button>
                   </div>
                   <p className="text-xs font-semibold text-muted uppercase tracking-wider">URL</p>
                   <div className="flex items-center gap-2">
                     <input readOnly value={badgeUrl} className="input text-xs font-mono flex-1 text-muted h-8" />
-                    <button type="button" onClick={() => navigator.clipboard.writeText(badgeUrl)}
+                    <button type="button" onClick={() => copyToClipboard(badgeUrl)}
                       className="btn-ghost px-3 py-1.5 text-xs shrink-0">{lang === 'fr' ? 'Copier' : 'Copy'}</button>
                   </div>
                 </div>

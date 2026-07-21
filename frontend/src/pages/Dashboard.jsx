@@ -828,7 +828,8 @@ function metricSummary(monitor) {
     case 'cloudflare': return m.total != null ? `${m.healthy}/${m.total} tunnels` : null;
     case 'openwebui':    return m.modelsCount != null ? `${m.modelsCount} modèle${m.modelsCount !== 1 ? 's' : ''}` : null;
     case 'qbittorrent':  return m.torrentsActive != null ? `${m.torrentsActive} actif${m.torrentsActive !== 1 ? 's' : ''}` : null;
-    case 'autobrr':      return m.filtersEnabled != null ? `${m.filtersEnabled} filtre${m.filtersEnabled !== 1 ? 's' : ''}` : null;
+    case 'autobrr':       return m.filtersEnabled != null ? `${m.filtersEnabled} filtre${m.filtersEnabled !== 1 ? 's' : ''}` : null;
+    case 'dispatcharr':   return m.activeStreams != null ? `${m.activeStreams} stream${m.activeStreams !== 1 ? 's' : ''}` : null;
     case 'rclone':       return m.transfersActive != null ? `${m.transfersActive} transfert${m.transfersActive !== 1 ? 's' : ''}` : null;
     case 'hetzner':      return m.diskPct != null ? `${m.diskPct}% utilisé` : null;
     case 'portainer':  return m.containersRunning != null ? `${m.containersRunning} actifs` : null;

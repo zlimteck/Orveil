@@ -49,6 +49,16 @@ function DockerIcon({ size = 20 }) {
   );
 }
 
+function DispatcharrIcon({ size = 20 }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="4" width="20" height="16" rx="2" stroke="#a7e2e3" strokeWidth="1.5" fill="#a7e2e3" fillOpacity=".1" />
+      <path d="M7 8l4 4-4 4" stroke="#a7e2e3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M13 16h4" stroke="#80cfa9" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function UltraccIcon({ size = 20 }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -71,6 +81,7 @@ const FALLBACKS = {
   hms:        ({ size }) => <HmsIcon size={size} />,
   ultracc:    ({ size }) => <UltraccIcon size={size} />,
   docker:     ({ size }) => <DockerIcon size={size} />,
+  dispatcharr: ({ size }) => <DispatcharrIcon size={size} />, // fallback if file missing
   unraid:     ({ size }) => <UnraidIcon size={size} />,
   http:       ({ size }) => <Globe size={size} color="#c9d7f8" />,
   multistep:  ({ size }) => <Workflow size={size} color="#c9d7f8" />,
@@ -167,7 +178,7 @@ export default function ServiceIcon({ type, size = 20, url, faviconUrl, serviceU
   }
 
   // Types that have a real file in /icons/ — always go through FileIcon first.
-  const HAS_FILE_ICON = new Set(['hms', 'ultracc', 'unraid', 'docker', 'speedtest', 'openwebui', 'prowlarr', 'overseerr', 'autobrr']);
+  const HAS_FILE_ICON = new Set(['hms', 'ultracc', 'unraid', 'docker', 'speedtest', 'openwebui', 'prowlarr', 'overseerr', 'autobrr', 'dispatcharr']);
   // Icons that are black and need inversion in dark mode
   const INVERT_IN_DARK = new Set(['openwebui']);
   // For all other types with a Fallback and no favicon, skip the broken-image

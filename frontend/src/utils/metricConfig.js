@@ -154,6 +154,13 @@ const CONFIG = {
     { key: 'releasesRejected',  fr: 'Releases rejetées',     en: 'Releases rejected', unit: '' },
     { key: 'responseTime',      fr: 'Temps de réponse',      en: 'Response time',     unit: 'ms' },
   ],
+  dispatcharr: [
+    { key: 'activeStreams',   fr: 'Streams actifs',    en: 'Active streams',  unit: '' },
+    { key: 'streamsTotal',    fr: 'Streams total',     en: 'Total streams',   unit: '' },
+    { key: 'totalViewers',    fr: 'Spectateurs',       en: 'Viewers',         unit: '' },
+    { key: 'channelsTotal',   fr: 'Chaînes',           en: 'Channels',        unit: '' },
+    { key: 'responseTime',    fr: 'Temps de réponse',  en: 'Response time',   unit: 'ms' },
+  ],
   rclone: [
     { key: 'dlSpeed',           fr: 'Vitesse DL',          en: 'Download speed',    unit: 'B/s' },
     { key: 'ulSpeed',           fr: 'Vitesse UL',          en: 'Upload speed',      unit: 'B/s' },
