@@ -528,7 +528,7 @@ export default function Services() {
                   <input type="checkbox" readOnly checked={isSelected} className="w-3.5 h-3.5 rounded accent-periwinkle cursor-pointer" />
                 </span>
                 <div className="flex items-start gap-3">
-                  <span className="shrink-0 mt-0.5"><ServiceIcon type={m.type} size={22} url={m.config?.url} faviconUrl={m.metrics?.faviconUrl} serviceUrl={m.serviceUrl} customIconUrl={m.customIconUrl} /></span>
+                  <span className="shrink-0 mt-0.5"><ServiceIcon type={m.type} size={22} url={m.config?.url} faviconUrl={m.faviconUrl || m.metrics?.faviconUrl} serviceUrl={m.serviceUrl} customIconUrl={m.customIconUrl} /></span>
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       {m.serviceUrl ? (
@@ -584,7 +584,7 @@ export default function Services() {
                   className={`shrink-0 transition-opacity ${isSelected || bulkSelected.size > 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                   <input type="checkbox" readOnly checked={isSelected} className="w-3.5 h-3.5 rounded accent-periwinkle cursor-pointer" />
                 </span>
-                <span className="shrink-0"><ServiceIcon type={m.type} size={18} url={m.config?.url} faviconUrl={m.metrics?.faviconUrl} serviceUrl={m.serviceUrl} customIconUrl={m.customIconUrl} /></span>
+                <span className="shrink-0"><ServiceIcon type={m.type} size={18} url={m.config?.url} faviconUrl={m.faviconUrl || m.metrics?.faviconUrl} serviceUrl={m.serviceUrl} customIconUrl={m.customIconUrl} /></span>
                 <div className="flex-1 min-w-0 flex items-center gap-2">
                   {m.serviceUrl ? (
                     <a href={m.serviceUrl} target="_blank" rel="noreferrer"
