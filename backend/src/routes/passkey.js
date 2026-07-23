@@ -20,7 +20,7 @@ const passkeyLimiter      = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, stand
 const passkeyWriteLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
 
 function getRp(req) {
-  const url = new URL(process.env.FRONTEND_URL || 'http://localhost:3050');
+  const url = new URL((process.env.FRONTEND_URL || 'http://localhost:3050').split(',')[0].trim());
   // Use the actual request Origin header so Docker port-mapping is transparent.
   // The Origin is embedded in clientDataJSON signed by the authenticator — it cannot be forged.
   // rpID (hostname) still provides the domain-level binding.
