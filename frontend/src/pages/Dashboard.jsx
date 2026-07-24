@@ -612,7 +612,11 @@ function MetricsBlock({ monitor }) {
         <div className="flex gap-4 text-xs text-muted">
           <span>↓ <span className="text-thistle font-medium">{fmtSpeed(metrics.dlSpeed)}</span></span>
           <span>↑ <span className="text-thistle font-medium">{fmtSpeed(metrics.ulSpeed)}</span></span>
+          {metrics.elapsed != null && <span className="text-muted/70">{metrics.elapsed}</span>}
         </div>
+        {metrics.fileName && (
+          <p className="text-xs text-muted/70 truncate max-w-xs" title={metrics.fileName}>{metrics.fileName}</p>
+        )}
         {metrics.diskPct != null && (
           <div className="space-y-0.5">
             <div className="flex justify-between text-xs text-muted">

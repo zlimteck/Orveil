@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, Trash2, Wifi, RefreshCw, Image, ChevronDown, Webhook, Copy, Check, RotateCcw, Search, Eye, EyeOff } from 'lucide-react';
+import { X, Plus, Trash2, Wifi, RefreshCw, Image, ChevronDown, Webhook, Copy, Check, RotateCcw, Search, Eye, EyeOff, Upload } from 'lucide-react';
 import { useLang } from '../context/LangContext';
 import { monitors as monitorsApi, settings as settingsApi } from '../api';
 import Portal from './Portal';
@@ -1292,6 +1292,127 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
   return null;
 }
 
+function PushStatsSection({ monitor }) {
+  const [token, setToken] = React.useState(monitor?.webhookToken || null);
+  const [loading, setLoading] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
+
+  const baseUrl = window.location.origin;
+  const monitorId = monitor?._id;
+  const pushUrl = `${baseUrl}/api/monitors/${monitorId}/push-stats`;
+
+  async function generate() {
+    setLoading(true);
+    try {
+      const data = await monitorsApi.generateWebhookToken(monitorId);
+      setToken(data.webhookToken);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function revoke() {
+    if (!confirm('Révoquer ce token ?')) return;
+    setLoading(true);
+    try {
+      await monitorsApi.revokeWebhookToken(monitorId);
+      setToken(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function copy(text, key) {
+    copyToClipboard(text);
+    setCopied(key);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  const scriptSnippet = token
+    ? `MONITOR_ID="${monitorId}"
+TOKEN="${token}"
+ORVEIL="${baseUrl}"
+
+push() {
+  curl -sf -X POST "$ORVEIL/api/monitors/$MONITOR_ID/push-stats" \\
+    -H "Authorization: Bearer $TOKEN" \\
+    -H "Content-Type: application/json" \\
+    -d "{\\"ulSpeed\\":$1,\\"dlSpeed\\":$2,\\"transfersActive\\":$3,\\"transfersTotal\\":$4,\\"errors\\":$5,\\"fileName\\":\\"$6\\"}" > /dev/null
+}
+
+rclone sync source: dest: --stats 5s --stats-one-line \\
+  2> >(while IFS= read -r line; do
+    # parse line and call push() with extracted values
+    push 0 0 0 0 0 "$line"
+  done)
+push 0 0 0 0 0 "" # done`
+    : '';
+
+  return (
+    <div className="border-t border-border pt-3 space-y-3">
+      <div className="flex items-center gap-2">
+        <Upload size={13} className="text-periwinkle shrink-0" />
+        <p className="text-xs font-medium text-thistle">Push Stats (script externe)</p>
+      </div>
+      <p className="text-xs text-muted">
+        Permet à un script rclone sur un serveur distant de pousser ses stats en temps réel vers ce monitor.
+      </p>
+
+      <div>
+        <p className="text-xs text-muted mb-1">Monitor ID</p>
+        <div className="flex items-center gap-1.5">
+          <code className="flex-1 font-mono text-xs bg-granite-3 border border-border rounded-lg px-2.5 py-1.5 text-periwinkle truncate">{monitorId}</code>
+          <button type="button" onClick={() => copy(monitorId, 'id')}
+            className="shrink-0 p-1.5 rounded-lg border border-border text-muted hover:text-thistle hover:border-periwinkle/50 transition-colors">
+            {copied === 'id' ? <Check size={13} className="text-celadon" /> : <Copy size={13} />}
+          </button>
+        </div>
+      </div>
+
+      {!token ? (
+        <button type="button" onClick={generate} disabled={loading}
+          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-periwinkle/10 border border-periwinkle/30 text-periwinkle hover:bg-periwinkle/20 transition-colors disabled:opacity-50">
+          {loading ? <RefreshCw size={12} className="animate-spin" /> : <Upload size={12} />}
+          Générer un token
+        </button>
+      ) : (
+        <div className="space-y-2">
+          <div>
+            <p className="text-xs text-muted mb-1">Token</p>
+            <div className="flex items-center gap-1.5">
+              <code className="flex-1 font-mono text-xs bg-granite-3 border border-border rounded-lg px-2.5 py-1.5 text-periwinkle truncate">{token}</code>
+              <button type="button" onClick={() => copy(token, 'token')}
+                className="shrink-0 p-1.5 rounded-lg border border-border text-muted hover:text-thistle hover:border-periwinkle/50 transition-colors">
+                {copied === 'token' ? <Check size={13} className="text-celadon" /> : <Copy size={13} />}
+              </button>
+              <button type="button" onClick={generate} disabled={loading} title="Régénérer"
+                className="shrink-0 p-1.5 rounded-lg border border-border text-muted hover:text-thistle hover:border-periwinkle/50 transition-colors disabled:opacity-50">
+                {loading ? <RefreshCw size={13} className="animate-spin" /> : <RotateCcw size={13} />}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs text-muted">Script bash</p>
+              <button type="button" onClick={() => copy(scriptSnippet, 'script')}
+                className="flex items-center gap-1 text-xs text-muted hover:text-thistle transition-colors">
+                {copied === 'script' ? <><Check size={11} className="text-celadon" /> Copié</> : <><Copy size={11} /> Copier</>}
+              </button>
+            </div>
+            <pre className="text-xs bg-granite-3 border border-border rounded-lg p-2.5 text-periwinkle/80 overflow-x-auto whitespace-pre leading-relaxed">{scriptSnippet}</pre>
+          </div>
+
+          <button type="button" onClick={revoke} disabled={loading}
+            className="text-xs text-red-400/70 hover:text-red-400 transition-colors">
+            Révoquer le token
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function WebhookSection({ monitor }) {
   const [token, setToken] = React.useState(monitor?.webhookToken || null);
   const [loading, setLoading] = React.useState(false);
@@ -1569,7 +1690,9 @@ function AdvancedSection({ form, setForm, allMonitors, monitor, lang, t, default
 
           {/* Intégrations */}
           {tab === 'integrations' && monitor && (
-            <WebhookSection monitor={monitor} />
+            monitor.type === 'rclone'
+              ? <PushStatsSection monitor={monitor} />
+              : <WebhookSection monitor={monitor} />
           )}
 
         </div>
@@ -1943,7 +2066,9 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
 
             {/* Intégrations */}
             {tab === 'integrations' && monitor && (
-              <WebhookSection monitor={monitor} />
+              monitor.type === 'rclone'
+                ? <PushStatsSection monitor={monitor} />
+                : <WebhookSection monitor={monitor} />
             )}
 
           </div>

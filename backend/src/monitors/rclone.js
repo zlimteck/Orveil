@@ -69,12 +69,33 @@ async function check(config, lastState, lang = 'fr') {
     }
   }
 
+  // If a script pushed stats recently (< 2 min), prefer them over daemon stats (which stay at 0)
+  const pushed = lastState?.pushedAt ? new Date(lastState.pushedAt) : null;
+  const pushFresh = pushed && (Date.now() - pushed.getTime()) < 2 * 60 * 1000;
+  const activeDlSpeed      = pushFresh ? (lastState.dlSpeed      ?? dlSpeed)      : dlSpeed;
+  const activeUlSpeed      = pushFresh ? (lastState.ulSpeed      ?? ulSpeed)      : ulSpeed;
+  const activeTransfersActive = pushFresh ? (lastState.transfersActive ?? transfersActive) : transfersActive;
+  const activeTransfersTotal  = pushFresh ? (lastState.transfersTotal  ?? transfersTotal)  : transfersTotal;
+  const activeErrors       = pushFresh ? (lastState.errors       ?? errors)       : errors;
+  const activeChecks       = pushFresh ? (lastState.checks       ?? checks)       : checks;
+
   return {
     status: 'online',
     statusCode: 200,
     responseTime,
-    state: { version, dlSpeed, ulSpeed, transfersActive, transfersTotal, errors, checks, diskTotal, diskUsed, diskFree, diskPct, mountCount, jobCount, mounts },
-    metrics: { version, dlSpeed, ulSpeed, transfersActive, transfersTotal, errors, checks, diskTotal, diskUsed, diskFree, diskPct, mountCount, jobCount, responseTime, statusCode: 200 },
+    state: {
+      version, mountCount, jobCount, mounts, diskTotal, diskUsed, diskFree, diskPct,
+      dlSpeed: activeDlSpeed, ulSpeed: activeUlSpeed,
+      transfersActive: activeTransfersActive, transfersTotal: activeTransfersTotal,
+      errors: activeErrors, checks: activeChecks,
+      ...(pushFresh ? { pushedAt: lastState.pushedAt, fileName: lastState.fileName, elapsed: lastState.elapsed, done: lastState.done } : {}),
+    },
+    metrics: {
+      version, responseTime, statusCode: 200, mountCount, jobCount, diskTotal, diskUsed, diskFree, diskPct,
+      dlSpeed: activeDlSpeed, ulSpeed: activeUlSpeed,
+      transfersActive: activeTransfersActive, transfersTotal: activeTransfersTotal,
+      errors: activeErrors, checks: activeChecks,
+    },
     notifications,
   };
 }
