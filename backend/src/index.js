@@ -57,6 +57,7 @@ app.use('/api/mcp', cors({ origin: true, credentials: false }), require('./route
 app.use('/api/webhook', require('./routes/webhooks'));
 console.log('[MCP] Serveur MCP démarré sur /api/mcp (Streamable HTTP)');
 app.get('/api/health', (req, res) => res.json({ ok: true, ts: new Date() }));
+app.use('/api/monitors', require('./routes/pushStats'));
 
 // Metrics endpoint — own auth: accepts JWT, MCP key, or METRICS_TOKEN env var
 app.use('/api/metrics', async (req, res, next) => {
