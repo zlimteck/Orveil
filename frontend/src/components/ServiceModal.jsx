@@ -2067,7 +2067,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
             {/* Intégrations */}
             {tab === 'integrations' && monitor && (
               monitor.type === 'rclone'
-                ? <PushStatsSection monitor={monitor} />
+                ? <><PushStatsSection monitor={monitor} /><WebhookSection monitor={monitor} /></>
                 : <WebhookSection monitor={monitor} />
             )}
 
