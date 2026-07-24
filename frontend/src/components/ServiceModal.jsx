@@ -1691,7 +1691,7 @@ function AdvancedSection({ form, setForm, allMonitors, monitor, lang, t, default
           {/* Intégrations */}
           {tab === 'integrations' && monitor && (
             monitor.type === 'rclone'
-              ? <PushStatsSection monitor={monitor} />
+              ? <><PushStatsSection monitor={monitor} /><WebhookSection monitor={monitor} /></>
               : <WebhookSection monitor={monitor} />
           )}
 
