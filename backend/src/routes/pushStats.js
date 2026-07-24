@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const Monitor = require('../models/Monitor');
+const MetricSnapshot = require('../models/MetricSnapshot');
 const sse = require('../sse');
 
 // POST /api/monitors/:id/push-stats — no session required, auth via webhookToken
@@ -22,6 +23,14 @@ router.post('/:id/push-stats', async (req, res) => {
   const newMetrics = { ...(monitor.metrics || {}), dlSpeed, ulSpeed, transfersActive, transfersTotal, errors, checks };
 
   await Monitor.findByIdAndUpdate(monitor._id, { lastState: newState, metrics: newMetrics });
+
+  MetricSnapshot.create({
+    monitorId: monitor._id,
+    type: 'rclone',
+    status: monitor.status,
+    value: null,
+    metrics: newMetrics,
+  }).catch(() => {});
 
   sse.broadcast('monitor', {
     id: monitor._id,
