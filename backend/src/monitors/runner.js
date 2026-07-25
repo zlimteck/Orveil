@@ -9,6 +9,47 @@ const { decryptConfig } = require('../utils/crypto');
 const sse = require('../sse');
 const handlers = require('./handlers');
 const i18n = require('../i18n');
+const axios = require('axios');
+
+function resolveJsonPath(obj, expr) {
+  // Supports: $.field, $.a.b.c, $.length, $[0], $.arr[0].field
+  let cur = obj;
+  const path = expr.replace(/^\$\.?/, '').split(/[\.\[\]]+/).filter(Boolean);
+  for (const seg of path) {
+    if (cur == null) return undefined;
+    if (seg === 'length' && Array.isArray(cur)) return cur.length;
+    cur = cur[isNaN(seg) ? seg : Number(seg)];
+  }
+  return cur;
+}
+
+async function fetchCustomMetric(cm) {
+  try {
+    const resp = await axios({
+      method: (cm.method || 'GET').toUpperCase(),
+      url: cm.url,
+      headers: cm.headers || {},
+      timeout: 10000,
+      validateStatus: () => true,
+    });
+    const body = resp.data;
+    const { type, expr } = cm.extract || {};
+    if (!expr) return null;
+    let val;
+    if (type === 'regex') {
+      const text = typeof body === 'string' ? body : JSON.stringify(body);
+      const m = text.match(new RegExp(expr));
+      val = m ? (m[1] ?? m[0]) : null;
+    } else {
+      val = resolveJsonPath(body, expr);
+    }
+    console.log(`[CustomMetric] ${cm.name} → status=${resp.status} body=${JSON.stringify(body)} expr="${expr}" val=${val}`);
+    return val != null ? Number(val) : null;
+  } catch (err) {
+    console.log(`[CustomMetric] ${cm.name} → error: ${err.message}`);
+    return null;
+  }
+}
 
 function computeSeverity(result, monitorType) {
   const status = result.status;
@@ -146,6 +187,22 @@ async function runCheck(monitor, globalProxy = null, lang = 'fr', settings = nul
   const prevStatus = monitor.status;
   await Monitor.findByIdAndUpdate(monitor._id, update);
   sse.broadcast('monitor', { id: monitor._id, name: monitor.name, prevStatus, ...update });
+
+  // Custom metrics — run HTTP requests and inject into metrics before snapshot
+  if (Array.isArray(monitor.customMetrics) && monitor.customMetrics.length) {
+    const customResults = await Promise.all(monitor.customMetrics.map(fetchCustomMetric));
+    const customObj = {};
+    monitor.customMetrics.forEach((cm, i) => {
+      if (customResults[i] != null) {
+        const key = `__custom_${cm.name.replace(/[^a-zA-Z0-9_]/g, '_')}`;
+        customObj[key] = customResults[i];
+      }
+    });
+    if (Object.keys(customObj).length) {
+      result.metrics = { ...(result.metrics || {}), ...customObj };
+      await Monitor.findByIdAndUpdate(monitor._id, { metrics: result.metrics });
+    }
+  }
 
   // Snapshot
   MetricSnapshot.create({

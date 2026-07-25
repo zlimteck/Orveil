@@ -793,16 +793,16 @@ function CardContent({ monitor, hist, dailyHist, showGraphs, onSelect, t, draggi
               <div className="flex items-center justify-between mb-0.5">
                 <span className="text-muted" style={{ fontSize: 10 }}>
                   {cardMetric
-                    ? getMetricLabel(monitor.type, cardMetric, lang, monitor.config)
-                    : (getMetrics(monitor.type, monitor.config)[0]
-                        ? getMetricLabel(monitor.type, getMetrics(monitor.type, monitor.config)[0].key, lang, monitor.config)
+                    ? getMetricLabel(monitor.type, cardMetric, lang, monitor.config, monitor.customMetrics)
+                    : (getMetrics(monitor.type, monitor.config, monitor.customMetrics)[0]
+                        ? getMetricLabel(monitor.type, getMetrics(monitor.type, monitor.config, monitor.customMetrics)[0].key, lang, monitor.config, monitor.customMetrics)
                         : null)}
                 </span>
                 <span className="font-medium text-thistle" style={{ fontSize: 10 }}>
                   {(() => {
-                    const key = cardMetric || getMetrics(monitor.type, monitor.config)[0]?.key;
+                    const key = cardMetric || getMetrics(monitor.type, monitor.config, monitor.customMetrics)[0]?.key;
                     const last = [...points].reverse().find(p => extractValue(p, cardMetric) != null);
-                    return last ? formatMetricValue(monitor.type, key, extractValue(last, cardMetric)) : '—';
+                    return last ? formatMetricValue(monitor.type, key, extractValue(last, cardMetric), monitor.customMetrics) : '—';
                   })()}
                 </span>
               </div>

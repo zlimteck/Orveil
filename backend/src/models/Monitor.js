@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { encryptConfig, decryptConfig } = require('../utils/crypto');
+const { encryptConfig, decryptConfig, encryptCustomMetrics, decryptCustomMetrics } = require('../utils/crypto');
 
 const monitorSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -35,12 +35,16 @@ const monitorSchema = new mongoose.Schema({
   webhookToken: { type: String, default: null, sparse: true },
   appriseUrls: { type: [String], default: [] },
   alertRules: { type: mongoose.Schema.Types.Mixed, default: {} },
+  customMetrics: { type: mongoose.Schema.Types.Mixed, default: [] },
 }, { timestamps: true });
 
 // Encrypt sensitive config fields before any save
 monitorSchema.pre('save', function (next) {
   if (this.isModified('config') && this.config) {
     this.config = encryptConfig(this.config);
+  }
+  if (this.isModified('customMetrics') && this.customMetrics) {
+    this.customMetrics = encryptCustomMetrics(this.customMetrics);
   }
   next();
 });
@@ -51,19 +55,27 @@ monitorSchema.pre('findOneAndUpdate', function () {
   const cfg = update?.config ?? update?.$set?.config;
   if (cfg) {
     const encrypted = encryptConfig(cfg);
-    if (update.config)      update.config          = encrypted;
-    if (update.$set?.config) update.$set.config     = encrypted;
+    if (update.config)       update.config       = encrypted;
+    if (update.$set?.config) update.$set.config  = encrypted;
+  }
+  const cm = update?.customMetrics ?? update?.$set?.customMetrics;
+  if (cm) {
+    const encrypted = encryptCustomMetrics(cm);
+    if (update.customMetrics)       update.customMetrics       = encrypted;
+    if (update.$set?.customMetrics) update.$set.customMetrics  = encrypted;
   }
 });
 
 // Decrypt after any document is loaded from DB
 monitorSchema.post('init', function () {
   if (this.config) this.config = decryptConfig(this.config);
+  if (this.customMetrics) this.customMetrics = decryptCustomMetrics(this.customMetrics);
 });
 
 // Decrypt the document returned by findOneAndUpdate
 monitorSchema.post('findOneAndUpdate', function (doc) {
   if (doc?.config) doc.config = decryptConfig(doc.config);
+  if (doc?.customMetrics) doc.customMetrics = decryptCustomMetrics(doc.customMetrics);
 });
 
 module.exports = mongoose.model('Monitor', monitorSchema);

@@ -145,6 +145,7 @@ Set `ADMIN_PASSWORD` in your `.env` to control the initial password.
 - [Prometheus metrics](docs/prometheus.md) — `GET /api/metrics` with Grafana-ready labels
 - REST API with Bearer auth, fully documented in-app
 - Per-monitor changelog webhooks for CI/CD integration
+- **Custom metrics** — attach HTTP requests to any monitor's check cycle to pull arbitrary values (user counts, quotas, etc.) with JSONPath or regex extraction; headers encrypted at rest
 - Backup & restore (JSON export/import)
 
 **Account security**
@@ -363,6 +364,43 @@ Auth: `Authorization: Bearer <token>` or `?token=<token>`
 | `fileName` | string | Name of the file currently being transferred |
 | `elapsed` | string | Human-readable elapsed time (e.g. `ETA 2m30s`) |
 | `done` | boolean | Set to `true` on the final call to signal the transfer is complete |
+
+---
+
+## Custom metrics
+
+Any monitor can pull additional numeric values at each check cycle via HTTP requests — useful for metrics not natively exposed by a service (quota usage, user counts, storage, etc.).
+
+### Setup
+
+Open a monitor → **Integrations** tab → **Métriques custom** → **Ajouter**.
+
+| Field | Description |
+|-------|-------------|
+| **Name** | Label shown in the dashboard and card metric dropdown |
+| **Unit** | Optional suffix displayed next to the value (e.g. `GB`, `%`) |
+| **Method** | HTTP method (`GET`, `POST`, `PUT`) |
+| **URL** | Endpoint to call |
+| **Headers** | Key/value pairs sent with the request — values are encrypted at rest with AES-256-GCM |
+| **Extraction** | **JSONPath** (e.g. `$.used`) or **Regex** (e.g. `(\d+)`) to extract the numeric value from the response |
+
+Multiple custom metrics can be configured per monitor. Each one is fetched concurrently at every check interval and stored in the monitor's metric history alongside its native metrics.
+
+### Example — quota from an HTTP API
+
+```
+URL:        https://app.example.com/api/requests/quota
+Method:     GET
+Headers:    Authorization: Bearer <your_token>
+JSONPath:   $.used
+```
+
+Response: `{"limit": 100, "used": 42, "remaining": 58}`  
+→ Extracted value: `42`
+
+### Display on card
+
+Once saved, the custom metric appears in the **Card metric** dropdown (Monitoring tab). Select it to display its sparkline and current value on the dashboard card.
 
 ---
 

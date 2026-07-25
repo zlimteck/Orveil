@@ -75,7 +75,7 @@ const { isSafeUrl } = require('../utils/validateUrl');
 const MONITOR_ALLOWED_FIELDS = [
   'name', 'type', 'description', 'enabled', 'checkInterval', 'reportInterval',
   'config', 'category', 'position', 'cardMetric', 'serviceUrl', 'showOnStatusPage',
-  'dependsOn', 'slaTarget', 'confirmAfter', 'customIconUrl', 'faviconUrl', 'pinned', 'appriseUrls', 'alertRules',
+  'dependsOn', 'slaTarget', 'confirmAfter', 'customIconUrl', 'faviconUrl', 'pinned', 'appriseUrls', 'alertRules', 'customMetrics',
 ];
 
 function pickAllowed(body) {

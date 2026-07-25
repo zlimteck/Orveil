@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, Trash2, Wifi, RefreshCw, Image, ChevronDown, Webhook, Copy, Check, RotateCcw, Search, Eye, EyeOff, Upload } from 'lucide-react';
+import { X, Plus, Trash2, Wifi, RefreshCw, Image, ChevronDown, Webhook, Copy, Check, RotateCcw, Search, Eye, EyeOff, Upload, Pencil } from 'lucide-react';
 import { useLang } from '../context/LangContext';
 import { monitors as monitorsApi, settings as settingsApi } from '../api';
 import Portal from './Portal';
@@ -1413,6 +1413,217 @@ push 0 0 0 0 0 "" # done`
   );
 }
 
+function HeadersEditor({ headers, onChange }) {
+  const [draftKey, setDraftKey] = React.useState('');
+  const [draftVal, setDraftVal] = React.useState('');
+  const [adding, setAdding] = React.useState(false);
+
+  function confirmAdd() {
+    const k = draftKey.trim();
+    if (!k) { setAdding(false); setDraftKey(''); setDraftVal(''); return; }
+    onChange({ ...headers, [k]: draftVal });
+    setDraftKey(''); setDraftVal(''); setAdding(false);
+  }
+
+  function removeHeader(k) {
+    const { [k]: _, ...rest } = headers;
+    onChange(rest);
+  }
+
+  function updateValue(k, v) {
+    onChange({ ...headers, [k]: v });
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <label className="label mb-0">Headers</label>
+        {!adding && (
+          <button type="button" onClick={() => setAdding(true)}
+            className="text-xs text-periwinkle hover:text-periwinkle/80 transition-colors">+ header</button>
+        )}
+      </div>
+      <div className="space-y-2">
+        {Object.entries(headers || {}).map(([k, v]) => (
+          <div key={k} className="flex gap-2 items-center">
+            <span className="input w-2/5 truncate !py-2">{k}</span>
+            <HeaderValueField value={v} onSave={val => updateValue(k, val)} />
+            <button type="button" onClick={() => removeHeader(k)}
+              className="p-1.5 text-muted hover:text-red-400 transition-colors shrink-0">
+              <Trash2 size={13} />
+            </button>
+          </div>
+        ))}
+        {adding && (
+          <div className="flex gap-2 items-center">
+            <input autoFocus placeholder="Clé (ex: Authorization)" value={draftKey}
+              onChange={e => setDraftKey(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && document.getElementById('draft-val')?.focus()}
+              className="input w-2/5 !border-periwinkle/50 focus:!border-periwinkle" />
+            <input id="draft-val" placeholder="Valeur" type="password" value={draftVal}
+              onChange={e => setDraftVal(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && confirmAdd()}
+              className="input flex-1 !border-periwinkle/50 focus:!border-periwinkle" />
+            <button type="button" onClick={confirmAdd}
+              className="p-1.5 text-celadon hover:text-celadon/80 transition-colors shrink-0">
+              <Check size={14} />
+            </button>
+            <button type="button" onClick={() => { setAdding(false); setDraftKey(''); setDraftVal(''); }}
+              className="p-1.5 text-muted hover:text-red-400 transition-colors shrink-0">
+              <X size={14} />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CustomMetricsSection({ form, setForm }) {
+  const metrics = form.customMetrics || [];
+
+  function add() {
+    setForm(f => ({
+      ...f,
+      customMetrics: [...(f.customMetrics || []), {
+        id: uuid(), name: '', url: '', method: 'GET',
+        headers: {}, extract: { type: 'jsonpath', expr: '' }, unit: '',
+      }],
+    }));
+  }
+
+  function remove(id) {
+    setForm(f => ({ ...f, customMetrics: (f.customMetrics || []).filter(m => m.id !== id) }));
+  }
+
+  function update(id, patch) {
+    setForm(f => ({
+      ...f,
+      customMetrics: (f.customMetrics || []).map(m => m.id === id ? { ...m, ...patch } : m),
+    }));
+  }
+
+  return (
+    <div className="border-t border-border pt-3 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-periwinkle text-xs">◇</span>
+          <p className="text-xs font-medium text-thistle">Métriques custom</p>
+        </div>
+        <button type="button" onClick={add}
+          className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-periwinkle/10 border border-periwinkle/30 text-periwinkle hover:bg-periwinkle/20 transition-colors">
+          <Plus size={11} /> Ajouter
+        </button>
+      </div>
+
+      {metrics.length === 0 && (
+        <p className="text-xs text-muted">
+          Exécute une requête HTTP à chaque check pour remonter une valeur custom.
+        </p>
+      )}
+
+      <div className="space-y-4">
+        {metrics.map(m => (
+          <div key={m.id} className="space-y-3 border border-border rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-thistle truncate">{m.name || 'Nouvelle métrique'}</p>
+              <button type="button" onClick={() => remove(m.id)}
+                className="p-1.5 rounded text-muted hover:text-red-400 transition-colors shrink-0">
+                <Trash2 size={14} />
+              </button>
+            </div>
+
+            {/* Nom + Unité */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">Nom</label>
+                <input value={m.name} onChange={e => update(m.id, { name: e.target.value })}
+                  className="input" placeholder="Utilisateurs" />
+              </div>
+              <div>
+                <label className="label">Unité</label>
+                <input value={m.unit || ''} onChange={e => update(m.id, { unit: e.target.value })}
+                  className="input" placeholder="ex: GB, %" />
+              </div>
+            </div>
+
+            {/* URL + Méthode */}
+            <div className="grid grid-cols-[100px_1fr] gap-3">
+              <div>
+                <label className="label">Méthode</label>
+                <select value={m.method || 'GET'} onChange={e => update(m.id, { method: e.target.value })}
+                  className="select">
+                  <option>GET</option><option>POST</option><option>PUT</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">URL</label>
+                <input value={m.url} onChange={e => update(m.id, { url: e.target.value })}
+                  className="input" placeholder="https://…/api/users" />
+              </div>
+            </div>
+
+            <HeadersEditor headers={m.headers || {}} onChange={h => update(m.id, { headers: h })} />
+
+            {/* Extraction */}
+            <div>
+              <label className="label">Extraction</label>
+              <div className="flex gap-2">
+                <select value={m.extract?.type || 'jsonpath'}
+                  onChange={e => update(m.id, { extract: { ...m.extract, type: e.target.value } })}
+                  className="select shrink-0 w-32">
+                  <option value="jsonpath">JSONPath</option>
+                  <option value="regex">Regex</option>
+                </select>
+                <input value={m.extract?.expr || ''}
+                  onChange={e => update(m.id, { extract: { ...m.extract, expr: e.target.value } })}
+                  className="input"
+                  placeholder={m.extract?.type === 'regex' ? '(\\d+)' : '$.length'} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function HeaderValueField({ value, onSave }) {
+  const [show, setShow] = React.useState(false);
+  const isEnc = value && String(value).startsWith('enc:');
+  const displayVal = isEnc ? '••••••••' : (value || '');
+  const [editing, setEditing] = React.useState(false);
+  const [draft, setDraft] = React.useState('');
+
+  if (!editing) {
+    return (
+      <div className="input flex flex-1 min-w-0 items-center gap-1 !py-2 cursor-default">
+        <span className="flex-1 text-xs text-thistle truncate font-mono min-w-0">
+          {show && !isEnc ? displayVal : '••••••••'}
+        </span>
+        {!isEnc && (
+          <button type="button" onClick={() => setShow(s => !s)} className="text-muted hover:text-thistle shrink-0">
+            {show ? <EyeOff size={11} /> : <Eye size={11} />}
+          </button>
+        )}
+        <button type="button" onClick={() => { setDraft(''); setEditing(true); }}
+          className="p-0.5 text-muted hover:text-thistle transition-colors shrink-0">
+          <Pencil size={11} />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <input autoFocus type="password" value={draft}
+      onChange={e => setDraft(e.target.value)}
+      onBlur={() => { if (draft) onSave(draft); setEditing(false); }}
+      onKeyDown={e => { if (e.key === 'Enter') { if (draft) onSave(draft); setEditing(false); } if (e.key === 'Escape') setEditing(false); }}
+      placeholder="Nouvelle valeur"
+      className="input flex-1 !border-periwinkle/60 focus:!border-periwinkle" />
+  );
+}
+
 function WebhookSection({ monitor }) {
   const [token, setToken] = React.useState(monitor?.webhookToken || null);
   const [loading, setLoading] = React.useState(false);
@@ -1526,7 +1737,7 @@ function WebhookSection({ monitor }) {
 function AdvancedSection({ form, setForm, allMonitors, monitor, lang, t, defaultOpen = false }) {
   const [open, setOpen] = React.useState(defaultOpen);
   const [tab, setTab] = React.useState('general');
-  const metrics = getMetrics(form.type, form.config);
+  const metrics = getMetrics(form.type, form.config, form.customMetrics);
 
   const tabs = [
     { id: 'general',       label: lang === 'fr' ? 'Général' : 'General' },
@@ -1690,9 +1901,11 @@ function AdvancedSection({ form, setForm, allMonitors, monitor, lang, t, default
 
           {/* Intégrations */}
           {tab === 'integrations' && monitor && (
-            monitor.type === 'rclone'
-              ? <><PushStatsSection monitor={monitor} /><WebhookSection monitor={monitor} /></>
-              : <WebhookSection monitor={monitor} />
+            <>
+              {monitor.type === 'rclone' && <PushStatsSection monitor={monitor} />}
+              <WebhookSection monitor={monitor} />
+              <CustomMetricsSection form={form} setForm={setForm} />
+            </>
           )}
 
         </div>
@@ -1742,7 +1955,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
       enabled: true, checkInterval: 5, reportInterval: 0,
       cardMetric: null, serviceUrl: '', showOnStatusPage: true,
       slaTarget: '', confirmAfter: 1, dependsOn: [], customIconUrl: '', faviconUrl: '', appriseUrls: [],
-      alertRules: {}, config: {},
+      alertRules: {}, config: {}, customMetrics: [],
     };
     originalFormRef.current = initial;
     return initial;
@@ -1769,6 +1982,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
         appriseUrls: monitor.appriseUrls || [],
         alertRules: monitor.alertRules || {},
         config: monitor.config || {},
+        customMetrics: monitor.customMetrics || [],
       };
       originalFormRef.current = monitorForm;
       savedRef.current = false;
@@ -1816,7 +2030,7 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
     ...(monitor ? [{ id: 'integrations', label: lang === 'fr' ? 'Intégrations' : 'Integrations' }] : []),
   ];
 
-  const metrics = getMetrics(form.type, form.config);
+  const metrics = getMetrics(form.type, form.config, form.customMetrics);
 
   return (
     <Portal><div className="modal-backdrop fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm">
@@ -2066,9 +2280,11 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
 
             {/* Intégrations */}
             {tab === 'integrations' && monitor && (
-              monitor.type === 'rclone'
-                ? <><PushStatsSection monitor={monitor} /><WebhookSection monitor={monitor} /></>
-                : <WebhookSection monitor={monitor} />
+              <>
+                {monitor.type === 'rclone' && <PushStatsSection monitor={monitor} />}
+                <WebhookSection monitor={monitor} />
+                <CustomMetricsSection form={form} setForm={setForm} />
+              </>
             )}
 
           </div>

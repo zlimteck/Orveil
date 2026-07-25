@@ -62,4 +62,28 @@ function decryptConfig(config) {
   return result;
 }
 
-module.exports = { encrypt, decrypt, encryptConfig, decryptConfig };
+function encryptCustomMetrics(arr) {
+  if (!Array.isArray(arr)) return arr;
+  return arr.map(m => {
+    if (!m?.headers || typeof m.headers !== 'object') return m;
+    const headers = {};
+    for (const [k, v] of Object.entries(m.headers)) {
+      headers[k] = (v && !String(v).startsWith(PREFIX)) ? encrypt(v) : v;
+    }
+    return { ...m, headers };
+  });
+}
+
+function decryptCustomMetrics(arr) {
+  if (!Array.isArray(arr)) return arr;
+  return arr.map(m => {
+    if (!m?.headers || typeof m.headers !== 'object') return m;
+    const headers = {};
+    for (const [k, v] of Object.entries(m.headers)) {
+      headers[k] = (v && String(v).startsWith(PREFIX)) ? decrypt(v) : v;
+    }
+    return { ...m, headers };
+  });
+}
+
+module.exports = { encrypt, decrypt, encryptConfig, decryptConfig, encryptCustomMetrics, decryptCustomMetrics };

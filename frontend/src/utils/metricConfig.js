@@ -205,32 +205,48 @@ function haEntityMetrics(config) {
 }
 
 /** Returns the chartable metrics for a given type */
-export function getMetrics(type, config) {
-  if (type === 'homeassistant') return haEntityMetrics(config);
-  return CONFIG[type] || [];
+function customMetricEntries(customMetrics) {
+  if (!Array.isArray(customMetrics)) return [];
+  return customMetrics
+    .filter(cm => cm?.name)
+    .map(cm => ({
+      key: `__custom_${cm.name.replace(/[^a-zA-Z0-9_]/g, '_')}`,
+      fr: cm.name,
+      en: cm.name,
+      unit: cm.unit || '',
+    }));
+}
+
+export function getMetrics(type, config, customMetrics) {
+  const base = type === 'homeassistant' ? haEntityMetrics(config) : (CONFIG[type] || []);
+  return [...base, ...customMetricEntries(customMetrics)];
 }
 
 /** Returns the label for a specific metric key */
-export function getMetricLabel(type, key, lang = 'fr', config) {
+export function getMetricLabel(type, key, lang = 'fr', config, customMetrics) {
   if (type === 'homeassistant') {
     const m = haEntityMetrics(config).find(m => m.key === key);
     if (m) return lang === 'fr' ? m.fr : m.en;
   }
+  const custom = customMetricEntries(customMetrics).find(m => m.key === key);
+  if (custom) return lang === 'fr' ? custom.fr : custom.en;
   const m = (CONFIG[type] || []).find(m => m.key === key);
   if (!m) return key;
   return lang === 'fr' ? m.fr : m.en;
 }
 
 /** Returns unit suffix for a metric key */
-export function getMetricUnit(type, key) {
+export function getMetricUnit(type, key, customMetrics) {
+  const custom = customMetricEntries(customMetrics).find(m => m.key === key);
+  if (custom) return custom.unit;
   const m = (CONFIG[type] || []).find(m => m.key === key);
   return m?.unit ?? '';
 }
 
 /** Formats a metric value with its unit */
-export function formatMetricValue(type, key, value) {
+export function formatMetricValue(type, key, value, customMetrics) {
   if (value == null) return '—';
-  const unit = getMetricUnit(type, key);
+  const unit = getMetricUnit(type, key, customMetrics);
   const num = Number.isInteger(value) ? value : parseFloat(value.toFixed(1));
   return unit ? `${num}${unit}` : `${num}`;
 }
