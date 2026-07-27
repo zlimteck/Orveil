@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { version } from '../../package.json';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Radio, Bell, Settings, Menu, X, Code2, Siren, LogOut, Sun, Moon, BarChart2, GitBranch, Search } from 'lucide-react';
+import { LayoutDashboard, Radio, Bell, Settings, Menu, X, Code2, Siren, LogOut, Sun, Moon, BarChart2, GitBranch, Search, Network } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLang } from '../context/LangContext';
@@ -152,6 +152,7 @@ export default function Layout() {
     { to: '/incidents',icon: Siren,           label: t('nav.incidents'), badge: openIncidents },
     { to: '/timeline', icon: GitBranch,       label: t('nav.timeline') },
     { to: '/stats',    icon: BarChart2,       label: t('nav.stats') },
+    { to: '/topology', icon: Network,         label: t('nav.topology') },
     { to: '/settings', icon: Settings,        label: t('nav.settings') },
     { to: '/docs',     icon: Code2,           label: t('nav.api') },
   ];
@@ -220,8 +221,8 @@ export default function Layout() {
         {/* Spacer that matches the fixed header height on mobile */}
         <div className="md:hidden shrink-0" style={{ height: 'calc(3.5rem + env(safe-area-inset-top))' }} />
 
-        <main className="flex-1 overflow-auto safe-bottom">
-          <div key={location.pathname} className="animate-fade-in">
+        <main className="flex-1 flex flex-col overflow-auto safe-bottom">
+          <div key={location.pathname} className="animate-fade-in flex-1 flex flex-col">
             <Outlet />
           </div>
         </main>

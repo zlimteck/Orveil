@@ -1,0 +1,52 @@
+/* ── Edges — couleurs alignées sur la palette Orveil ── */
+.react-flow {
+  --xy-edge-stroke: rgb(var(--nh-periwinkle));
+  --xy-edge-stroke-width: 2;
+  --xy-edge-stroke-selected: rgb(var(--nh-thistle));
+}
+
+.react-flow__edge-path {
+  stroke-dasharray: 6 3;
+}
+
+/* Flèche marker */
+.react-flow__arrowhead polyline,
+.react-flow__arrowhead path {
+  stroke: rgb(var(--nh-periwinkle)) !important;
+  fill: rgb(var(--nh-periwinkle)) !important;
+}
+
+/* ── React Flow controls — thème adaptatif ── */
+.react-flow__controls {
+  background: rgb(var(--nh-card)) !important;
+  border: 1px solid rgb(var(--nh-border)) !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+}
+
+.react-flow__controls-button {
+  background: rgb(var(--nh-card)) !important;
+  border: none !important;
+  border-bottom: 1px solid rgb(var(--nh-border)) !important;
+  width: 28px !important;
+  height: 28px !important;
+}
+
+.react-flow__controls-button svg {
+  fill: rgb(var(--nh-muted)) !important;
+  max-width: 14px;
+  max-height: 14px;
+}
+
+.react-flow__controls-button:hover {
+  background: rgb(var(--nh-granite)) !important;
+}
+
+.react-flow__controls-button:hover svg {
+  fill: rgb(var(--nh-ink)) !important;
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none !important;
+}

@@ -34,8 +34,8 @@ function TrendBadge({ trend }) {
 function SlaBadge({ slaMet, slaTarget }) {
   if (slaMet === null || slaTarget == null) return null;
   return slaMet
-    ? <span className="hidden sm:block text-xs font-mono text-celadon w-20 text-right shrink-0" title={`SLA ${slaTarget}%`}>✓ {slaTarget}%</span>
-    : <span className="hidden sm:block text-xs font-mono text-red-400 w-20 text-right shrink-0" title={`SLA ${slaTarget}%`}>✗ {slaTarget}%</span>;
+    ? <span className="hidden sm:block text-xs font-mono text-celadon shrink-0" title={`SLA ${slaTarget}%`}>✓ {slaTarget}%</span>
+    : <span className="hidden sm:block text-xs font-mono text-red-400 shrink-0" title={`SLA ${slaTarget}%`}>✗ {slaTarget}%</span>;
 }
 
 function UptimeRow({ monitor, lang }) {
@@ -55,13 +55,13 @@ function UptimeRow({ monitor, lang }) {
           {uptime}%
         </span>
       )}
+      <SlaBadge slaMet={monitor.slaMet} slaTarget={monitor.slaTarget} />
       <div className="w-32 h-2 bg-granite-3 rounded-full overflow-hidden shrink-0">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${display ?? 0}%` }} />
       </div>
       <span className={`text-xs font-mono w-10 text-right shrink-0 ${textColor}`}>
         {display != null ? `${display}%` : '—'}
       </span>
-      <SlaBadge slaMet={monitor.slaMet} slaTarget={monitor.slaTarget} />
     </div>
   );
 }

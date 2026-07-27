@@ -5,6 +5,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { LangProvider } from './context/LangContext';
 import { ToastProvider } from './context/ToastContext';
 import Stats from './pages/Stats';
+import Topology from './pages/Topology';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Services from './pages/Services';
@@ -53,6 +54,7 @@ export default function App() {
             <Route path="settings" element={<Settings />} />
             <Route path="docs" element={<ApiDocs />} />
             <Route path="stats" element={<Stats />} />
+            <Route path="topology" element={<Topology />} />
           </Route>
         </Route>
       </Routes>

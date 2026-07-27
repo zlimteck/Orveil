@@ -2290,20 +2290,20 @@ export default function ServiceModal({ monitor, onClose, onSave }) {
           </div>
 
           {/* Footer — always visible */}
-          <div className="flex justify-between items-start gap-3 px-5 py-4 border-t border-border shrink-0">
-            <div>
+          <div className="flex justify-between items-center gap-3 px-5 py-4 border-t border-border shrink-0 min-h-0">
+            <div className="min-w-0 flex-1">
               <button type="button" onClick={handleTest} disabled={testing}
-                className="btn-ghost border border-border px-3 py-2 rounded-lg text-sm flex items-center gap-2">
+                className="btn-ghost border border-border px-3 py-2 rounded-lg text-sm flex items-center gap-2 shrink-0">
                 <Wifi size={14} className={testing ? 'animate-pulse text-periwinkle' : ''} />
                 {testing ? t('test.testing') : t('test.button')}
               </button>
               {testResult && (
-                <p className={`text-xs mt-1.5 ${testResult.ok ? 'text-celadon' : 'text-red-400'}`}>
+                <p className={`text-xs mt-1.5 truncate ${testResult.ok ? 'text-celadon' : 'text-red-400'}`} title={testResult.message}>
                   {testResult.ok ? '✓' : '✗'} {testResult.message}
                 </p>
               )}
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 shrink-0">
               <button type="button" onClick={handleClose} className="btn-ghost">{t('form.cancel')}</button>
               <button type="submit" disabled={!form.type} className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed">{monitor ? t('form.save') : t('form.create')}</button>
             </div>
