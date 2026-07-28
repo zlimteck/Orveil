@@ -12,7 +12,7 @@ import '../styles/topology.css';
 import { monitors as monitorsApi } from '../api';
 import { useLang } from '../context/LangContext';
 import { useToast } from '../context/ToastContext';
-import { Network, AlertCircle, Settings, PanelRightOpen, PanelRightClose } from 'lucide-react';
+import { Network, AlertCircle, Settings, PanelRightOpen, PanelRightClose, Layers } from 'lucide-react';
 import Portal from '../components/Portal';
 import ServiceModal from '../components/ServiceModal';
 import * as dagreLib from 'dagre';
@@ -30,10 +30,17 @@ function statusColors(status, enabled) {
   return { dot: 'rgb(var(--nh-muted))', border: 'rgb(var(--nh-granite))' };
 }
 
+function edgeStroke(status, enabled) {
+  if (!enabled) return 'rgb(var(--nh-granite))';
+  if (status === 'down')    return '#ef4444';
+  if (status === 'warning') return '#f59e0b';
+  return 'rgb(var(--nh-periwinkle))';
+}
+
 function layoutGraph(nodes, edges) {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: 'TB', nodesep: 60, ranksep: 80 });
+  g.setGraph({ rankdir: 'LR', nodesep: 40, ranksep: 120 });
   nodes.forEach(n => g.setNode(n.id, { width: NODE_W, height: NODE_H }));
   edges.forEach(e => g.setEdge(e.source, e.target));
   dagre.layout(g);
@@ -43,10 +50,62 @@ function layoutGraph(nodes, edges) {
   });
 }
 
-function SidebarContent({ unconfigured, loading, t, onEdit, onClose }) {
+function clusterAggregate(members) {
+  if (members.some(m => m.enabled && m.status === 'down'))    return 'down';
+  if (members.some(m => m.enabled && m.status === 'warning')) return 'warning';
+  if (members.every(m => !m.enabled || m.status === 'online')) return 'online';
+  return 'unknown';
+}
+
+function ClusterCard({ parent, children }) {
+  const [open, setOpen] = useState(false);
+  const members = [parent, ...children];
+  const aggStatus = clusterAggregate(members);
+  const { dot, border } = statusColors(aggStatus, true);
+  const onlineCount = members.filter(m => m.enabled && m.status === 'online').length;
+  const downCount   = members.filter(m => m.enabled && m.status === 'down').length;
+
+  return (
+    <div className="mx-3 my-2 rounded-lg border overflow-hidden" style={{ borderColor: border, background: 'rgb(var(--nh-surface))' }}>
+      {/* Header */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:opacity-80 transition-opacity"
+        style={{ background: 'rgb(var(--nh-surface))' }}
+      >
+        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: dot }} />
+        <span className="text-sm font-semibold truncate flex-1 text-left" style={{ color: 'rgb(var(--nh-ink))' }}>{parent.name}</span>
+        <span className="text-xs flex-shrink-0 mr-1" style={{ color: 'rgb(var(--nh-muted))' }}>
+          {onlineCount}/{members.length}
+          {downCount > 0 && <span className="ml-1 text-red-400">{downCount}✗</span>}
+        </span>
+        <span className="text-xs flex-shrink-0 transition-transform duration-200" style={{ color: 'rgb(var(--nh-muted))', transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', display: 'inline-block' }}>▾</span>
+      </button>
+
+      {/* Children list */}
+      {open && (
+        <div className="border-t" style={{ borderColor: border + '55' }}>
+          {children.map(m => {
+            const { dot: cdot } = statusColors(m.status, m.enabled);
+            return (
+              <div key={String(m._id)} className="flex items-center gap-2 px-3 py-2 border-b last:border-b-0" style={{ borderColor: 'rgb(var(--nh-border) / 0.4)' }}>
+                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: cdot }} />
+                <span className="text-xs truncate flex-1" style={{ color: 'rgb(var(--nh-ink))' }}>{m.name}</span>
+                {m.enabled && m.status === 'down' && <span className="text-xs text-red-400 flex-shrink-0">down</span>}
+                {m.enabled && m.status === 'warning' && <span className="text-xs flex-shrink-0" style={{ color: '#f59e0b' }}>warn</span>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SidebarContent({ clusters, unconfigured, loading, t, onEdit, onClose }) {
   return (
     <>
-      <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: 'rgb(var(--nh-border))' }}>
+      <div className="px-4 py-3 border-b flex items-center justify-between flex-shrink-0" style={{ borderColor: 'rgb(var(--nh-border))' }}>
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'rgb(var(--nh-muted))' }}>
             {t('topology.unconfigured')}
@@ -61,6 +120,24 @@ function SidebarContent({ unconfigured, loading, t, onEdit, onClose }) {
           </button>
         )}
       </div>
+
+      {/* Cluster cards */}
+      {clusters.length > 0 && (
+        <div className="border-b flex-shrink-0" style={{ borderColor: 'rgb(var(--nh-border))' }}>
+          <div className="px-4 pt-3 pb-1 flex items-center gap-1.5">
+            <Layers className="w-3 h-3" style={{ color: 'rgb(var(--nh-muted))' }} />
+            <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'rgb(var(--nh-muted))' }}>
+              Clusters
+            </p>
+          </div>
+          <div className="pb-2 overflow-y-auto">
+            {clusters.map(c => (
+              <ClusterCard key={String(c.parent._id)} parent={c.parent} children={c.children} />
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="p-4 text-xs" style={{ color: 'rgb(var(--nh-muted))' }}>{t('topology.loading')}</div>
@@ -88,8 +165,9 @@ function SidebarContent({ unconfigured, loading, t, onEdit, onClose }) {
           </ul>
         )}
       </div>
+
       {unconfigured.length > 0 && (
-        <div className="px-4 py-3 border-t" style={{ borderColor: 'rgb(var(--nh-border))' }}>
+        <div className="px-4 py-3 border-t flex-shrink-0" style={{ borderColor: 'rgb(var(--nh-border))' }}>
           <div className="flex items-start gap-2 text-xs" style={{ color: 'rgb(var(--nh-muted))' }}>
             <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
             <span>{t('topology.sidebarHint')}</span>
@@ -132,11 +210,29 @@ export default function Topology() {
     };
   }, [allMonitors]);
 
+  // Build clusters: group children by their parent
+  const clusters = useMemo(() => {
+    const parentMap = new Map(); // parentId -> [child monitors]
+    graphMonitors.forEach(m => {
+      (m.dependsOn ?? []).forEach(pid => {
+        const pidStr = String(pid);
+        if (!parentMap.has(pidStr)) parentMap.set(pidStr, []);
+        parentMap.get(pidStr).push(m);
+      });
+    });
+    return Array.from(parentMap.entries()).map(([parentId, children]) => {
+      const parent = graphMonitors.find(m => String(m._id) === parentId);
+      return parent ? { parent, children } : null;
+    }).filter(Boolean);
+  }, [graphMonitors]);
+
   const openEdit = useCallback(m => setEditTarget(m), []);
   const noDeps = !loading && graphMonitors.length === 0;
 
   useEffect(() => {
     if (!graphMonitors.length) { setNodes([]); setEdges([]); return; }
+
+    const monitorById = new Map(graphMonitors.map(m => [String(m._id), m]));
 
     const rawNodes = graphMonitors.map(m => {
       const { dot, border } = statusColors(m.status, m.enabled);
@@ -174,9 +270,17 @@ export default function Topology() {
       (m.dependsOn ?? []).forEach(pid => {
         const srcId = String(pid);
         const tgtId = String(m._id);
-        if (rawNodes.some(n => n.id === srcId)) {
-          rawEdges.push({ id: `e-${rawEdges.length}`, source: srcId, target: tgtId });
-        }
+        if (!rawNodes.some(n => n.id === srcId)) return;
+        const parent = monitorById.get(srcId);
+        const stroke = edgeStroke(parent?.status, parent?.enabled);
+        const isDown = parent?.enabled && parent?.status === 'down';
+        rawEdges.push({
+          id: `e-${rawEdges.length}`,
+          source: srcId,
+          target: tgtId,
+          animated: isDown,
+          style: { stroke },
+        });
       });
     });
 
@@ -241,7 +345,7 @@ export default function Topology() {
         className="hidden md:flex w-64 flex-col flex-shrink-0 overflow-hidden border-l"
         style={{ background: 'rgb(var(--nh-card))', borderColor: 'rgb(var(--nh-border))' }}
       >
-        <SidebarContent unconfigured={unconfigured} loading={loading} t={t} onEdit={openEdit} />
+        <SidebarContent clusters={clusters} unconfigured={unconfigured} loading={loading} t={t} onEdit={openEdit} />
       </aside>
 
       {/* ── Sidebar mobile (drawer) ── */}
@@ -253,7 +357,7 @@ export default function Topology() {
             style={{ background: 'rgb(var(--nh-card))', borderColor: 'rgb(var(--nh-border))' }}
             onClick={e => e.stopPropagation()}
           >
-            <SidebarContent unconfigured={unconfigured} loading={loading} t={t} onEdit={openEdit} onClose={() => setMobileSidebar(false)} />
+            <SidebarContent clusters={clusters} unconfigured={unconfigured} loading={loading} t={t} onEdit={openEdit} onClose={() => setMobileSidebar(false)} />
           </aside>
         </div>
       )}

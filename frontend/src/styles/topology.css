@@ -9,11 +9,11 @@
   stroke-dasharray: 6 3;
 }
 
-/* Flèche marker */
+/* Markers héritent la couleur de l'edge via currentColor */
 .react-flow__arrowhead polyline,
 .react-flow__arrowhead path {
-  stroke: rgb(var(--nh-periwinkle)) !important;
-  fill: rgb(var(--nh-periwinkle)) !important;
+  stroke: inherit;
+  fill: inherit;
 }
 
 /* ── React Flow controls — thème adaptatif ── */
