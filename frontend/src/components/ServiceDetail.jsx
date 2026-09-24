@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, AlertTriangle, CheckCircle, Check, Tag, Trash2, Wrench, GitCommitHorizontal, Pencil } from 'lucide-react';
+import { X, AlertTriangle, CheckCircle, Check, Tag, Trash2, Wrench, GitCommitHorizontal, Pencil, Copy } from 'lucide-react';
 import { history as historyApi, incidents as incidentsApi, annotations as annotationsApi, monitors as monitorsApi, changelog as changelogApi } from '../api';
 import { useLang } from '../context/LangContext';
 import Portal from './Portal';
@@ -95,8 +95,9 @@ function CopyButton({ text, lang }) {
   const [copied, setCopied] = useState(false);
   return (
     <button type="button" onClick={() => { copyToClipboard(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      className="btn-ghost px-3 py-1.5 text-xs shrink-0 flex items-center gap-1">
-      {copied ? <><Check size={12} className="text-celadon" />{lang === 'fr' ? 'Copié' : 'Copied'}</> : (lang === 'fr' ? 'Copier' : 'Copy')}
+      title={copied ? (lang === 'fr' ? 'Copié' : 'Copied') : (lang === 'fr' ? 'Copier' : 'Copy')}
+      className="shrink-0 p-1.5 rounded-lg border border-border text-muted hover:text-thistle hover:border-periwinkle/50 transition-colors">
+      {copied ? <Check size={13} className="text-celadon" /> : <Copy size={13} />}
     </button>
   );
 }

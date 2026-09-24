@@ -53,6 +53,12 @@ module.exports = {
     tunnelRestored: (name) => ({ title: `Tunnel restored — ${name}`, message: `Cloudflare tunnel "${name}" is active again.` }),
     tunnelDown: (name, status) => ({ title: `Tunnel down — ${name}`, message: `Cloudflare tunnel "${name}" is offline (status: ${status}).` }),
     tunnelGone: (name) => ({ title: `Tunnel gone — ${name}`, message: `Tunnel "${name}" is no longer visible.` }),
+    d1QuotaExceeded: (name, readPct, writePct) => ({ title: `D1 quota exceeded — ${name}`, message: `Daily free quota exceeded (reads: ${readPct}%, writes: ${writePct}%).` }),
+    d1QuotaRecovered: (name) => ({ title: `D1 quota back to normal — ${name}`, message: 'Usage is back under the daily free quota.' }),
+    d1Report: (rowsRead, rowsWritten) => ({ title: 'D1 Report', message: `Rows read today: ${rowsRead ?? 0}\nRows written today: ${rowsWritten ?? 0}` }),
+    workersErrorRateHigh: (name, rate) => ({ title: `Worker error rate high — ${name}`, message: `Error rate reached ${rate}% over the last 24h.` }),
+    workersErrorRateRecovered: (name) => ({ title: `Worker error rate normal — ${name}`, message: 'Error rate is back to normal.' }),
+    workersReport: (requests, errors, errorRate) => ({ title: 'Workers Report', message: `Requests (24h): ${requests}\nErrors: ${errors} (${errorRate}%)` }),
     cloudflareReport: (tunnels) => {
       let msg = `Cloudflare — ${tunnels.length} active tunnel(s)\n`;
       for (const t of tunnels) {
@@ -329,6 +335,12 @@ module.exports = {
     tunnelRestored: (name) => ({ title: `Tunnel rétabli — ${name}`, message: `Le tunnel Cloudflare "${name}" est de nouveau actif.` }),
     tunnelDown: (name, status) => ({ title: `Tunnel hors ligne — ${name}`, message: `Le tunnel Cloudflare "${name}" est hors ligne (status : ${status}).` }),
     tunnelGone: (name) => ({ title: `Tunnel disparu — ${name}`, message: `Le tunnel "${name}" n'est plus visible.` }),
+    d1QuotaExceeded: (name, readPct, writePct) => ({ title: `Quota D1 dépassé — ${name}`, message: `Quota gratuit journalier dépassé (lectures : ${readPct}%, écritures : ${writePct}%).` }),
+    d1QuotaRecovered: (name) => ({ title: `Quota D1 revenu à la normale — ${name}`, message: 'La consommation est repassée sous le quota gratuit journalier.' }),
+    d1Report: (rowsRead, rowsWritten) => ({ title: 'Rapport D1', message: `Lignes lues aujourd'hui : ${rowsRead ?? 0}\nLignes écrites aujourd'hui : ${rowsWritten ?? 0}` }),
+    workersErrorRateHigh: (name, rate) => ({ title: `Taux d'erreur Worker élevé — ${name}`, message: `Le taux d'erreur a atteint ${rate}% sur les dernières 24h.` }),
+    workersErrorRateRecovered: (name) => ({ title: `Taux d'erreur Worker normal — ${name}`, message: 'Le taux d\'erreur est revenu à la normale.' }),
+    workersReport: (requests, errors, errorRate) => ({ title: 'Rapport Workers', message: `Requêtes (24h) : ${requests}\nErreurs : ${errors} (${errorRate}%)` }),
     cloudflareReport: (tunnels) => {
       let msg = `Cloudflare — ${tunnels.length} tunnel(s) actif(s)\n`;
       for (const t of tunnels) {

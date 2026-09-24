@@ -1,6 +1,6 @@
 import React from 'react';
 import { siCloudflare, siAdguard, siSyncthing, siProxmox, siImmich, siPortainer, siHomeassistant, siJellyfin, siMysql, siRedis, siOllama, siMongodb, siTailscale, siSonarr, siRadarr, siQbittorrent, siRclone, siHetzner } from 'simple-icons';
-import { Globe, Activity, Terminal, HeartPulse, Gauge, Network, Database, ArrowLeftRight, Workflow } from 'lucide-react';
+import { Globe, Activity, Terminal, HeartPulse, Gauge, Network, Database, ArrowLeftRight, Workflow, Webhook } from 'lucide-react';
 
 function SimpleIcon({ icon, size = 20 }) {
   return (
@@ -72,6 +72,8 @@ function UltraccIcon({ size = 20 }) {
 
 const FALLBACKS = {
   cloudflare: ({ size }) => <SimpleIcon icon={siCloudflare} size={size} />,
+  cfd1:       ({ size }) => <SimpleIcon icon={siCloudflare} size={size} />,
+  cfworkers:  ({ size }) => <SimpleIcon icon={siCloudflare} size={size} />,
   adguardhome: ({ size }) => <SimpleIcon icon={siAdguard}    size={size} />,
   syncthing:  ({ size }) => <SimpleIcon icon={siSyncthing}  size={size} />,
   proxmox:    ({ size }) => <SimpleIcon icon={siProxmox}    size={size} />,
@@ -89,6 +91,7 @@ const FALLBACKS = {
   portforward: ({ size }) => <ArrowLeftRight size={size} color="#818cf8" />,
   ssh:        ({ size }) => <Terminal size={size} color="#a7e2e3" />,
   heartbeat:  ({ size }) => <HeartPulse size={size} color="#f87171" />,
+  webhook:    ({ size }) => <Webhook size={size} color="#facc15" />,
   homeassistant:  ({ size }) => <SimpleIcon icon={siHomeassistant} size={size} />,
   dns:            ({ size }) => <Network size={size} color="#a7e2e3" />,
   mysql:          ({ size }) => <SimpleIcon icon={siMysql} size={size} />,

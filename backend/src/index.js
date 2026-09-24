@@ -49,6 +49,7 @@ app.use('/api/auth',         require('./routes/auth'));
 app.use('/api/auth/totp',    require('./routes/totp'));
 app.use('/api/auth/passkey', require('./routes/passkey'));
 app.use('/api/ping',   require('./routes/ping'));
+app.use('/api/webhook-event', require('./routes/webhookEvent'));
 app.use('/api/favicon', require('./routes/favicon'));
 app.use('/api/events', require('./routes/sse'));
 app.use('/api/public', require('./routes/public'));

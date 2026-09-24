@@ -73,6 +73,20 @@ const CONFIG = {
     { key: 'total',   fr: 'Tunnels actifs', en: 'Active tunnels',  unit: '' },
     { key: 'healthy', fr: 'Tunnels sains',  en: 'Healthy tunnels', unit: '' },
   ],
+  cfd1: [
+    { key: 'readPct',     fr: 'Quota lecture',   en: 'Read quota',    unit: '%' },
+    { key: 'writePct',    fr: 'Quota écriture',  en: 'Write quota',   unit: '%' },
+    { key: 'rowsRead',    fr: 'Lignes lues',     en: 'Rows read',     unit: '' },
+    { key: 'rowsWritten', fr: 'Lignes écrites',  en: 'Rows written',  unit: '' },
+    { key: 'sizeBytes',   fr: 'Taille',          en: 'Size',          unit: 'B' },
+  ],
+  cfworkers: [
+    { key: 'requests',   fr: 'Requêtes (24h)',    en: 'Requests (24h)', unit: '' },
+    { key: 'errors',     fr: 'Erreurs',            en: 'Errors',         unit: '' },
+    { key: 'errorRate',  fr: "Taux d'erreur",      en: 'Error rate',     unit: '%' },
+    { key: 'cpuTimeP50', fr: 'CPU p50',            en: 'CPU p50',        unit: 'ms' },
+    { key: 'cpuTimeP99', fr: 'CPU p99',            en: 'CPU p99',        unit: 'ms' },
+  ],
   syncthing: [
     { key: 'folders_synced',    fr: 'Dossiers sync.',  en: 'Synced folders',    unit: '' },
     { key: 'devices_connected', fr: 'Appareils',       en: 'Connected devices', unit: '' },

@@ -1,5 +1,7 @@
 module.exports = {
   cloudflare: require('./cloudflare'),
+  cfd1:       require('./cfd1'),
+  cfworkers:  require('./cfworkers'),
   adguard:     require('./adguard'),
   adguardhome: require('./adguardhome'),
   hms:        require('./hms'),
@@ -12,6 +14,7 @@ module.exports = {
   portainer:  require('./portainer'),
   ssh:        require('./ssh'),
   heartbeat:  require('./heartbeat'),
+  webhook:    require('./webhook'),
   docker:     require('./docker'),
   unraid:     require('./unraid'),
   speedtest:      require('./speedtest'),

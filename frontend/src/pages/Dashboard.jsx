@@ -522,6 +522,43 @@ function MetricsBlock({ monitor }) {
     </div>
   );
 
+  if (type === 'cfd1') return (
+    <div className="space-y-1 text-xs text-muted">
+      {metrics.name && <div className="text-thistle truncate">{metrics.name}</div>}
+      {metrics.readPct != null ? (
+        <div className="grid grid-cols-2 gap-x-3">
+          <span>Lectures : <span className="text-frosted">{metrics.readPct}%</span></span>
+          <span>Écritures : <span className="text-frosted">{metrics.writePct}%</span></span>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-x-3">
+          <span>Lues : <span className="text-frosted">{metrics.rowsRead ?? '—'}</span></span>
+          <span>Écrites : <span className="text-frosted">{metrics.rowsWritten ?? '—'}</span></span>
+        </div>
+      )}
+    </div>
+  );
+
+  if (type === 'cfworkers') return (
+    <div className="space-y-1 text-xs text-muted">
+      <div className="grid grid-cols-2 gap-x-3">
+        <span>Requêtes (24h) : <span className="text-frosted">{metrics.requests ?? '—'}</span></span>
+        <span>Erreurs : <span className={metrics.errorRate > 0 ? 'text-amber-400' : 'text-frosted'}>{metrics.errorRate ?? 0}%</span></span>
+      </div>
+      {metrics.cpuTimeP50 != null && <div>CPU p50/p99 : <span className="text-frosted">{metrics.cpuTimeP50}ms / {metrics.cpuTimeP99}ms</span></div>}
+    </div>
+  );
+
+  if (type === 'webhook') return (
+    <div className="space-y-0.5 text-xs text-muted">
+      {metrics.lastEventAt
+        ? <span>{t('metrics.lastEvent')} : <span className="text-thistle">{timeAgoMs(metrics.lastEventAt)}</span></span>
+        : <span className="italic">{t('metrics.noWebhookEvent')}</span>
+      }
+      {metrics.lastEvent && <div className="truncate text-frosted">{metrics.lastEvent}</div>}
+    </div>
+  );
+
   if (type === 'speedtest') return (
     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted">
       <div>
@@ -842,6 +879,9 @@ function metricSummary(monitor) {
     case 'syncthing':  return m.folders_synced != null ? `${m.folders_synced} dossiers` : null;
     case 'hms':        return Array.isArray(m.vps) ? `${m.vps.filter(v => v.state === 'running').length} VPS` : null;
     case 'heartbeat':  return m.lastPing ? timeAgoMs(m.lastPing) : null;
+    case 'webhook':    return m.lastEventAt ? timeAgoMs(m.lastEventAt) : null;
+    case 'cfd1':       return m.readPct != null ? `${m.readPct}% lect. / ${m.writePct}% écr.` : null;
+    case 'cfworkers':  return m.requests != null ? `${m.requests} req. (${m.errorRate}% err.)` : null;
     case 'unraid':     return m.diskPct != null ? `${m.diskPct}% disque` : null;
     case 'speedtest':  return m.downloadMbps != null ? `↓ ${m.downloadMbps} Mbps` : null;
     default:           return null;

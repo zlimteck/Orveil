@@ -118,7 +118,7 @@ Set `ADMIN_PASSWORD` in your `.env` to control the initial password.
 ## Features
 
 **Monitoring**
-- **37 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping (TCP/ICMP), Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Docker, Proxmox, Cloudflare, AdGuard DNS, AdGuard Home, Portainer, Tailscale, Home Assistant, Syncthing, Immich, Unraid, Speedtest Tracker, Jellyfin, Ollama, OpenWebUI, Sonarr, Radarr, Prowlarr, Overseerr, qBittorrent, Autobrr, Dispatcharr, Navidrome, rclone, Hetzner Storage Box, HMS, Ultra.cc, Heartbeat
+- **40 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping (TCP/ICMP), Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Docker, Proxmox, Cloudflare, Cloudflare D1, Cloudflare Workers, AdGuard DNS, AdGuard Home, Portainer, Tailscale, Home Assistant, Syncthing, Immich, Unraid, Speedtest Tracker, Jellyfin, Ollama, OpenWebUI, Sonarr, Radarr, Prowlarr, Overseerr, qBittorrent, Autobrr, Dispatcharr, Navidrome, rclone, Hetzner Storage Box, HMS, Ultra.cc, Heartbeat, Webhook
 - Adaptive polling — faster rechecks when a service is down
 - Monitor dependencies — suppress alerts when a parent is already down
 - SSL certificate monitoring with expiry warning
@@ -183,6 +183,8 @@ Set `ADMIN_PASSWORD` in your `.env` to control the initial password.
 | **Docker** | Container count and status via Docker socket |
 | **Proxmox** | Node CPU / RAM via API token |
 | **Cloudflare** | Tunnel status and hostnames via API token |
+| **Cloudflare D1** | Database size/table count, daily rows read/written and free-tier quota % via GraphQL Analytics API |
+| **Cloudflare Workers** | Requests, errors, error rate, and CPU time (p50/p99) over the last 24h via GraphQL Analytics API |
 | **AdGuard DNS** | DNS protection status and request stats via cloud API |
 | **AdGuard Home** | Self-hosted DNS protection — blocked queries %, total queries, safebrowsing |
 | **Portainer** | Container list per environment via API key |
@@ -208,6 +210,9 @@ Set `ADMIN_PASSWORD` in your `.env` to control the initial password.
 | **rclone** | Transfer stats (DL/UL speed, active transfers, errors), active mounts, jobs, remote quota and version via rclone RC API — or push stats from an external script (see [rclone push stats](#rclone-push-stats)) |
 | **Hetzner Storage Box** | Disk usage/free/total, snapshot size and location via Hetzner API (Bearer token) |
 | **Heartbeat** | Cron job / script monitor — alerts if no ping received within expected interval |
+| **Webhook** | Event-only monitor — public URL that turns an incoming `POST { "text": "..." }` into an Orveil notification (no auth, no online/offline tracking) |
+
+> **Cloudflare D1 / Workers** require an API token with `Account Analytics: Read` in addition to `D1: Read` or `Workers Scripts: Read`.
 
 → [Alerts sent per monitor type](docs/alerts.md)
 
@@ -303,6 +308,26 @@ Pass the monitor token in the `token` header. Configure a **Payload Template** i
 Supported events: `channel_start`, `channel_stop`, `channel_reconnect`, `channel_error`, `channel_failover`, `stream_switch`, `recording_start`, `recording_end`, `epg_refresh`, `m3u_refresh`, `client_connect`, `client_disconnect`, `login_failed`, `epg_blocked`, `m3u_blocked`, `vod_start`, `vod_stop`.
 
 Events are automatically mapped to human-readable labels (`EPG Refreshed`, `Channel Started`, etc.).
+
+---
+
+## Webhook monitor
+
+Unlike the changelog webhooks above (which log deploy events), the **Webhook** monitor type turns an incoming HTTP call into an Orveil notification — useful for relaying events from a service that already supports "generic" outgoing webhooks (ntfy.sh / Discord / Slack-style `{ "text": "..." }` payload), such as approval requests, alerts from a script, or any one-off event you want pushed to your Apprise channels.
+
+### Setup
+
+1. Add a new monitor, type **Webhook**
+2. Copy the generated URL from the monitor's config panel — it embeds a unique slug, no extra authentication needed
+3. Point the external service's webhook/notify URL setting at it
+
+**Endpoint:** `POST /api/webhook-event/:slug`
+
+```json
+{ "text": "Someone requested to join the relay" }
+```
+
+The monitor's card shows the last event received and its timestamp; there is no online/offline health tracking for this type — every valid call triggers a notification through the monitor's configured Apprise channels.
 
 ---
 

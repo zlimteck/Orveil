@@ -22,6 +22,8 @@ Additional type-specific alerts:
 | **Docker** | Container stopped · Container running again |
 | **Proxmox** | High CPU · High RAM |
 | **Cloudflare** | Per-tunnel offline / restored |
+| **Cloudflare D1** | Daily free quota exceeded (reads/writes) / back to normal |
+| **Cloudflare Workers** | Error rate above threshold / back to normal |
 | **AdGuard DNS** | Protection disabled / re-enabled |
 | **AdGuard Home** | Protection disabled / re-enabled |
 | **Portainer** | Container stopped · Container running again |
@@ -43,3 +45,4 @@ Additional type-specific alerts:
 | **rclone** | Transfer errors detected · Transfer errors resolved |
 | **Hetzner Storage Box** | Disk usage > 90% |
 | **Heartbeat** | *(down/recovery only)* |
+| **Webhook** | *(event-only — no down/recovery, one notification per event received)* |

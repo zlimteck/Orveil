@@ -3,7 +3,7 @@ const { encryptConfig, decryptConfig, encryptCustomMetrics, decryptCustomMetrics
 
 const monitorSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  type: { type: String, required: true, enum: ['cloudflare', 'adguard', 'adguardhome', 'hms', 'ultracc', 'syncthing', 'http', 'ping', 'proxmox', 'immich', 'portainer', 'ssh', 'heartbeat', 'docker', 'unraid', 'speedtest', 'homeassistant', 'jellyfin', 'dns', 'mysql', 'redis', 'mongodb', 'tailscale', 'ollama', 'openwebui', 'sonarr', 'radarr', 'prowlarr', 'overseerr', 'portforward', 'qbittorrent', 'autobrr', 'rclone', 'hetzner', 'dispatcharr', 'navidrome'] },
+  type: { type: String, required: true, enum: ['cloudflare', 'adguard', 'adguardhome', 'hms', 'ultracc', 'syncthing', 'http', 'ping', 'proxmox', 'immich', 'portainer', 'ssh', 'heartbeat', 'docker', 'unraid', 'speedtest', 'homeassistant', 'jellyfin', 'dns', 'mysql', 'redis', 'mongodb', 'tailscale', 'ollama', 'openwebui', 'sonarr', 'radarr', 'prowlarr', 'overseerr', 'portforward', 'qbittorrent', 'autobrr', 'rclone', 'hetzner', 'dispatcharr', 'navidrome', 'webhook', 'cfd1', 'cfworkers'] },
   description: { type: String, default: '' },
   enabled: { type: Boolean, default: true },
   checkInterval: { type: Number, default: 5 },   // minutes

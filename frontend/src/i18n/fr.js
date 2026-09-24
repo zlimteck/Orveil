@@ -78,6 +78,8 @@ export default {
     sslExpired: 'Expiré',
     lastPing: 'Dernier ping',
     noHeartbeat: 'Aucun ping reçu',
+    lastEvent: 'Dernier événement',
+    noWebhookEvent: 'Aucun événement reçu',
     expectedEvery: 'Attendu toutes les',
   },
   nav: {
@@ -442,6 +444,7 @@ export default {
       monitorsMaintenance:     'Active une fenêtre de maintenance (body: { minutes: 30 })',
       monitorsMaintenanceDel:  'Annule la fenêtre de maintenance active (pose endedAt + canceledAt)',
       heartbeatPing:           'Ping heartbeat — appelez cette URL depuis votre cron job ou script (public, sans auth)',
+      webhookEvent:            'Événement webhook — POST un { "text": "..." } pour déclencher une notification (public, sans auth)',
       incidentsList:           'Liste tous les incidents (en cours et résolus)',
       incidentsSeverity:       'Modifie la sévérité d\'un incident (body: { severity: "P1"|"P2"|"P3"|"P4" })',
       incidentsAcknowledge:    'Acquitte un incident',

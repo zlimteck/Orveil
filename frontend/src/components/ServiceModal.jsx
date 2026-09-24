@@ -16,6 +16,8 @@ function uuid() {
 
 const TYPE_DEFAULTS = {
   cloudflare: { checkInterval: 1,  reportInterval: 6,  config: { apiToken: '', accountId: '' } },
+  cfd1:       { checkInterval: 15, reportInterval: 24, config: { apiToken: '', accountId: '', databaseId: '', planType: 'free' } },
+  cfworkers:  { checkInterval: 15, reportInterval: 24, config: { apiToken: '', accountId: '', scriptName: '', errorRateThreshold: 5 } },
   adguard:     { checkInterval: 60, reportInterval: 24, serviceUrl: 'https://adguard-dns.io', config: { accessToken: '', refreshTok: '' } },
   adguardhome: { checkInterval: 5,  reportInterval: 24, config: { url: '', username: '', password: '', rejectUnauthorized: true } },
   hms:        { checkInterval: 5,  reportInterval: 0,  config: { hmsToken: '', vpsList: [{ id: '', name: '' }] } },
@@ -28,6 +30,7 @@ const TYPE_DEFAULTS = {
   portainer:  { checkInterval: 5,  reportInterval: 0,  config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
   ssh:        { checkInterval: 5,  reportInterval: 24, config: { host: '', port: 22, username: '', password: '', privateKey: '' } },
   heartbeat:  { checkInterval: 5,  reportInterval: 0,  config: { expectedEvery: 60, slug: uuid() } },
+  webhook:    { checkInterval: 5,  reportInterval: 0,  config: { slug: uuid() } },
   docker:     { checkInterval: 1,  reportInterval: 0,  config: { socketPath: '/var/run/docker.sock' } },
   unraid:     { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
   speedtest:      { checkInterval: 60, reportInterval: 24, config: { apiUrl: '', apiKey: '', rejectUnauthorized: true } },
@@ -70,6 +73,8 @@ const TYPE_CATEGORIES = {
   redis:         'databases',
   mongodb:       'databases',
   cloudflare:    'services',
+  cfd1:          'services',
+  cfworkers:     'services',
   adguard:       'services',
   adguardhome:   'services',
   homeassistant: 'services',
@@ -90,12 +95,15 @@ const TYPE_CATEGORIES = {
   hetzner:       'storage',
   speedtest:     'monitoring',
   heartbeat:     'monitoring',
+  webhook:       'monitoring',
   hms:           'hosting',
   ultracc:       'hosting',
 };
 
 const TYPE_LABELS = {
   cloudflare: 'Cloudflare Tunnels',
+  cfd1:       'Cloudflare D1',
+  cfworkers:  'Cloudflare Workers',
   adguard:     'AdGuard DNS',
   adguardhome: 'AdGuard Home',
   hms:        'HostMyServers VPS',
@@ -108,6 +116,7 @@ const TYPE_LABELS = {
   portainer:  'Portainer',
   ssh:        'SSH',
   heartbeat:  'Heartbeat',
+  webhook:    'Webhook',
   docker:     'Docker',
   unraid:     'Unraid',
   speedtest:     'Speedtest Tracker',
@@ -661,6 +670,21 @@ function copyToClipboard(text) {
   }
 }
 
+function CopyIconButton({ text, className = '', size = 13 }) {
+  const [copied, setCopied] = React.useState(false);
+  function handleCopy() {
+    copyToClipboard(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+  return (
+    <button type="button" onClick={handleCopy} title={copied ? 'Copié' : 'Copier'}
+      className={`shrink-0 p-1.5 rounded-lg border border-border text-muted hover:text-thistle hover:border-periwinkle/50 transition-colors ${className}`}>
+      {copied ? <Check size={size} className="text-celadon" /> : <Copy size={size} />}
+    </button>
+  );
+}
+
 const STEP_DEFAULT = { name: '', url: '', method: 'GET', expectedStatus: 200, body: '', headers: '', extract: '' };
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'];
 
@@ -769,6 +793,39 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
       <Field label="Account ID" value={config.accountId} onChange={v => set('accountId', v)}
         placeholder="Your Account ID" hint={t('form.fields.cloudflare.accountIdHint')} />
       <CFAccessSection config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
+    </>
+  );
+
+  if (type === 'cfd1') return (
+    <>
+      <Field label="API Token" value={config.apiToken} onChange={v => set('apiToken', v)}
+        type="password" placeholder="Your Cloudflare API token" hint="Scopes requis : D1 (Read), Account Analytics (Read)" />
+      <Field label="Account ID" value={config.accountId} onChange={v => set('accountId', v)}
+        placeholder="Your Account ID" />
+      <Field label="Database ID" value={config.databaseId} onChange={v => set('databaseId', v)}
+        placeholder="uuid de la base D1" />
+      <div>
+        <label className="label">Plan</label>
+        <select className="select" value={config.planType || 'free'} onChange={e => set('planType', e.target.value)}>
+          <option value="free">Free (quota journalier : 5M lectures / 100k écritures)</option>
+          <option value="paid">Paid (pas de quota journalier fixe)</option>
+        </select>
+      </div>
+      <ProxySection config={config} set={set} proxies={proxies} />
+    </>
+  );
+
+  if (type === 'cfworkers') return (
+    <>
+      <Field label="API Token" value={config.apiToken} onChange={v => set('apiToken', v)}
+        type="password" placeholder="Your Cloudflare API token" hint="Scopes requis : Workers Scripts (Read), Account Analytics (Read)" />
+      <Field label="Account ID" value={config.accountId} onChange={v => set('accountId', v)}
+        placeholder="Your Account ID" />
+      <Field label="Script Name" value={config.scriptName} onChange={v => set('scriptName', v)}
+        placeholder="nom du worker déployé" />
+      <Field label="Seuil taux d'erreur (%)" value={config.errorRateThreshold} onChange={v => set('errorRateThreshold', +v)}
+        type="number" placeholder="5" hint="Alerte si le taux d'erreur sur 24h dépasse ce seuil" />
       <ProxySection config={config} set={set} proxies={proxies} />
     </>
   );
@@ -1028,14 +1085,27 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
           <label className="label">{t('form.fields.heartbeat.pingUrl')}</label>
           <div className="flex items-center gap-2">
             <input readOnly value={pingUrl} className="input text-xs font-mono flex-1 text-muted" />
-            <button type="button" onClick={() => copyToClipboard(pingUrl)}
-              className="btn-ghost px-3 py-2 text-xs shrink-0">
-              {t('form.fields.heartbeat.copy')}
-            </button>
+            <CopyIconButton text={pingUrl} />
           </div>
           <p className="text-xs text-muted">{t('form.fields.heartbeat.pingUrlHint')}</p>
         </div>
       </>
+    );
+  }
+
+  if (type === 'webhook') {
+    const hookUrl = `${window.location.origin}/api/webhook-event/${config.slug}`;
+    return (
+      <div className="space-y-1">
+        <label className="label">URL du webhook</label>
+        <div className="flex items-center gap-2">
+          <input readOnly value={hookUrl} className="input text-xs font-mono flex-1 text-muted" />
+          <CopyIconButton text={hookUrl} />
+        </div>
+        <p className="text-xs text-muted">
+          POST JSON <code>{'{ "text": "..." }'}</code> vers cette URL pour déclencher une notification. Aucune authentification requise (l'URL contient un identifiant unique).
+        </p>
+      </div>
     );
   }
 
@@ -1395,9 +1465,9 @@ push 0 0 0 0 0 "" # done`
           <div>
             <div className="flex items-center justify-between mb-1">
               <p className="text-xs text-muted">Script bash</p>
-              <button type="button" onClick={() => copy(scriptSnippet, 'script')}
-                className="flex items-center gap-1 text-xs text-muted hover:text-thistle transition-colors">
-                {copied === 'script' ? <><Check size={11} className="text-celadon" /> Copié</> : <><Copy size={11} /> Copier</>}
+              <button type="button" onClick={() => copy(scriptSnippet, 'script')} title={copied === 'script' ? 'Copié' : 'Copier'}
+                className="text-muted hover:text-thistle transition-colors">
+                {copied === 'script' ? <Check size={13} className="text-celadon" /> : <Copy size={13} />}
               </button>
             </div>
             <pre className="text-xs bg-granite-3 border border-border rounded-lg p-2.5 text-periwinkle/80 overflow-x-auto whitespace-pre leading-relaxed">{scriptSnippet}</pre>
@@ -1713,9 +1783,9 @@ function WebhookSection({ monitor }) {
           <div>
             <div className="flex items-center justify-between mb-1">
               <p className="text-xs text-muted">Exemple d'appel</p>
-              <button type="button" onClick={copyCurl}
-                className="flex items-center gap-1 text-xs text-muted hover:text-thistle transition-colors">
-                {copied === 'curl' ? <><Check size={11} className="text-celadon" /> Copié</> : <><Copy size={11} /> Copier</>}
+              <button type="button" onClick={copyCurl} title={copied === 'curl' ? 'Copié' : 'Copier'}
+                className="text-muted hover:text-thistle transition-colors">
+                {copied === 'curl' ? <Check size={13} className="text-celadon" /> : <Copy size={13} />}
               </button>
             </div>
             <pre className="text-xs bg-granite-3 border border-border rounded-lg p-2.5 text-periwinkle/80 overflow-x-auto whitespace-pre-wrap break-all leading-relaxed">{isDispatcharr
