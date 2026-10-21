@@ -1,5 +1,5 @@
 import React from 'react';
-import { siCloudflare, siAdguard, siSyncthing, siProxmox, siImmich, siPortainer, siHomeassistant, siJellyfin, siMysql, siRedis, siOllama, siMongodb, siTailscale, siSonarr, siRadarr, siQbittorrent, siRclone, siHetzner } from 'simple-icons';
+import { siCloudflare, siAdguard, siSyncthing, siProxmox, siImmich, siPortainer, siHomeassistant, siJellyfin, siMysql, siRedis, siOllama, siMongodb, siTailscale, siSonarr, siRadarr, siQbittorrent, siRclone, siHetzner, siAmazons3 } from 'simple-icons';
 import { Globe, Activity, Terminal, HeartPulse, Gauge, Network, Database, ArrowLeftRight, Workflow, Webhook } from 'lucide-react';
 
 function SimpleIcon({ icon, size = 20 }) {
@@ -74,6 +74,8 @@ const FALLBACKS = {
   cloudflare: ({ size }) => <SimpleIcon icon={siCloudflare} size={size} />,
   cfd1:       ({ size }) => <SimpleIcon icon={siCloudflare} size={size} />,
   cfworkers:  ({ size }) => <SimpleIcon icon={siCloudflare} size={size} />,
+  cfr2:       ({ size }) => <SimpleIcon icon={siCloudflare} size={size} />,
+  s3custom:   ({ size }) => <SimpleIcon icon={siAmazons3} size={size} />,
   adguardhome: ({ size }) => <SimpleIcon icon={siAdguard}    size={size} />,
   syncthing:  ({ size }) => <SimpleIcon icon={siSyncthing}  size={size} />,
   proxmox:    ({ size }) => <SimpleIcon icon={siProxmox}    size={size} />,

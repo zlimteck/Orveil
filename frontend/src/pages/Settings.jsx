@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { settings as api, auth as authApi, ai as aiApi, sessions as sessionsApi, totp as totpApi, passkey as passkeyApi } from '../api';
+import { settings as api, auth as authApi, ai as aiApi, sessions as sessionsApi, totp as totpApi, passkey as passkeyApi, monitors as monitorsApi } from '../api';
 import { startRegistration } from '@simplewebauthn/browser';
-import { Save, Send, Info, KeyRound, CalendarClock, BarChart2, Globe, Copy, Check, RefreshCw, Server, Download, Upload, AlertTriangle, Network, Wifi, Plus, Pencil, Trash2, ChevronDown, ChevronUp, Bot, Zap, BellOff, LogOut, Monitor, ShieldCheck, Fingerprint, ShieldOff } from 'lucide-react';
+import { Save, Send, Info, KeyRound, CalendarClock, BarChart2, Globe, Copy, Check, RefreshCw, Server, Download, Upload, AlertTriangle, Network, Wifi, Plus, Pencil, Trash2, ChevronDown, ChevronUp, Bot, Zap, BellOff, LogOut, Monitor, ShieldCheck, Fingerprint, ShieldOff, Database } from 'lucide-react';
 import { useLang } from '../context/LangContext';
 import { useToast } from '../context/ToastContext';
 
@@ -723,7 +723,15 @@ export default function Settings() {
   const [tab, setTab] = useState('notifications');
   const [tabOpen, setTabOpen] = useState(false);
   const [proxies, setProxies] = useState([]);
-  const [form, setForm] = useState({ appriseUrls: [], appriseApiUrl: 'http://apprise:8000', weeklyReport: { enabled: false, dayOfWeek: 1, hour: 8 }, showGraphs: true, statusPage: { title: '', description: '', logoUrl: '', accentColor: '', footerText: '' }, adaptivePolling: { enabled: true, errorInterval: 30 }, notificationCooldown: 0 });
+  const [form, setForm] = useState({ appriseUrls: [], appriseApiUrl: 'http://apprise:8000', weeklyReport: { enabled: false, dayOfWeek: 1, hour: 8 }, showGraphs: true, statusPage: { title: '', description: '', logoUrl: '', accentColor: '', footerText: '' }, adaptivePolling: { enabled: true, errorInterval: 30 }, notificationCooldown: 0, dbBackup: { enabled: false, frequency: 'daily', dayOfWeek: 1, hour: 3, retention: 7, password: '', lastRunAt: null, lastStatus: null, lastError: null, s3: { endpoint: '', region: 'auto', bucket: '', prefix: 'orveil-backups/', accessKeyId: '', secretAccessKey: '', forcePathStyle: true } } });
+  const [backupHistory, setBackupHistory] = useState([]);
+  const [runningBackup, setRunningBackup] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null); // { key, action: 'restore' | 'delete' }
+  const [restoringKey, setRestoringKey] = useState(null);
+  const [restorePassword, setRestorePassword] = useState('');
+  const [deletingKey, setDeletingKey] = useState(null);
+  const [s3Monitors, setS3Monitors] = useState([]);
+  const [reusedMonitorId, setReusedMonitorId] = useState('');
   const [urlsText, setUrlsText] = useState('');
   const [testing, setTesting] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -748,13 +756,35 @@ export default function Settings() {
           statusPage: s.statusPage || { title: '', description: '', logoUrl: '', accentColor: '', footerText: '' },
           adaptivePolling: s.adaptivePolling || { enabled: true, errorInterval: 30 },
           notificationCooldown: s.notificationCooldown ?? 0,
+          dbBackup: {
+            enabled: s.dbBackup?.enabled || false,
+            frequency: s.dbBackup?.frequency || 'daily',
+            dayOfWeek: s.dbBackup?.dayOfWeek ?? 1,
+            hour: s.dbBackup?.hour ?? 3,
+            retention: s.dbBackup?.retention ?? 7,
+            password: s.dbBackup?.password || '',
+            lastRunAt: s.dbBackup?.lastRunAt || null,
+            lastStatus: s.dbBackup?.lastStatus || null,
+            lastError: s.dbBackup?.lastError || null,
+            s3: {
+              endpoint: s.dbBackup?.s3?.endpoint || '',
+              region: s.dbBackup?.s3?.region || 'auto',
+              bucket: s.dbBackup?.s3?.bucket || '',
+              prefix: s.dbBackup?.s3?.prefix || 'orveil-backups/',
+              accessKeyId: s.dbBackup?.s3?.accessKeyId || '',
+              secretAccessKey: s.dbBackup?.s3?.secretAccessKey || '',
+              forcePathStyle: s.dbBackup?.s3?.forcePathStyle !== false,
+            },
+          },
         });
         setProxies(s.proxies || []);
         setUrlsText((s.appriseUrls || []).join('\n'));
         setMcpApiKey(s.mcpApiKey || '');
+        if (s.dbBackup?.s3?.endpoint) api.backupHistory().then(setBackupHistory).catch(() => {});
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+    monitorsApi.list().then(list => setS3Monitors((list || []).filter(m => m.type === 's3custom'))).catch(() => {});
     aiApi.status().then(({ configured, model }) => {
       setAnthropicConfigured(configured);
       if (model) setAnthropicModel(model);
@@ -775,9 +805,60 @@ export default function Settings() {
       statusPage: form.statusPage,
       adaptivePolling: form.adaptivePolling,
       notificationCooldown: form.notificationCooldown,
+      dbBackup: form.dbBackup,
       ...patch,
     });
     toast.add(t('settings.saved'), 'success');
+  }
+
+  async function handleSaveDbBackup(e) {
+    e.preventDefault();
+    await saveAll();
+    loadBackupHistory();
+  }
+
+  function loadBackupHistory() {
+    api.backupHistory().then(setBackupHistory).catch(() => {});
+  }
+
+  async function handleRunBackupNow() {
+    setRunningBackup(true);
+    try {
+      await api.runBackupNow();
+      toast.add(t('settings.dbBackup.runSuccess'), 'success');
+      const s = await api.get();
+      setForm(f => ({ ...f, dbBackup: { ...f.dbBackup, lastRunAt: s.dbBackup?.lastRunAt, lastStatus: s.dbBackup?.lastStatus, lastError: s.dbBackup?.lastError } }));
+      loadBackupHistory();
+    } catch (err) {
+      toast.add(err?.response?.data?.error || t('settings.dbBackup.runError'), 'error');
+    }
+    setRunningBackup(false);
+  }
+
+  async function handleRestoreBackup(key) {
+    setRestoringKey(key);
+    setConfirmAction(null);
+    try {
+      const r = await api.restoreBackup(key, restorePassword || undefined);
+      toast.add(t('settings.dbBackup.restoreSuccess').replace('{{count}}', r.restored?.length ?? 0), 'success');
+    } catch (err) {
+      toast.add(err?.response?.data?.error || t('settings.dbBackup.restoreError'), 'error');
+    }
+    setRestorePassword('');
+    setRestoringKey(null);
+  }
+
+  async function handleDeleteBackup(key) {
+    setDeletingKey(key);
+    setConfirmAction(null);
+    try {
+      await api.deleteBackup(key);
+      setBackupHistory(h => h.filter(b => b.key !== key));
+      toast.add(t('settings.dbBackup.deleteSuccess'), 'success');
+    } catch (err) {
+      toast.add(err?.response?.data?.error || t('settings.dbBackup.deleteError'), 'error');
+    }
+    setDeletingKey(null);
   }
 
   async function handleSaveApprise(e) {
@@ -1306,6 +1387,195 @@ export default function Settings() {
           </label>
         </div>
       </div>
+
+      <form onSubmit={handleSaveDbBackup} className="card space-y-4">
+        <h2 className="font-semibold text-thistle text-sm flex items-center gap-2">
+          <Database size={15} className="text-periwinkle" />
+          {t('settings.dbBackup.title')}
+        </h2>
+        <p className="text-xs text-muted">{t('settings.dbBackup.hint')}</p>
+
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={form.dbBackup.enabled}
+            onChange={e => setForm(f => ({ ...f, dbBackup: { ...f.dbBackup, enabled: e.target.checked } }))} />
+          {t('settings.dbBackup.enable')}
+        </label>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">{t('settings.dbBackup.frequency')}</label>
+            <select className="select" value={form.dbBackup.frequency}
+              onChange={e => setForm(f => ({ ...f, dbBackup: { ...f.dbBackup, frequency: e.target.value } }))}>
+              <option value="daily">{t('settings.dbBackup.daily')}</option>
+              <option value="weekly">{t('settings.dbBackup.weekly')}</option>
+            </select>
+          </div>
+          {form.dbBackup.frequency === 'weekly' && (
+            <div>
+              <label className="label">{t('settings.dbBackup.dayOfWeek')}</label>
+              <select className="select" value={form.dbBackup.dayOfWeek}
+                onChange={e => setForm(f => ({ ...f, dbBackup: { ...f.dbBackup, dayOfWeek: +e.target.value } }))}>
+                {['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'].map((d, i) => (
+                  <option key={i} value={i}>{d}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div>
+            <label className="label">{t('settings.dbBackup.hour')} (UTC)</label>
+            <input type="number" min="0" max="23" className="input" value={form.dbBackup.hour}
+              onChange={e => setForm(f => ({ ...f, dbBackup: { ...f.dbBackup, hour: +e.target.value } }))} />
+          </div>
+          <div>
+            <label className="label">{t('settings.dbBackup.retention')}</label>
+            <input type="number" min="1" className="input" value={form.dbBackup.retention}
+              onChange={e => setForm(f => ({ ...f, dbBackup: { ...f.dbBackup, retention: +e.target.value } }))} />
+          </div>
+          <div className="col-span-2">
+            <label className="label">{t('settings.dbBackup.encryptionPassword')}</label>
+            <input type="password" className="input" value={form.dbBackup.password}
+              placeholder={t('settings.dbBackup.encryptionPasswordPlaceholder')}
+              onChange={e => setForm(f => ({ ...f, dbBackup: { ...f.dbBackup, password: e.target.value } }))} />
+            <p className="text-xs text-muted mt-1">{t('settings.dbBackup.encryptionPasswordHint')}</p>
+          </div>
+        </div>
+
+        <div className="border-t border-border pt-3 space-y-3">
+          <p className="text-xs font-medium text-thistle">{t('settings.dbBackup.destination')}</p>
+          {s3Monitors.length > 0 && (
+            <div>
+              <label className="label">{t('settings.dbBackup.reuseMonitor')}</label>
+              <select className="select" value={reusedMonitorId} onChange={e => {
+                setReusedMonitorId(e.target.value);
+                const mon = s3Monitors.find(m => m._id === e.target.value);
+                if (!mon) return;
+                const c = mon.config || {};
+                setForm(f => ({ ...f, dbBackup: { ...f.dbBackup, s3: {
+                  ...f.dbBackup.s3,
+                  endpoint: c.endpoint || '',
+                  region: c.region || 'auto',
+                  bucket: c.bucket || '',
+                  accessKeyId: c.accessKeyId || '',
+                  secretAccessKey: c.secretAccessKey || '',
+                  forcePathStyle: c.forcePathStyle !== false,
+                } } }));
+              }}>
+                <option value="">{t('settings.dbBackup.reuseMonitorPlaceholder')}</option>
+                {s3Monitors.map(m => <option key={m._id} value={m._id}>{m.name}</option>)}
+              </select>
+              <p className="text-xs text-muted mt-1">{t('settings.dbBackup.reuseMonitorHint')}</p>
+            </div>
+          )}
+          <div>
+            <label className="label">Endpoint</label>
+            <input className="input" placeholder="https://s3.eu-west-1.wasabisys.com" value={form.dbBackup.s3.endpoint}
+              onChange={e => setForm(f => ({ ...f, dbBackup: { ...f.dbBackup, s3: { ...f.dbBackup.s3, endpoint: e.target.value } } }))} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Region</label>
+              <input className="input" placeholder="auto" value={form.dbBackup.s3.region}
+                onChange={e => setForm(f => ({ ...f, dbBackup: { ...f.dbBackup, s3: { ...f.dbBackup.s3, region: e.target.value } } }))} />
+            </div>
+            <div>
+              <label className="label">Bucket</label>
+              <input className="input" value={form.dbBackup.s3.bucket}
+                onChange={e => setForm(f => ({ ...f, dbBackup: { ...f.dbBackup, s3: { ...f.dbBackup.s3, bucket: e.target.value } } }))} />
+            </div>
+            <div>
+              <label className="label">Access Key ID</label>
+              <input className="input" value={form.dbBackup.s3.accessKeyId}
+                onChange={e => setForm(f => ({ ...f, dbBackup: { ...f.dbBackup, s3: { ...f.dbBackup.s3, accessKeyId: e.target.value } } }))} />
+            </div>
+            <div>
+              <label className="label">Secret Access Key</label>
+              <input type="password" className="input" value={form.dbBackup.s3.secretAccessKey}
+                onChange={e => setForm(f => ({ ...f, dbBackup: { ...f.dbBackup, s3: { ...f.dbBackup.s3, secretAccessKey: e.target.value } } }))} />
+            </div>
+            <div className="col-span-2">
+              <label className="label">Prefix</label>
+              <input className="input" placeholder="orveil-backups/" value={form.dbBackup.s3.prefix}
+                onChange={e => setForm(f => ({ ...f, dbBackup: { ...f.dbBackup, s3: { ...f.dbBackup.s3, prefix: e.target.value } } }))} />
+            </div>
+          </div>
+        </div>
+
+        {form.dbBackup.lastRunAt && (
+          <p className="text-xs text-muted">
+            {t('settings.dbBackup.lastRun')} : {new Date(form.dbBackup.lastRunAt).toLocaleString()} -{' '}
+            <span className={form.dbBackup.lastStatus === 'success' ? 'text-celadon' : 'text-red-400'}>
+              {form.dbBackup.lastStatus === 'success' ? t('settings.dbBackup.success') : form.dbBackup.lastError}
+            </span>
+          </p>
+        )}
+
+        {backupHistory.length > 0 && (
+          <div className="space-y-2">
+          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-400/5 border border-amber-400/20 text-xs text-amber-400">
+            <AlertTriangle size={13} className="shrink-0" />
+            {t('settings.dbBackup.restoreWarning')}
+          </div>
+          <div className="space-y-1.5 max-h-56 overflow-y-auto">
+            {backupHistory.map(b => (
+              <div key={b.key} className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2 text-xs text-muted">
+                  <div className="flex gap-2 min-w-0">
+                    <span className="truncate">{b.key.split('/').pop()}</span>
+                    {b.encrypted && <KeyRound size={11} className="shrink-0 mt-0.5" />}
+                    <span className="shrink-0">{(b.size / 1024 / 1024).toFixed(2)} MB</span>
+                  </div>
+                  {confirmAction?.key === b.key ? (
+                    <div className="flex gap-1.5 shrink-0">
+                      {confirmAction.action === 'restore' ? (
+                        <button type="button" onClick={() => handleRestoreBackup(b.key)}
+                          disabled={b.encrypted && !restorePassword}
+                          className="btn-danger text-xs px-2 py-1 disabled:opacity-50">
+                          {t('settings.dbBackup.confirmRestore')}
+                        </button>
+                      ) : (
+                        <button type="button" onClick={() => handleDeleteBackup(b.key)}
+                          className="btn-danger text-xs px-2 py-1">
+                          {t('settings.dbBackup.confirmDelete')}
+                        </button>
+                      )}
+                      <button type="button" onClick={() => { setConfirmAction(null); setRestorePassword(''); }}
+                        className="btn-ghost border border-border text-xs px-2 py-1">
+                        {t('settings.proxies.cancel')}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-1.5 shrink-0">
+                      <button type="button" disabled={restoringKey === b.key}
+                        onClick={() => setConfirmAction({ key: b.key, action: 'restore' })}
+                        className="btn-ghost border border-border text-xs px-2 py-1 hover:border-red-400 hover:text-red-400">
+                        {restoringKey === b.key ? t('settings.dbBackup.restoring') : t('settings.dbBackup.restore')}
+                      </button>
+                      <button type="button" disabled={deletingKey === b.key}
+                        onClick={() => setConfirmAction({ key: b.key, action: 'delete' })}
+                        className="btn-ghost border border-border p-1.5 hover:border-red-400 hover:text-red-400">
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {confirmAction?.key === b.key && confirmAction.action === 'restore' && b.encrypted && (
+                  <input type="password" className="input text-xs" autoFocus
+                    placeholder={t('settings.dbBackup.restorePasswordPlaceholder')}
+                    value={restorePassword} onChange={e => setRestorePassword(e.target.value)} />
+                )}
+              </div>
+            ))}
+          </div>
+          </div>
+        )}
+
+        <div className="flex gap-3">
+          <button type="submit" className="btn-primary">{t('settings.save')}</button>
+          <button type="button" className="btn-ghost border border-border" disabled={runningBackup} onClick={handleRunBackupNow}>
+            {runningBackup ? t('settings.dbBackup.running') : t('settings.dbBackup.runNow')}
+          </button>
+        </div>
+      </form>
 
       <div className="card space-y-3">
         <h2 className="font-semibold text-thistle text-sm flex items-center gap-2">

@@ -24,6 +24,7 @@ Additional type-specific alerts:
 | **Cloudflare** | Per-tunnel offline / restored |
 | **Cloudflare D1** | Daily free quota exceeded (reads/writes) / back to normal |
 | **Cloudflare Workers** | Error rate above threshold / back to normal |
+| **Cloudflare R2** | Monthly free quota exceeded (Class A/B ops) / back to normal |
 | **AdGuard DNS** | Protection disabled / re-enabled |
 | **AdGuard Home** | Protection disabled / re-enabled |
 | **Portainer** | Container stopped · Container running again |
@@ -44,5 +45,6 @@ Additional type-specific alerts:
 | **Ultra.cc** | Low storage · Low traffic |
 | **rclone** | Transfer errors detected · Transfer errors resolved |
 | **Hetzner Storage Box** | Disk usage > 90% |
+| **S3 Custom** | Latency above configured threshold / back to normal |
 | **Heartbeat** | *(down/recovery only)* |
 | **Webhook** | *(event-only — no down/recovery, one notification per event received)* |

@@ -59,6 +59,14 @@ module.exports = {
     workersErrorRateHigh: (name, rate) => ({ title: `Worker error rate high — ${name}`, message: `Error rate reached ${rate}% over the last 24h.` }),
     workersErrorRateRecovered: (name) => ({ title: `Worker error rate normal — ${name}`, message: 'Error rate is back to normal.' }),
     workersReport: (requests, errors, errorRate) => ({ title: 'Workers Report', message: `Requests (24h): ${requests}\nErrors: ${errors} (${errorRate}%)` }),
+    r2QuotaExceeded: (name, classAPct, classBPct) => ({ title: `R2 quota exceeded — ${name}`, message: `Monthly free quota exceeded (Class A: ${classAPct}%, Class B: ${classBPct}%).` }),
+    r2QuotaRecovered: (name) => ({ title: `R2 quota back to normal — ${name}`, message: 'Usage is back under the monthly free quota.' }),
+    r2Report: (classA, classB) => ({ title: 'R2 Report', message: `Class A operations this month: ${classA ?? 0}\nClass B operations this month: ${classB ?? 0}` }),
+
+    // ── S3 Custom ───────────────────────────────────────────────────────────
+    s3LatencyHigh: (bucket, ms, threshold) => ({ title: `S3 latency high — ${bucket}`, message: `HeadBucket response time reached ${ms}ms (threshold: ${threshold}ms).` }),
+    s3LatencyRecovered: (bucket) => ({ title: `S3 latency normal — ${bucket}`, message: 'Response time is back to normal.' }),
+    s3Report: (sizeBytes, objectCount) => ({ title: 'S3 Report', message: `Bucket size: ${sizeBytes ?? 0} bytes\nObjects: ${objectCount ?? 0}` }),
     cloudflareReport: (tunnels) => {
       let msg = `Cloudflare — ${tunnels.length} active tunnel(s)\n`;
       for (const t of tunnels) {
@@ -341,6 +349,14 @@ module.exports = {
     workersErrorRateHigh: (name, rate) => ({ title: `Taux d'erreur Worker élevé — ${name}`, message: `Le taux d'erreur a atteint ${rate}% sur les dernières 24h.` }),
     workersErrorRateRecovered: (name) => ({ title: `Taux d'erreur Worker normal — ${name}`, message: 'Le taux d\'erreur est revenu à la normale.' }),
     workersReport: (requests, errors, errorRate) => ({ title: 'Rapport Workers', message: `Requêtes (24h) : ${requests}\nErreurs : ${errors} (${errorRate}%)` }),
+    r2QuotaExceeded: (name, classAPct, classBPct) => ({ title: `Quota R2 dépassé — ${name}`, message: `Quota gratuit mensuel dépassé (Classe A : ${classAPct}%, Classe B : ${classBPct}%).` }),
+    r2QuotaRecovered: (name) => ({ title: `Quota R2 revenu à la normale — ${name}`, message: 'La consommation est repassée sous le quota gratuit mensuel.' }),
+    r2Report: (classA, classB) => ({ title: 'Rapport R2', message: `Opérations Classe A ce mois : ${classA ?? 0}\nOpérations Classe B ce mois : ${classB ?? 0}` }),
+
+    // ── S3 Custom ───────────────────────────────────────────────────────────
+    s3LatencyHigh: (bucket, ms, threshold) => ({ title: `Latence S3 élevée — ${bucket}`, message: `Le temps de réponse HeadBucket a atteint ${ms}ms (seuil : ${threshold}ms).` }),
+    s3LatencyRecovered: (bucket) => ({ title: `Latence S3 normale — ${bucket}`, message: 'Le temps de réponse est revenu à la normale.' }),
+    s3Report: (sizeBytes, objectCount) => ({ title: 'Rapport S3', message: `Taille du bucket : ${sizeBytes ?? 0} octets\nObjets : ${objectCount ?? 0}` }),
     cloudflareReport: (tunnels) => {
       let msg = `Cloudflare — ${tunnels.length} tunnel(s) actif(s)\n`;
       for (const t of tunnels) {

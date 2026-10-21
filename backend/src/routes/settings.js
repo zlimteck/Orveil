@@ -12,7 +12,7 @@ const axios = require('axios');
 const Settings = require('../models/Settings');
 const Monitor = require('../models/Monitor');
 const { sendNotification } = require('../services/notifier');
-const { encryptConfig, decryptConfig } = require('../utils/crypto');
+const { encrypt, decrypt, encryptConfig, decryptConfig } = require('../utils/crypto');
 const { isSafeUrl } = require('../utils/validateUrl');
 const { getProxyAgents } = require('../monitors/proxyAgent');
 
@@ -38,6 +38,8 @@ router.get('/', async (req, res) => {
   }
   const obj = s.toObject();
   obj.proxies = (obj.proxies || []).map(p => decryptConfig(p));
+  if (obj.dbBackup?.s3) obj.dbBackup.s3 = decryptConfig(obj.dbBackup.s3);
+  if (obj.dbBackup?.password) obj.dbBackup.password = decrypt(obj.dbBackup.password);
   delete obj.defaultProxy;
   res.json(obj);
 });
@@ -66,6 +68,29 @@ router.put('/', settingsWriteLimiter, async (req, res) => {
     update['adaptivePolling.errorInterval'] = adaptivePolling.errorInterval ?? 30;
   }
   if (notificationCooldown !== undefined) update.notificationCooldown = notificationCooldown;
+  const { dbBackup } = req.body;
+  if (dbBackup !== undefined) {
+    if (dbBackup.s3?.endpoint && !isSafeUrl(dbBackup.s3.endpoint))
+      return res.status(400).json({ error: 's3.endpoint: protocole invalide (http/https uniquement)' });
+    update['dbBackup.enabled']   = dbBackup.enabled   ?? false;
+    update['dbBackup.frequency'] = dbBackup.frequency ?? 'daily';
+    update['dbBackup.dayOfWeek'] = dbBackup.dayOfWeek ?? 1;
+    update['dbBackup.hour']      = dbBackup.hour      ?? 3;
+    update['dbBackup.retention'] = dbBackup.retention ?? 7;
+    update['dbBackup.password'] = dbBackup.password ? encrypt(dbBackup.password) : '';
+    if (dbBackup.s3) {
+      const encrypted = encryptConfig({
+        endpoint: dbBackup.s3.endpoint || '',
+        region: dbBackup.s3.region || 'auto',
+        bucket: dbBackup.s3.bucket || '',
+        prefix: dbBackup.s3.prefix || 'orveil-backups/',
+        accessKeyId: dbBackup.s3.accessKeyId || '',
+        secretAccessKey: dbBackup.s3.secretAccessKey || '',
+        forcePathStyle: dbBackup.s3.forcePathStyle ?? true,
+      });
+      update['dbBackup.s3'] = encrypted;
+    }
+  }
   const s = await Settings.findOneAndUpdate(
     { key: 'global' },
     update,
@@ -246,6 +271,50 @@ router.post('/test', settingsWriteLimiter, async (req, res) => {
     res.json({ sent });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ── DB Backup ───────────────────────────────────────────────────────────────
+
+router.post('/backup/run-now', settingsWriteLimiter, async (req, res) => {
+  try {
+    const dbBackup = require('../jobs/dbBackup');
+    const result = await dbBackup.runBackup();
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.post('/backup/restore', settingsWriteLimiter, async (req, res) => {
+  const { key, password } = req.body;
+  if (!key) return res.status(400).json({ error: 'key requis' });
+  try {
+    const dbBackup = require('../jobs/dbBackup');
+    const result = await dbBackup.restoreBackup(key, password);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.delete('/backup/:key(.*)', settingsWriteLimiter, async (req, res) => {
+  try {
+    const dbBackup = require('../jobs/dbBackup');
+    await dbBackup.deleteBackup(req.params.key);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+router.get('/backup/history', async (req, res) => {
+  try {
+    const dbBackup = require('../jobs/dbBackup');
+    const backups = await dbBackup.listBackups();
+    res.json(backups);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 });
 

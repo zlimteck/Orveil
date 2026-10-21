@@ -84,6 +84,10 @@ export const settings = {
   updateProxy: (id, proxy) => api.put(`/settings/proxies/${id}`, proxy).then(r => r.data),
   deleteProxy: (id) => api.delete(`/settings/proxies/${id}`).then(r => r.data),
   activateProxy: (id) => api.patch(`/settings/proxies/${id}/activate`).then(r => r.data),
+  runBackupNow: () => api.post('/settings/backup/run-now').then(r => r.data),
+  backupHistory: () => api.get('/settings/backup/history').then(r => r.data),
+  restoreBackup: (key, password) => api.post('/settings/backup/restore', { key, password }).then(r => r.data),
+  deleteBackup: (key) => api.delete(`/settings/backup/${encodeURIComponent(key)}`).then(r => r.data),
 };
 
 export const history = {

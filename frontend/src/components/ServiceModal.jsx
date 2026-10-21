@@ -18,6 +18,8 @@ const TYPE_DEFAULTS = {
   cloudflare: { checkInterval: 1,  reportInterval: 6,  config: { apiToken: '', accountId: '' } },
   cfd1:       { checkInterval: 15, reportInterval: 24, config: { apiToken: '', accountId: '', databaseId: '', planType: 'free' } },
   cfworkers:  { checkInterval: 15, reportInterval: 24, config: { apiToken: '', accountId: '', scriptName: '', errorRateThreshold: 5 } },
+  cfr2:       { checkInterval: 15, reportInterval: 24, config: { apiToken: '', accountId: '', bucketName: '', planType: 'free' } },
+  s3custom:   { checkInterval: 5,  reportInterval: 24, config: { endpoint: '', region: 'auto', bucket: '', accessKeyId: '', secretAccessKey: '', forcePathStyle: true, latencyThresholdMs: 0 } },
   adguard:     { checkInterval: 60, reportInterval: 24, serviceUrl: 'https://adguard-dns.io', config: { accessToken: '', refreshTok: '' } },
   adguardhome: { checkInterval: 5,  reportInterval: 24, config: { url: '', username: '', password: '', rejectUnauthorized: true } },
   hms:        { checkInterval: 5,  reportInterval: 0,  config: { hmsToken: '', vpsList: [{ id: '', name: '' }] } },
@@ -75,6 +77,8 @@ const TYPE_CATEGORIES = {
   cloudflare:    'services',
   cfd1:          'services',
   cfworkers:     'services',
+  cfr2:          'storage',
+  s3custom:      'storage',
   adguard:       'services',
   adguardhome:   'services',
   homeassistant: 'services',
@@ -104,6 +108,8 @@ const TYPE_LABELS = {
   cloudflare: 'Cloudflare Tunnels',
   cfd1:       'Cloudflare D1',
   cfworkers:  'Cloudflare Workers',
+  cfr2:       'Cloudflare R2',
+  s3custom:   'S3 Custom',
   adguard:     'AdGuard DNS',
   adguardhome: 'AdGuard Home',
   hms:        'HostMyServers VPS',
@@ -827,6 +833,46 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
       <Field label="Seuil taux d'erreur (%)" value={config.errorRateThreshold} onChange={v => set('errorRateThreshold', +v)}
         type="number" placeholder="5" hint="Alerte si le taux d'erreur sur 24h dépasse ce seuil" />
       <ProxySection config={config} set={set} proxies={proxies} />
+    </>
+  );
+
+  if (type === 'cfr2') return (
+    <>
+      <Field label="API Token" value={config.apiToken} onChange={v => set('apiToken', v)}
+        type="password" placeholder="Your Cloudflare API token" hint="Scopes requis : Workers R2 Storage (Read), Account Analytics (Read)" />
+      <Field label="Account ID" value={config.accountId} onChange={v => set('accountId', v)}
+        placeholder="Your Account ID" />
+      <Field label="Bucket Name" value={config.bucketName} onChange={v => set('bucketName', v)}
+        placeholder="nom du bucket R2" />
+      <div>
+        <label className="label">Plan</label>
+        <select className="select" value={config.planType || 'free'} onChange={e => set('planType', e.target.value)}>
+          <option value="free">Free (quota mensuel : 10M Classe A / 1M Classe B)</option>
+          <option value="paid">Paid (pas de quota mensuel fixe)</option>
+        </select>
+      </div>
+      <ProxySection config={config} set={set} proxies={proxies} />
+    </>
+  );
+
+  if (type === 's3custom') return (
+    <>
+      <Field label="Endpoint" value={config.endpoint} onChange={v => set('endpoint', v)}
+        placeholder="https://s3.eu-west-1.wasabisys.com" hint="URL complète de l'endpoint S3 (MinIO, Backblaze B2, Wasabi, OVH, etc.)" />
+      <Field label="Region" value={config.region} onChange={v => set('region', v)}
+        placeholder="auto" />
+      <Field label="Bucket" value={config.bucket} onChange={v => set('bucket', v)}
+        placeholder="nom du bucket" />
+      <Field label="Access Key ID" value={config.accessKeyId} onChange={v => set('accessKeyId', v)}
+        type="password" placeholder="Access Key ID" />
+      <Field label="Secret Access Key" value={config.secretAccessKey} onChange={v => set('secretAccessKey', v)}
+        type="password" placeholder="Secret Access Key" />
+      <label className="flex items-center gap-2 text-sm text-muted">
+        <input type="checkbox" checked={config.forcePathStyle !== false} onChange={e => set('forcePathStyle', e.target.checked)} />
+        Path-style addressing (requis par la plupart des fournisseurs S3 non-AWS)
+      </label>
+      <Field label="Seuil de latence (ms)" value={config.latencyThresholdMs} onChange={v => set('latencyThresholdMs', +v)}
+        type="number" placeholder="0" hint="Alerte si le temps de réponse HeadBucket dépasse ce seuil (0 = désactivé)" />
     </>
   );
 

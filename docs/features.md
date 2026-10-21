@@ -14,7 +14,7 @@
 
 ## Monitoring
 
-- **38 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping (TCP/ICMP), Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Tailscale, Proxmox, Cloudflare, Cloudflare D1, Cloudflare Workers, AdGuard DNS, AdGuard Home, Home Assistant, Portainer, Docker, Syncthing, Immich, HostMyServers, Ultra.cc, Heartbeat, Webhook, Unraid, Speedtest Tracker, Jellyfin, Ollama, OpenWebUI, Sonarr, Radarr, Prowlarr, Overseerr, qBittorrent, Autobrr, rclone, Hetzner Storage Box
+- **40 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping (TCP/ICMP), Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Tailscale, Proxmox, Cloudflare, Cloudflare D1, Cloudflare Workers, Cloudflare R2, AdGuard DNS, AdGuard Home, Home Assistant, Portainer, Docker, Syncthing, Immich, HostMyServers, Ultra.cc, Heartbeat, Webhook, Unraid, Speedtest Tracker, Jellyfin, Ollama, OpenWebUI, Sonarr, Radarr, Prowlarr, Overseerr, qBittorrent, Autobrr, rclone, Hetzner Storage Box, S3 Custom
 - **Multi-step HTTP** — chain multiple HTTP requests with variable extraction (JSONPath or response headers) and interpolation between steps; full step-by-step failure reporting
 - **SSH custom command** — optional command run on the remote host with expected output check (case-insensitive); mismatch triggers an alert; command and result displayed on the monitor card
 - **Adaptive polling** — when a service goes down, check interval drops automatically to 30 s (configurable) for near-instant recovery detection; reverts to the normal interval once the service is back up
@@ -51,6 +51,7 @@
 - **Per-monitor changelog** — structured version/deployment log per service; entries appear as labeled markers on the metric graph; CRUD from the service detail modal; inbound webhook for CI/CD integration
 - **Proxy library** — save multiple named proxies (HTTP, HTTPS, SOCKS5, SSH tunnel); activate/deactivate any proxy as the global default; assign a specific proxy per monitor; passwords and private keys encrypted at rest
 - **Backup & restore** — export all monitors and settings as JSON; import on another instance (Settings page)
+- **Automated S3 backup** — scheduled (daily/weekly) full data dump (monitors, incidents, logs, settings) zipped and uploaded to any S3-compatible bucket; optional AES-256-GCM password encryption; configurable retention; one-click restore from the backup history
 
 ## Security
 

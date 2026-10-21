@@ -5,6 +5,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const { connectDB } = require('./db');
 const runner = require('./monitors/runner');
+const dbBackup = require('./jobs/dbBackup');
 const { authMiddleware } = require('./middleware/auth');
 
 const app = express();
@@ -125,4 +126,5 @@ connectDB().then(async () => {
   await initAdmin();
   app.listen(PORT, () => console.log(`Backend Orveil sur :${PORT}`));
   runner.start();
+  dbBackup.start();
 });

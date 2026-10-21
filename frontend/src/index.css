@@ -21,17 +21,17 @@ button, a, [role="button"] {
 
 @layer base {
   :root {
-    --nh-surface:    9 9 11;
-    --nh-card:       15 15 18;
-    --nh-border:     30 30 38;
-    --nh-muted:      98 98 115;
+    --nh-surface:    20 20 24;
+    --nh-card:       28 28 33;
+    --nh-border:     56 56 68;
+    --nh-muted:      130 130 150;
     --nh-thistle:    180 180 204;
     --nh-periwinkle: 96 165 250;
     --nh-frosted:    148 163 184;
     --nh-celadon:    52 211 153;
-    --nh-granite:    40 40 52;
-    --nh-granite-2:  28 28 38;
-    --nh-granite-3:  20 20 30;
+    --nh-granite:    66 66 80;
+    --nh-granite-2:  48 48 60;
+    --nh-granite-3:  38 38 46;
     --nh-ink:        242 242 248;
   }
 
@@ -39,7 +39,7 @@ button, a, [role="button"] {
     color-scheme: light;
     --nh-surface:    248 248 252;
     --nh-card:       255 255 255;
-    --nh-border:     220 220 232;
+    --nh-border:     195 195 212;
     --nh-muted:      110 110 130;
     --nh-thistle:    60 60 90;
     --nh-periwinkle: 37 99 235;
@@ -47,7 +47,7 @@ button, a, [role="button"] {
     --nh-celadon:    5 150 105;
     --nh-granite:    180 180 200;
     --nh-granite-2:  210 210 225;
-    --nh-granite-3:  232 232 242;
+    --nh-granite-3:  220 220 234;
     --nh-ink:        15 15 25;
   }
 

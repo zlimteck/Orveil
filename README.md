@@ -2,7 +2,7 @@
   <img src="docs/logo.svg" alt="Orveil" width="80" />
   <h1>Orveil</h1>
   <p>Self-hosted monitoring that goes beyond uptime checks.<br>
-  Incidents with severity, SLA tracking, post-mortems, AI assistant, and MCP integration — in a single Docker container.</p>
+  Incidents with severity, SLA tracking, post-mortems, AI assistant, and MCP integration - in a single Docker container.</p>
 
   [![Image Size](https://img.shields.io/docker/image-size/zlimteck/orveil/latest?style=flat-square&logo=docker&logoColor=white&color=2496ED)](https://hub.docker.com/r/zlimteck/orveil)
   [![CI](https://img.shields.io/github/actions/workflow/status/zlimteck/orveil/docker.yml?style=flat-square&logo=github-actions&logoColor=white&label=build)](https://github.com/zlimteck/orveil/actions/workflows/docker.yml)
@@ -79,7 +79,7 @@ services:
       JWT_SECRET: ""                             # REQUIRED: openssl rand -hex 32
       ADMIN_USERNAME: admin
       ADMIN_PASSWORD: ""                         # REQUIRED: random password generated on first start if omitted
-      FRONTEND_URL: "http://localhost:3050"        # use https://... if behind a reverse proxy — enables Secure cookie automatically
+      FRONTEND_URL: "http://localhost:3050"        # use https://... if behind a reverse proxy - enables Secure cookie automatically
       ENCRYPTION_KEY:                            # optional: openssl rand -hex 32
       METRICS_TOKEN:                             # optional: openssl rand -hex 32
     depends_on:
@@ -118,16 +118,16 @@ Set `ADMIN_PASSWORD` in your `.env` to control the initial password.
 ## Features
 
 **Monitoring**
-- **40 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping (TCP/ICMP), Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Docker, Proxmox, Cloudflare, Cloudflare D1, Cloudflare Workers, AdGuard DNS, AdGuard Home, Portainer, Tailscale, Home Assistant, Syncthing, Immich, Unraid, Speedtest Tracker, Jellyfin, Ollama, OpenWebUI, Sonarr, Radarr, Prowlarr, Overseerr, qBittorrent, Autobrr, Dispatcharr, Navidrome, rclone, Hetzner Storage Box, HMS, Ultra.cc, Heartbeat, Webhook
-- Adaptive polling — faster rechecks when a service is down
-- Monitor dependencies — suppress alerts when a parent is already down
+- **42 monitor types** - HTTP/HTTPS, Multi-step HTTP, Ping (TCP/ICMP), Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Docker, Proxmox, Cloudflare, Cloudflare D1, Cloudflare Workers, Cloudflare R2, AdGuard DNS, AdGuard Home, Portainer, Tailscale, Home Assistant, Syncthing, Immich, Unraid, Speedtest Tracker, Jellyfin, Ollama, OpenWebUI, Sonarr, Radarr, Prowlarr, Overseerr, qBittorrent, Autobrr, Dispatcharr, Navidrome, rclone, Hetzner Storage Box, S3 Custom, HMS, Ultra.cc, Heartbeat, Webhook
+- Adaptive polling - faster rechecks when a service is down
+- Monitor dependencies - suppress alerts when a parent is already down
 - SSL certificate monitoring with expiry warning
 
 **Incidents & SLA**
 - Auto-open / auto-close incidents with P1–P4 severity
-- War room — full-screen view of all active incidents
+- War room - full-screen view of all active incidents
 - Post-mortem reports attached to resolved incidents
-- SLA targets per monitor — met/breached indicator on the Stats page
+- SLA targets per monitor - met/breached indicator on the Stats page
 - 30-day statistics: MTTR, MTTN, incident heatmap, maintenance-adjusted uptime
 
 ![Stats](docs/screenshots/2-stats.png)
@@ -135,30 +135,31 @@ Set `ADMIN_PASSWORD` in your `.env` to control the initial password.
 ![War room](docs/screenshots/4-war-room.png)
 
 **Alerts**
-- Apprise notifications — [100+ channels](https://github.com/caronc/apprise/wiki): Pushover, Telegram, Discord, Slack, email and more
-- Notification cooldown — prevents alert storms during flapping
-- Per-monitor configurable alert rules — enable/disable specific alerts (container stopped, high CPU, disk critical…) and adjust thresholds per service
+- Apprise notifications - [100+ channels](https://github.com/caronc/apprise/wiki): Pushover, Telegram, Discord, Slack, email and more
+- Notification cooldown - prevents alert storms during flapping
+- Per-monitor configurable alert rules - enable/disable specific alerts (container stopped, high CPU, disk critical…) and adjust thresholds per service
 - Weekly summary report
 
 **Automation & integrations**
-- [MCP server](docs/mcp.md) — let AI assistants query monitors, incidents, and stats (Claude Desktop, etc.)
-- [Prometheus metrics](docs/prometheus.md) — `GET /api/metrics` with Grafana-ready labels
+- [MCP server](docs/mcp.md) - let AI assistants query monitors, incidents, and stats (Claude Desktop, etc.)
+- [Prometheus metrics](docs/prometheus.md) - `GET /api/metrics` with Grafana-ready labels
 - REST API with Bearer auth, fully documented in-app
 - Per-monitor changelog webhooks for CI/CD integration
-- **Custom metrics** — attach HTTP requests to any monitor's check cycle to pull arbitrary values (user counts, quotas, etc.) with JSONPath or regex extraction; headers encrypted at rest
-- Backup & restore (JSON export/import)
+- **Custom metrics** - attach HTTP requests to any monitor's check cycle to pull arbitrary values (user counts, quotas, etc.) with JSONPath or regex extraction; headers encrypted at rest
+- Backup & restore (JSON export/import for monitors/settings)
+- Automated scheduled backup to any S3-compatible bucket (full data dump: monitors, incidents, logs, settings), optional password encryption, configurable retention, one-click restore from history
 
 **Account security**
 - TOTP two-factor authentication with backup codes
-- Passkeys (WebAuthn — Face ID, Touch ID, hardware security key)
-- Active session management — GeoIP location, per-session revocation
+- Passkeys (WebAuthn - Face ID, Touch ID, hardware security key)
+- Active session management - GeoIP location, per-session revocation
 - Password change with automatic revocation of all other sessions
 
 **UX**
-- Public status page — shareable `/status` with 90-day uptime history
-- Global search `Cmd+K` — monitors, incidents, annotations, post-mortems
+- Public status page - shareable `/status` with 90-day uptime history
+- Global search `Cmd+K` - monitors, incidents, annotations, post-mortems
 - Drag & drop reordering, category grouping, pin monitors, bulk actions
-- Orveil AI — built-in Claude assistant for natural-language infra Q&A
+- Orveil AI - built-in Claude assistant for natural-language infra Q&A
 - FR / EN interface · Auto / light / dark theme · Mobile PWA
 
 → [Complete feature list](docs/features.md)
@@ -171,48 +172,50 @@ Set `ADMIN_PASSWORD` in your `.env` to control the initial password.
 
 | Type | What it checks |
 |------|----------------|
-| **HTTP** | HTTP/HTTPS endpoint — status code, keyword match, auth, SSL expiry, response time threshold |
+| **HTTP** | HTTP/HTTPS endpoint - status code, keyword match, auth, SSL expiry, response time threshold |
 | **Multi-step HTTP** | Chain multiple requests with variable extraction and interpolation between steps |
-| **Ping** | TCP port check or ICMP ping — latency and packet loss (mode selectable per monitor) |
+| **Ping** | TCP port check or ICMP ping - latency and packet loss (mode selectable per monitor) |
 | **Port Forwarding** | TCP connect check to verify a forwarded port is reachable from outside |
 | **DNS** | DNS record resolution (A, AAAA, CNAME, MX, TXT, NS) with optional value assertion |
-| **SSH** | CPU / RAM / disk via SSH (password or private key) — optional custom command with expected output check |
+| **SSH** | CPU / RAM / disk via SSH (password or private key) - optional custom command with expected output check |
 | **MySQL** | Ping a MySQL/MariaDB server and retrieve version |
 | **Redis** | PING a Redis instance and retrieve version |
-| **MongoDB** | Ping a MongoDB instance and retrieve version — supports optional authentication |
+| **MongoDB** | Ping a MongoDB instance and retrieve version - supports optional authentication |
 | **Docker** | Container count and status via Docker socket |
 | **Proxmox** | Node CPU / RAM via API token |
 | **Cloudflare** | Tunnel status and hostnames via API token |
 | **Cloudflare D1** | Database size/table count, daily rows read/written and free-tier quota % via GraphQL Analytics API |
 | **Cloudflare Workers** | Requests, errors, error rate, and CPU time (p50/p99) over the last 24h via GraphQL Analytics API |
+| **Cloudflare R2** | Bucket size/object count, monthly Class A/B operations and free-tier quota % via GraphQL Analytics API |
 | **AdGuard DNS** | DNS protection status and request stats via cloud API |
-| **AdGuard Home** | Self-hosted DNS protection — blocked queries %, total queries, safebrowsing |
+| **AdGuard Home** | Self-hosted DNS protection - blocked queries %, total queries, safebrowsing |
 | **Portainer** | Container list per environment via API key |
 | **Tailscale** | Tailnet device list with online/offline status via Tailscale cloud API |
 | **Home Assistant** | Instance status, version, and selected entity states via long-lived access token |
 | **Syncthing** | Synced folders and connected devices via API key |
 | **Immich** | Photo / video count and disk usage via API key |
 | **Unraid** | Array state, disk usage, CPU / RAM, temperature via GraphQL API |
-| **Speedtest Tracker** | Latest speedtest result — download, upload, ping, jitter |
+| **Speedtest Tracker** | Latest speedtest result - download, upload, ping, jitter |
 | **Jellyfin** | Active sessions, library counts, server version |
 | **Ollama** | Running model list and server availability |
-| **OpenWebUI** | Model count, version, and availability — API key optional |
+| **OpenWebUI** | Model count, version, and availability - API key optional |
 | **Sonarr** | Series count, missing episodes, download queue, health warnings |
 | **Radarr** | Movie count, missing movies, download queue, health warnings |
 | **Prowlarr** | Active/total indexers, health warnings |
 | **Overseerr** | Pending and total requests |
-| **qBittorrent** | Active/total torrents, download/upload speed, version — username/password auth |
-| **Autobrr** | Active/total filters, releases pushed/rejected, version — API key auth |
-| **Dispatcharr** | Active streams, total viewers, channel count and version — API key auth (`X-API-Key`) |
-| **Navidrome** | Artist count, now playing, version — Subsonic MD5 auth (username + password) |
+| **qBittorrent** | Active/total torrents, download/upload speed, version - username/password auth |
+| **Autobrr** | Active/total filters, releases pushed/rejected, version - API key auth |
+| **Dispatcharr** | Active streams, total viewers, channel count and version - API key auth (`X-API-Key`) |
+| **Navidrome** | Artist count, now playing, version - Subsonic MD5 auth (username + password) |
 | **HMS (HostMyServers)** | VPS status and specs via API token |
 | **Ultra.cc** | Seedbox storage and traffic via Stats API URL |
-| **rclone** | Transfer stats (DL/UL speed, active transfers, errors), active mounts, jobs, remote quota and version via rclone RC API — or push stats from an external script (see [rclone push stats](#rclone-push-stats)) |
+| **rclone** | Transfer stats (DL/UL speed, active transfers, errors), active mounts, jobs, remote quota and version via rclone RC API - or push stats from an external script (see [rclone push stats](#rclone-push-stats)) |
 | **Hetzner Storage Box** | Disk usage/free/total, snapshot size and location via Hetzner API (Bearer token) |
-| **Heartbeat** | Cron job / script monitor — alerts if no ping received within expected interval |
-| **Webhook** | Event-only monitor — public URL that turns an incoming `POST { "text": "..." }` into an Orveil notification (no auth, no online/offline tracking) |
+| **S3 Custom** | Bucket size/object count and endpoint latency for any S3-compatible provider (MinIO, Backblaze B2, Wasabi, OVH, etc.) via access key/secret |
+| **Heartbeat** | Cron job / script monitor - alerts if no ping received within expected interval |
+| **Webhook** | Event-only monitor - public URL that turns an incoming `POST { "text": "..." }` into an Orveil notification (no auth, no online/offline tracking) |
 
-> **Cloudflare D1 / Workers** require an API token with `Account Analytics: Read` in addition to `D1: Read` or `Workers Scripts: Read`.
+> **Cloudflare D1 / Workers / R2** require an API token with `Account Analytics: Read` in addition to `D1: Read`, `Workers Scripts: Read`, or `Workers R2 Storage: Read`.
 
 → [Alerts sent per monitor type](docs/alerts.md)
 
@@ -220,7 +223,7 @@ Set `ADMIN_PASSWORD` in your `.env` to control the initial password.
 
 ## Notifications (Apprise)
 
-Go to **Settings** and add your Apprise URLs — one per line:
+Go to **Settings** and add your Apprise URLs - one per line:
 
 ```
 pover://UserKey@ApiToken/          # Pushover
@@ -236,7 +239,7 @@ Full list: https://github.com/caronc/apprise/wiki
 
 ## Changelog webhooks
 
-Each monitor has a **webhook token** (visible in its config panel) that lets external tools push changelog entries automatically — useful for CI/CD pipelines or redeploy scripts.
+Each monitor has a **webhook token** (visible in its config panel) that lets external tools push changelog entries automatically - useful for CI/CD pipelines or redeploy scripts.
 
 ### Standard CI/CD
 
@@ -255,7 +258,7 @@ Token can be passed in the request body or in a `token` / `Authorization: Bearer
 
 `version` is required. `description` and `deployedAt` are optional (defaults to empty string and current time).
 
-**Example — redeploy via Portainer + log to Orveil:**
+**Example - redeploy via Portainer + log to Orveil:**
 
 ```bash
 #!/bin/bash
@@ -313,12 +316,12 @@ Events are automatically mapped to human-readable labels (`EPG Refreshed`, `Chan
 
 ## Webhook monitor
 
-Unlike the changelog webhooks above (which log deploy events), the **Webhook** monitor type turns an incoming HTTP call into an Orveil notification — useful for relaying events from a service that already supports "generic" outgoing webhooks (ntfy.sh / Discord / Slack-style `{ "text": "..." }` payload), such as approval requests, alerts from a script, or any one-off event you want pushed to your Apprise channels.
+Unlike the changelog webhooks above (which log deploy events), the **Webhook** monitor type turns an incoming HTTP call into an Orveil notification - useful for relaying events from a service that already supports "generic" outgoing webhooks (ntfy.sh / Discord / Slack-style `{ "text": "..." }` payload), such as approval requests, alerts from a script, or any one-off event you want pushed to your Apprise channels.
 
 ### Setup
 
 1. Add a new monitor, type **Webhook**
-2. Copy the generated URL from the monitor's config panel — it embeds a unique slug, no extra authentication needed
+2. Copy the generated URL from the monitor's config panel - it embeds a unique slug, no extra authentication needed
 3. Point the external service's webhook/notify URL setting at it
 
 **Endpoint:** `POST /api/webhook-event/:slug`
@@ -327,7 +330,7 @@ Unlike the changelog webhooks above (which log deploy events), the **Webhook** m
 { "text": "Someone requested to join the relay" }
 ```
 
-The monitor's card shows the last event received and its timestamp; there is no online/offline health tracking for this type — every valid call triggers a notification through the monitor's configured Apprise channels.
+The monitor's card shows the last event received and its timestamp; there is no online/offline health tracking for this type - every valid call triggers a notification through the monitor's configured Apprise channels.
 
 ---
 
@@ -335,12 +338,12 @@ The monitor's card shows the last event received and its timestamp; there is no 
 
 By default, the rclone monitor polls the rclone RC API (`rclone rcd`) for transfer stats. If you run backups via a standalone script (e.g. on Unraid), the daemon never sees those transfers and stats stay at zero.
 
-**Push mode** solves this: your script sends live stats directly to Orveil every few seconds, which broadcasts them instantly via SSE to the dashboard. Both modes coexist — pushed stats take priority for 2 minutes, then the daemon stats resume automatically.
+**Push mode** solves this: your script sends live stats directly to Orveil every few seconds, which broadcasts them instantly via SSE to the dashboard. Both modes coexist - pushed stats take priority for 2 minutes, then the daemon stats resume automatically.
 
 ### Setup
 
 1. Open your rclone monitor settings → **Integrations** tab
-2. Generate a push token — the tab shows your **Monitor ID**, **token**, and a ready-to-use bash snippet
+2. Generate a push token - the tab shows your **Monitor ID**, **token**, and a ready-to-use bash snippet
 3. Drop the snippet into your backup script on the remote server
 
 ### Bash script example
@@ -394,7 +397,7 @@ Auth: `Authorization: Bearer <token>` or `?token=<token>`
 
 ## Custom metrics
 
-Any monitor can pull additional numeric values at each check cycle via HTTP requests — useful for metrics not natively exposed by a service (quota usage, user counts, storage, etc.).
+Any monitor can pull additional numeric values at each check cycle via HTTP requests - useful for metrics not natively exposed by a service (quota usage, user counts, storage, etc.).
 
 ### Setup
 
@@ -406,12 +409,12 @@ Open a monitor → **Integrations** tab → **Métriques custom** → **Ajouter*
 | **Unit** | Optional suffix displayed next to the value (e.g. `GB`, `%`) |
 | **Method** | HTTP method (`GET`, `POST`, `PUT`) |
 | **URL** | Endpoint to call |
-| **Headers** | Key/value pairs sent with the request — values are encrypted at rest with AES-256-GCM |
+| **Headers** | Key/value pairs sent with the request - values are encrypted at rest with AES-256-GCM |
 | **Extraction** | **JSONPath** (e.g. `$.used`) or **Regex** (e.g. `(\d+)`) to extract the numeric value from the response |
 
 Multiple custom metrics can be configured per monitor. Each one is fetched concurrently at every check interval and stored in the monitor's metric history alongside its native metrics.
 
-### Example — quota from an HTTP API
+### Example - quota from an HTTP API
 
 ```
 URL:        https://app.example.com/api/requests/quota
@@ -435,12 +438,12 @@ Once saved, the custom metric appears in the **Card metric** dropdown (Monitorin
 |----------|---------|-------------|
 | `MONGO_USER` | `orveil` | MongoDB username |
 | `MONGO_PASS` | `orveil_pass` | MongoDB password |
-| `JWT_SECRET` | **required** | JWT signing secret — `openssl rand -hex 32` |
-| `ENCRYPTION_KEY` | *(none)* | AES-256-GCM key for encrypting sensitive credentials at rest — **strongly recommended** |
+| `JWT_SECRET` | **required** | JWT signing secret - `openssl rand -hex 32` |
+| `ENCRYPTION_KEY` | *(none)* | AES-256-GCM key for encrypting sensitive credentials at rest - **strongly recommended** |
 | `ADMIN_USERNAME` | `admin` | Admin account username |
-| `ADMIN_PASSWORD` | *(random)* | Admin account password — printed in logs on first start if not set. **Set this explicitly.** |
-| `DOCKER_PROXY_URL` | *(none)* | URL of the Docker socket proxy — set to `http://docker-proxy:2375` when using the compose above |
-| `FRONTEND_URL` | `http://localhost:3050` | Public URL of the app. Controls session cookie security automatically — `http://` disables the `Secure` flag, `https://` enables it. Also restricts CORS in production. |
+| `ADMIN_PASSWORD` | *(random)* | Admin account password - printed in logs on first start if not set. **Set this explicitly.** |
+| `DOCKER_PROXY_URL` | *(none)* | URL of the Docker socket proxy - set to `http://docker-proxy:2375` when using the compose above |
+| `FRONTEND_URL` | `http://localhost:3050` | Public URL of the app. Controls session cookie security automatically - `http://` disables the `Secure` flag, `https://` enables it. Also restricts CORS in production. |
 | `METRICS_TOKEN` | *(none)* | Static Bearer token for the Prometheus metrics endpoint |
 
 **Generate an encryption key:**

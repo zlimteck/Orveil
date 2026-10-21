@@ -87,6 +87,19 @@ const CONFIG = {
     { key: 'cpuTimeP50', fr: 'CPU p50',            en: 'CPU p50',        unit: 'ms' },
     { key: 'cpuTimeP99', fr: 'CPU p99',            en: 'CPU p99',        unit: 'ms' },
   ],
+  cfr2: [
+    { key: 'classAPct',   fr: 'Quota Classe A',  en: 'Class A quota', unit: '%' },
+    { key: 'classBPct',   fr: 'Quota Classe B',  en: 'Class B quota', unit: '%' },
+    { key: 'classA',      fr: 'Opérations A',    en: 'Class A ops',   unit: '' },
+    { key: 'classB',      fr: 'Opérations B',    en: 'Class B ops',   unit: '' },
+    { key: 'sizeBytes',   fr: 'Taille',          en: 'Size',          unit: 'B' },
+    { key: 'objectCount', fr: 'Objets',          en: 'Objects',       unit: '' },
+  ],
+  s3custom: [
+    { key: 'sizeBytes',    fr: 'Taille',          en: 'Size',          unit: 'B' },
+    { key: 'objectCount',  fr: 'Objets',          en: 'Objects',       unit: '' },
+    { key: 'responseTime', fr: 'Temps de réponse', en: 'Response time', unit: 'ms' },
+  ],
   syncthing: [
     { key: 'folders_synced',    fr: 'Dossiers sync.',  en: 'Synced folders',    unit: '' },
     { key: 'devices_connected', fr: 'Appareils',       en: 'Connected devices', unit: '' },

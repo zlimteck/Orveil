@@ -6,7 +6,7 @@ const PREFIX = 'enc:';
 const SENSITIVE = new Set([
   'apiKey', 'apiToken', 'token', 'password', 'privateKey',
   'hmsToken', 'ultraToken', 'cfClientId', 'cfClientSecret',
-  'bearerToken', 'basicPass',
+  'bearerToken', 'basicPass', 'secretAccessKey',
 ]);
 
 function getKey() {

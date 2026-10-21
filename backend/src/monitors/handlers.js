@@ -2,6 +2,8 @@ module.exports = {
   cloudflare: require('./cloudflare'),
   cfd1:       require('./cfd1'),
   cfworkers:  require('./cfworkers'),
+  cfr2:       require('./cfr2'),
+  s3custom:   require('./s3custom'),
   adguard:     require('./adguard'),
   adguardhome: require('./adguardhome'),
   hms:        require('./hms'),

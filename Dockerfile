@@ -16,6 +16,7 @@ RUN npm ci --omit=dev --ignore-scripts
 FROM node:20-alpine
 WORKDIR /app
 COPY --from=backend-deps /app/node_modules ./node_modules
+COPY backend/package.json ./package.json
 COPY backend/src ./src
 COPY --from=frontend-builder /app/frontend/dist ./public
 EXPOSE 5050

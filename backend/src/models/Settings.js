@@ -35,6 +35,26 @@ const settingsSchema = new mongoose.Schema({
     }],
     default: [],
   },
+  dbBackup: {
+    enabled:     { type: Boolean, default: false },
+    frequency:   { type: String, default: 'daily' }, // 'daily' | 'weekly'
+    dayOfWeek:   { type: Number, default: 1 },         // used if weekly, 0=Sun … 6=Sat (UTC)
+    hour:        { type: Number, default: 3 },          // UTC hour
+    retention:   { type: Number, default: 7 },          // number of backups to keep in the bucket
+    password:    { type: String, default: '' },         // optional, AES-256-GCM encrypted at rest, encrypts the zip itself
+    lastRunAt:   { type: Date,   default: null },
+    lastStatus:  { type: String, default: null },       // 'success' | 'error'
+    lastError:   { type: String, default: null },
+    s3: {
+      endpoint:        { type: String, default: '' },
+      region:          { type: String, default: 'auto' },
+      bucket:          { type: String, default: '' },
+      prefix:          { type: String, default: 'orveil-backups/' },
+      accessKeyId:     { type: String, default: '' },
+      secretAccessKey: { type: String, default: '' },
+      forcePathStyle:  { type: Boolean, default: true },
+    },
+  },
   notificationLanguage: { type: String, default: 'fr' },
   notificationCooldown: { type: Number, default: 0 }, // minutes, 0 = disabled
   adaptivePolling: {

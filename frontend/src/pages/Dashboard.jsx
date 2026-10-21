@@ -549,6 +549,34 @@ function MetricsBlock({ monitor }) {
     </div>
   );
 
+  if (type === 'cfr2') return (
+    <div className="space-y-1 text-xs text-muted">
+      {metrics.name && <div className="text-thistle truncate">{metrics.name}</div>}
+      {metrics.classAPct != null ? (
+        <div className="grid grid-cols-2 gap-x-3">
+          <span>Classe A : <span className="text-frosted">{metrics.classAPct}%</span></span>
+          <span>Classe B : <span className="text-frosted">{metrics.classBPct}%</span></span>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-x-3">
+          <span>Ops A : <span className="text-frosted">{metrics.classA ?? '—'}</span></span>
+          <span>Ops B : <span className="text-frosted">{metrics.classB ?? '—'}</span></span>
+        </div>
+      )}
+      {metrics.objectCount != null && <div>Objets : <span className="text-frosted">{metrics.objectCount}</span></div>}
+    </div>
+  );
+
+  if (type === 's3custom') return (
+    <div className="space-y-1 text-xs text-muted">
+      {metrics.bucket && <div className="text-thistle truncate">{metrics.bucket}</div>}
+      <div className="grid grid-cols-2 gap-x-3">
+        <span>Objets : <span className="text-frosted">{metrics.objectCount ?? '—'}{metrics.approximate ? '+' : ''}</span></span>
+        <span>Latence : <span className="text-frosted">{metrics.responseTime ?? '—'}ms</span></span>
+      </div>
+    </div>
+  );
+
   if (type === 'webhook') return (
     <div className="space-y-0.5 text-xs text-muted">
       {metrics.lastEventAt
@@ -882,6 +910,8 @@ function metricSummary(monitor) {
     case 'webhook':    return m.lastEventAt ? timeAgoMs(m.lastEventAt) : null;
     case 'cfd1':       return m.readPct != null ? `${m.readPct}% lect. / ${m.writePct}% écr.` : null;
     case 'cfworkers':  return m.requests != null ? `${m.requests} req. (${m.errorRate}% err.)` : null;
+    case 'cfr2':       return m.objectCount != null ? `${m.objectCount} objets` : null;
+    case 's3custom':   return m.objectCount != null ? `${m.objectCount}${m.approximate ? '+' : ''} objets` : null;
     case 'unraid':     return m.diskPct != null ? `${m.diskPct}% disque` : null;
     case 'speedtest':  return m.downloadMbps != null ? `↓ ${m.downloadMbps} Mbps` : null;
     default:           return null;
