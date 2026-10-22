@@ -549,33 +549,56 @@ function MetricsBlock({ monitor }) {
     </div>
   );
 
-  if (type === 'cfr2') return (
-    <div className="space-y-1 text-xs text-muted">
-      {metrics.name && <div className="text-thistle truncate">{metrics.name}</div>}
-      {metrics.classAPct != null ? (
-        <div className="grid grid-cols-2 gap-x-3">
-          <span>Classe A : <span className="text-frosted">{metrics.classAPct}%</span></span>
-          <span>Classe B : <span className="text-frosted">{metrics.classBPct}%</span></span>
+  if (type === 'cfr2') {
+    const fmtSize = (b) => {
+      if (b == null) return null;
+      if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
+      if (b < 1024 * 1024 * 1024) return `${(b / 1024 / 1024).toFixed(1)} MB`;
+      return `${(b / 1024 / 1024 / 1024).toFixed(2)} GB`;
+    };
+    const quotaPct = metrics.classAPct != null ? Math.max(metrics.classAPct, metrics.classBPct ?? 0) : null;
+    return (
+      <div className="space-y-1.5">
+        <div className="flex gap-4 text-xs text-muted">
+          {metrics.sizeBytes != null && <span>Taille : <span className="text-thistle font-medium">{fmtSize(metrics.sizeBytes)}</span></span>}
+          {metrics.objectCount != null && <span>Objets : <span className="text-thistle font-medium">{metrics.objectCount}</span></span>}
         </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-x-3">
-          <span>Ops A : <span className="text-frosted">{metrics.classA ?? '—'}</span></span>
-          <span>Ops B : <span className="text-frosted">{metrics.classB ?? '—'}</span></span>
-        </div>
-      )}
-      {metrics.objectCount != null && <div>Objets : <span className="text-frosted">{metrics.objectCount}</span></div>}
-    </div>
-  );
-
-  if (type === 's3custom') return (
-    <div className="space-y-1 text-xs text-muted">
-      {metrics.bucket && <div className="text-thistle truncate">{metrics.bucket}</div>}
-      <div className="grid grid-cols-2 gap-x-3">
-        <span>Objets : <span className="text-frosted">{metrics.objectCount ?? '—'}{metrics.approximate ? '+' : ''}</span></span>
-        <span>Latence : <span className="text-frosted">{metrics.responseTime ?? '—'}ms</span></span>
+        {quotaPct != null ? (
+          <div className="space-y-0.5">
+            <div className="flex justify-between text-xs text-muted">
+              <span>Quota mensuel (A/B) — {metrics.classAPct}% / {metrics.classBPct}%</span>
+              <span>{quotaPct}%</span>
+            </div>
+            <ProgressBar value={quotaPct} warn={90} danger={100} />
+          </div>
+        ) : (
+          <div className="flex gap-4 text-xs text-muted">
+            <span>Ops A : <span className="text-thistle font-medium">{metrics.classA ?? '—'}</span></span>
+            <span>Ops B : <span className="text-thistle font-medium">{metrics.classB ?? '—'}</span></span>
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (type === 's3custom') {
+    const fmtSize = (b) => {
+      if (b == null) return null;
+      if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
+      if (b < 1024 * 1024 * 1024) return `${(b / 1024 / 1024).toFixed(1)} MB`;
+      return `${(b / 1024 / 1024 / 1024).toFixed(2)} GB`;
+    };
+    return (
+      <div className="space-y-1.5">
+        {metrics.bucket && <p className="text-xs text-muted truncate">{metrics.bucket}</p>}
+        <div className="flex gap-4 text-xs text-muted">
+          {metrics.sizeBytes != null && <span>Taille : <span className="text-thistle font-medium">{fmtSize(metrics.sizeBytes)}{metrics.approximate ? '+' : ''}</span></span>}
+          <span>Objets : <span className="text-thistle font-medium">{metrics.objectCount ?? '—'}{metrics.approximate ? '+' : ''}</span></span>
+          <span>Latence : <span className="text-thistle font-medium">{metrics.responseTime ?? '—'}ms</span></span>
+        </div>
+      </div>
+    );
+  }
 
   if (type === 'webhook') return (
     <div className="space-y-0.5 text-xs text-muted">
