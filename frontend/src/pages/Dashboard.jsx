@@ -271,6 +271,23 @@ function MetricsBlock({ monitor }) {
     </div>
   );
 
+  if (type === 'hmsdomain') return (
+    <div className="space-y-1.5">
+      {(metrics.domains || []).map(d => (
+        <div key={d.domain} className="space-y-0.5">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className={d.daysLeft != null && d.daysLeft <= 15 ? 'text-amber-400 text-xs' : 'text-celadon text-xs'}>●</span>
+            <span className="text-thistle font-medium text-xs truncate">{d.domain}</span>
+          </div>
+          <div className="flex gap-3 text-xs text-muted pl-3">
+            {d.statusLabel && <span>{t('metrics.status')} : <span className="text-frosted">{d.statusLabel}</span></span>}
+            {d.daysLeft != null && <span>{t('metrics.expiresIn')} : <span className="text-frosted">{d.daysLeft}j</span></span>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
   if (type === 'ultracc') return (
     <div className="space-y-1.5">
       <div className="flex gap-4 text-xs text-muted">
@@ -929,6 +946,7 @@ function metricSummary(monitor) {
     case 'docker':     return m.containersRunning != null ? `${m.containersRunning} actifs` : null;
     case 'syncthing':  return m.folders_synced != null ? `${m.folders_synced} dossiers` : null;
     case 'hms':        return Array.isArray(m.vps) ? `${m.vps.filter(v => v.state === 'running').length} VPS` : null;
+    case 'hmsdomain':  return m.min_days_left != null && m.min_days_left !== Infinity ? `${m.min_days_left}j` : null;
     case 'heartbeat':  return m.lastPing ? timeAgoMs(m.lastPing) : null;
     case 'webhook':    return m.lastEventAt ? timeAgoMs(m.lastEventAt) : null;
     case 'cfd1':       return m.readPct != null ? `${m.readPct}% lect. / ${m.writePct}% écr.` : null;

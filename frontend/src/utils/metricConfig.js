@@ -69,6 +69,10 @@ const CONFIG = {
     { key: 'avg_cpu',        fr: 'CPU moyen',       en: 'Avg CPU',     unit: '%' },
     { key: 'avg_memory_pct', fr: 'RAM moyenne',     en: 'Avg RAM',     unit: '%' },
   ],
+  hmsdomain: [
+    { key: 'domain_count',   fr: 'Domaines',               en: 'Domains',          unit: '' },
+    { key: 'min_days_left',  fr: 'Jours avant expiration', en: 'Days until expiry', unit: 'j' },
+  ],
   cloudflare: [
     { key: 'total',   fr: 'Tunnels actifs', en: 'Active tunnels',  unit: '' },
     { key: 'healthy', fr: 'Tunnels sains',  en: 'Healthy tunnels', unit: '' },

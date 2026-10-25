@@ -42,6 +42,7 @@ Additional type-specific alerts:
 | **qBittorrent** | *(down/recovery only)* |
 | **Autobrr** | *(down/recovery only)* |
 | **HMS** | Per-VPS unreachable · High CPU · High memory |
+| **HMS Domain** | Domain unreachable · Expiring soon (configurable threshold, default 15 days) |
 | **Ultra.cc** | Low storage · Low traffic |
 | **rclone** | Transfer errors detected · Transfer errors resolved |
 | **Hetzner Storage Box** | Disk usage > 90% |

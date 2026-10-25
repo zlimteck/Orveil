@@ -57,7 +57,7 @@ router.get('/stats', async (req, res) => {
   res.json({ total, online, warning, error, disabled });
 });
 
-const TYPES = ['cloudflare', 'adguard', 'adguardhome', 'hms', 'ultracc', 'syncthing', 'http', 'ping', 'proxmox', 'immich', 'portainer', 'ssh', 'heartbeat', 'docker', 'unraid', 'jellyfin', 'dns', 'mysql', 'redis', 'mongodb', 'tailscale', 'ollama', 'speedtest', 'homeassistant', 'portforward', 'multistep', 'dispatcharr', 'navidrome', 'webhook', 'cfd1', 'cfworkers', 'cfr2', 's3custom'];
+const TYPES = ['cloudflare', 'adguard', 'adguardhome', 'hms', 'hmsdomain', 'ultracc', 'syncthing', 'http', 'ping', 'proxmox', 'immich', 'portainer', 'ssh', 'heartbeat', 'docker', 'unraid', 'jellyfin', 'dns', 'mysql', 'redis', 'mongodb', 'tailscale', 'ollama', 'speedtest', 'homeassistant', 'portforward', 'multistep', 'dispatcharr', 'navidrome', 'webhook', 'cfd1', 'cfworkers', 'cfr2', 's3custom'];
 
 router.get('/:id', async (req, res) => {
   const { id } = req.params;

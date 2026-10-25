@@ -36,6 +36,10 @@ const ALERT_RULES = {
     { key: 'high_cpu',        defaultEnabled: true, threshold: { default: 90, min: 1, max: 100, unit: '%' } },
     { key: 'high_memory',     defaultEnabled: true, threshold: { default: 90, min: 1, max: 100, unit: '%' } },
   ],
+  hmsdomain: [
+    { key: 'expiring_soon',       defaultEnabled: true, threshold: { default: 15, min: 1, max: 365, unit: 'days' } },
+    { key: 'domain_unreachable',  defaultEnabled: true },
+  ],
   ultracc: [
     { key: 'low_storage', defaultEnabled: true },
     { key: 'low_traffic', defaultEnabled: true },

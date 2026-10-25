@@ -32,6 +32,7 @@ function buildSections(t) {
         { method: 'GET',    path: '/api/monitors/homeassistant',          descKey: 'monitorsByType' },
         { method: 'POST',   path: '/api/monitors/homeassistant/entities', descKey: 'haEntities', body: '{ "url": "…", "token": "…" }' },
         { method: 'GET',    path: '/api/monitors/hms',                    descKey: 'monitorsByType' },
+        { method: 'GET',    path: '/api/monitors/hmsdomain',              descKey: 'monitorsByType' },
         { method: 'GET',    path: '/api/monitors/ultracc',                descKey: 'monitorsByType' },
         { method: 'GET',    path: '/api/monitors/syncthing',              descKey: 'monitorsByType' },
         { method: 'GET',    path: '/api/monitors/http',                   descKey: 'monitorsByType' },

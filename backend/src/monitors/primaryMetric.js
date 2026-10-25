@@ -13,6 +13,7 @@ function primaryMetric(type, metrics) {
     case 'portainer':  return metrics.containersRunning ?? null;
     case 'syncthing':  return metrics.folders_synced ?? null;
     case 'hms':        return Array.isArray(metrics.vps) ? metrics.vps.filter(v => v.state === 'running').length : null;
+    case 'hmsdomain':  return metrics.min_days_left ?? null;
     case 'heartbeat':  return metrics.minutesSince ?? null;
     case 'docker':     return metrics.containersRunning ?? null;
     case 'unraid':     return metrics.diskPct ?? null;

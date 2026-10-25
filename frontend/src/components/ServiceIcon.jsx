@@ -83,6 +83,7 @@ const FALLBACKS = {
   jellyfin:   ({ size }) => <SimpleIcon icon={siJellyfin}  size={size} />,
   portainer:  ({ size }) => <SimpleIcon icon={siPortainer}  size={size} />,
   hms:        ({ size }) => <HmsIcon size={size} />,
+  hmsdomain:  ({ size }) => <HmsIcon size={size} />,
   ultracc:    ({ size }) => <UltraccIcon size={size} />,
   docker:     ({ size }) => <DockerIcon size={size} />,
   dispatcharr: ({ size }) => <DispatcharrIcon size={size} />, // fallback if file missing

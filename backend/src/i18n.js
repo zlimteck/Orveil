@@ -108,6 +108,18 @@ module.exports = {
       return { title: 'HMS VPS Report', message: msg };
     },
 
+    // ── HMS Domain ──────────────────────────────────────────────────────────
+    hmsDomainExpiringSoon: (domain, days) => ({ title: `Domain expiring soon — ${domain}`, message: `${domain} expires in ${days} day(s)` }),
+    hmsDomainUnreachable: (domain, msg) => ({ title: `Domain unreachable — ${domain}`, message: msg }),
+    hmsDomainReport: (domains, errors) => {
+      let msg = `Domain report — ${domains.length} domain(s)\n`;
+      for (const d of domains) {
+        msg += `\n${d.domain} — ${d.statusLabel || d.status}${d.daysLeft != null ? ` | expires in ${d.daysLeft}d` : ''}`;
+      }
+      if (errors?.length) msg += `\n\nErrors: ${errors.map(e => e.domain).join(', ')}`;
+      return { title: 'HMS Domain Report', message: msg };
+    },
+
     // ── Home Assistant ──────────────────────────────────────────────────────
     haOnline: (url, version) => ({ title: 'Home Assistant — Online', message: `${url}${version ? ` · v${version}` : ''}` }),
     haEntityUnavailable: (name, id) => ({ title: 'Home Assistant — Entity unavailable', message: `${name} (${id}) is unavailable` }),
@@ -396,6 +408,18 @@ module.exports = {
       }
       if (errors?.length) msg += `\n\nErreurs : ${errors.map(e => e.name).join(', ')}`;
       return { title: 'Rapport VPS HMS', message: msg };
+    },
+
+    // ── HMS Domain ──────────────────────────────────────────────────────────
+    hmsDomainExpiringSoon: (domain, days) => ({ title: `Domaine bientôt expiré — ${domain}`, message: `${domain} expire dans ${days} jour(s)` }),
+    hmsDomainUnreachable: (domain, msg) => ({ title: `Domaine inaccessible — ${domain}`, message: msg }),
+    hmsDomainReport: (domains, errors) => {
+      let msg = `Rapport domaines — ${domains.length} domaine(s)\n`;
+      for (const d of domains) {
+        msg += `\n${d.domain} — ${d.statusLabel || d.status}${d.daysLeft != null ? ` | expire dans ${d.daysLeft}j` : ''}`;
+      }
+      if (errors?.length) msg += `\n\nErreurs: ${errors.map(e => e.domain).join(', ')}`;
+      return { title: 'Rapport Domaines HMS', message: msg };
     },
 
     // ── Home Assistant ──────────────────────────────────────────────────────

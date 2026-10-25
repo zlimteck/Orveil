@@ -118,7 +118,7 @@ Set `ADMIN_PASSWORD` in your `.env` to control the initial password.
 ## Features
 
 **Monitoring**
-- **42 monitor types** - HTTP/HTTPS, Multi-step HTTP, Ping (TCP/ICMP), Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Docker, Proxmox, Cloudflare, Cloudflare D1, Cloudflare Workers, Cloudflare R2, AdGuard DNS, AdGuard Home, Portainer, Tailscale, Home Assistant, Syncthing, Immich, Unraid, Speedtest Tracker, Jellyfin, Ollama, OpenWebUI, Sonarr, Radarr, Prowlarr, Overseerr, qBittorrent, Autobrr, Dispatcharr, Navidrome, rclone, Hetzner Storage Box, S3 Custom, HMS, Ultra.cc, Heartbeat, Webhook
+- **43 monitor types** - HTTP/HTTPS, Multi-step HTTP, Ping (TCP/ICMP), Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Docker, Proxmox, Cloudflare, Cloudflare D1, Cloudflare Workers, Cloudflare R2, AdGuard DNS, AdGuard Home, Portainer, Tailscale, Home Assistant, Syncthing, Immich, Unraid, Speedtest Tracker, Jellyfin, Ollama, OpenWebUI, Sonarr, Radarr, Prowlarr, Overseerr, qBittorrent, Autobrr, Dispatcharr, Navidrome, rclone, Hetzner Storage Box, S3 Custom, HMS VPS, HMS Domain, Ultra.cc, Heartbeat, Webhook
 - Adaptive polling - faster rechecks when a service is down
 - Monitor dependencies - suppress alerts when a parent is already down
 - SSL certificate monitoring with expiry warning
@@ -208,6 +208,7 @@ Set `ADMIN_PASSWORD` in your `.env` to control the initial password.
 | **Dispatcharr** | Active streams, total viewers, channel count and version - API key auth (`X-API-Key`) |
 | **Navidrome** | Artist count, now playing, version - Subsonic MD5 auth (username + password) |
 | **HMS (HostMyServers)** | VPS status and specs via API token |
+| **HMS Domain** | Domain status, lock, nameservers and expiration countdown via API token |
 | **Ultra.cc** | Seedbox storage and traffic via Stats API URL |
 | **rclone** | Transfer stats (DL/UL speed, active transfers, errors), active mounts, jobs, remote quota and version via rclone RC API - or push stats from an external script (see [rclone push stats](#rclone-push-stats)) |
 | **Hetzner Storage Box** | Disk usage/free/total, snapshot size and location via Hetzner API (Bearer token) |

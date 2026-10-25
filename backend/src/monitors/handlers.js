@@ -7,6 +7,7 @@ module.exports = {
   adguard:     require('./adguard'),
   adguardhome: require('./adguardhome'),
   hms:        require('./hms'),
+  hmsdomain:  require('./hmsdomain'),
   ultracc:    require('./ultracc'),
   syncthing:  require('./syncthing'),
   http:       require('./http'),

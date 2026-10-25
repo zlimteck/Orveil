@@ -14,7 +14,7 @@
 
 ## Monitoring
 
-- **40 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping (TCP/ICMP), Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Tailscale, Proxmox, Cloudflare, Cloudflare D1, Cloudflare Workers, Cloudflare R2, AdGuard DNS, AdGuard Home, Home Assistant, Portainer, Docker, Syncthing, Immich, HostMyServers, Ultra.cc, Heartbeat, Webhook, Unraid, Speedtest Tracker, Jellyfin, Ollama, OpenWebUI, Sonarr, Radarr, Prowlarr, Overseerr, qBittorrent, Autobrr, rclone, Hetzner Storage Box, S3 Custom
+- **43 monitor types** — HTTP/HTTPS, Multi-step HTTP, Ping (TCP/ICMP), Port Forwarding, SSH, DNS, MySQL, Redis, MongoDB, Tailscale, Proxmox, Cloudflare, Cloudflare D1, Cloudflare Workers, Cloudflare R2, AdGuard DNS, AdGuard Home, Home Assistant, Portainer, Docker, Syncthing, Immich, HostMyServers VPS, HostMyServers Domain, Ultra.cc, Heartbeat, Webhook, Unraid, Speedtest Tracker, Jellyfin, Ollama, OpenWebUI, Sonarr, Radarr, Prowlarr, Overseerr, qBittorrent, Autobrr, Dispatcharr, Navidrome, rclone, Hetzner Storage Box, S3 Custom
 - **Multi-step HTTP** — chain multiple HTTP requests with variable extraction (JSONPath or response headers) and interpolation between steps; full step-by-step failure reporting
 - **SSH custom command** — optional command run on the remote host with expected output check (case-insensitive); mismatch triggers an alert; command and result displayed on the monitor card
 - **Adaptive polling** — when a service goes down, check interval drops automatically to 30 s (configurable) for near-instant recovery detection; reverts to the normal interval once the service is back up

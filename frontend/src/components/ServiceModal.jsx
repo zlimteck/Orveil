@@ -23,6 +23,7 @@ const TYPE_DEFAULTS = {
   adguard:     { checkInterval: 60, reportInterval: 24, serviceUrl: 'https://adguard-dns.io', config: { accessToken: '', refreshTok: '' } },
   adguardhome: { checkInterval: 5,  reportInterval: 24, config: { url: '', username: '', password: '', rejectUnauthorized: true } },
   hms:        { checkInterval: 5,  reportInterval: 0,  config: { hmsToken: '', vpsList: [{ id: '', name: '' }] } },
+  hmsdomain:  { checkInterval: 60, reportInterval: 24, config: { hmsToken: '', domainList: [{ domain: '' }] } },
   ultracc:    { checkInterval: 5,  reportInterval: 0,  config: { apiUrl: '', ultraToken: '' } },
   syncthing:  { checkInterval: 5,  reportInterval: 24, config: { apiUrl: '', apiKey: '', folderIds: [], rejectUnauthorized: true } },
   http:       { checkInterval: 5,  reportInterval: 0,  config: { url: '', method: 'GET', body: '', expectedStatus: 200, acceptedStatusCodes: '', keyword: '', keywordMode: 'present', timeout: 10000, sslAlertDays: 30, responseTimeThreshold: 0, bearerToken: '', basicUser: '', basicPass: '', customHeaderName: '', customHeaderValue: '', rejectUnauthorized: true } },
@@ -101,6 +102,7 @@ const TYPE_CATEGORIES = {
   heartbeat:     'monitoring',
   webhook:       'monitoring',
   hms:           'hosting',
+  hmsdomain:     'hosting',
   ultracc:       'hosting',
 };
 
@@ -113,6 +115,7 @@ const TYPE_LABELS = {
   adguard:     'AdGuard DNS',
   adguardhome: 'AdGuard Home',
   hms:        'HostMyServers VPS',
+  hmsdomain:  'HostMyServers Domain',
   ultracc:    'Ultra.cc Seedbox',
   syncthing:  'Syncthing',
   http:       'HTTP Monitor',
@@ -911,6 +914,36 @@ function ConfigFields({ type, config, onChange, t, proxies = [] }) {
           <button type="button" className="btn-ghost text-xs"
             onClick={() => set('vpsList', [...(config.vpsList || []), { id: '', name: '' }])}>
             <Plus size={13} /> {t('form.addVps')}
+          </button>
+        </div>
+      </div>
+      <CFAccessSection config={config} set={set} t={t} />
+      <ProxySection config={config} set={set} proxies={proxies} />
+    </>
+  );
+
+  if (type === 'hmsdomain') return (
+    <>
+      <Field label="HMS Token" value={config.hmsToken} onChange={v => set('hmsToken', v)}
+        type="password" placeholder="Your HostMyServers API token" hint={t('form.fields.hms.tokenHint')} />
+      <div>
+        <label className="label">{t('form.hmsDomains')}</label>
+        <div className="space-y-2">
+          {(config.domainList || []).map((d, i) => (
+            <div key={i} className="flex gap-2">
+              <input className="input flex-1" placeholder={t('form.hmsDomainName')} value={d.domain}
+                onChange={e => { const l = [...config.domainList]; l[i] = { ...l[i], domain: e.target.value }; set('domainList', l); }} />
+              {config.domainList.length > 1 && (
+                <button type="button" className="btn-ghost p-2 rounded-lg"
+                  onClick={() => set('domainList', config.domainList.filter((_, j) => j !== i))}>
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
+          ))}
+          <button type="button" className="btn-ghost text-xs"
+            onClick={() => set('domainList', [...(config.domainList || []), { domain: '' }])}>
+            <Plus size={13} /> {t('form.addHmsDomain')}
           </button>
         </div>
       </div>

@@ -81,6 +81,8 @@ export default {
     lastEvent: 'Dernier événement',
     noWebhookEvent: 'Aucun événement reçu',
     expectedEvery: 'Attendu toutes les',
+    status: 'Statut',
+    expiresIn: 'Expire dans',
   },
   nav: {
     dashboard: 'Dashboard',
@@ -746,6 +748,9 @@ export default {
     vpsServers: 'Serveurs VPS',
     vpsId: 'ID numérique (ex: 24767)',
     vpsName: 'Nom affiché',
+    hmsDomains: 'Domaines',
+    hmsDomainName: 'Nom de domaine (ex: exemple.fr)',
+    addHmsDomain: 'Ajouter un domaine',
     privateKey: 'Clé privée (optionnel)',
     fields: {
       cloudflare: {
@@ -924,6 +929,7 @@ export default {
       portainer:  'Containers actifs',
       syncthing:  'Dossiers synchronisés',
       hms:        'VPS actifs',
+      hmsdomain:  'Jours avant expiration',
       docker:     'Containers actifs',
       unraid:     'Disque (%)',
       speedtest:   'Download (Mbps)',
