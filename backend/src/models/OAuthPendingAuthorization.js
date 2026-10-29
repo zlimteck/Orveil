@@ -11,7 +11,6 @@ const oauthPendingAuthorizationSchema = new mongoose.Schema({
   resource:     { type: String, default: null },
   scopes:       { type: [String], default: [] },
   csrfToken:    { type: String, required: true },
-  userId:       { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   expiresAt:    { type: Date, required: true, index: { expireAfterSeconds: 0 } },
 }, { timestamps: true });
 
