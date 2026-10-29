@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 // Holds the state of an in-progress /authorize request (RFC 6749 + PKCE) between
 // the initial redirect and the user's Allow/Deny decision on the consent screen.
-// Never kept in memory — the consent step can land on a different server process.
+// Never kept in memory - the consent step can land on a different server process.
 const oauthPendingAuthorizationSchema = new mongoose.Schema({
   clientId:     { type: String, required: true },
   redirectUri:  { type: String, required: true },

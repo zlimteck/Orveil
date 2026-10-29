@@ -95,7 +95,7 @@ const provider = {
   // flow (same-origin consent screen reusing the existing web session) creates the
   // pending authorization and, on approval, redirects back here with ?code=&state=.
   // The SDK's authorizationHandler calls this right after validating client_id /
-  // redirect_uri / PKCE shape — we just hand off to our own UI.
+  // redirect_uri / PKCE shape - we just hand off to our own UI.
   async authorize(client, params, res) {
     const pending = await OAuthPendingAuthorization.create({
       clientId: client.client_id,
@@ -160,7 +160,7 @@ const provider = {
     if (doc.usedAt || doc.expiresAt < new Date()) {
       // Replay of an already-rotated (or expired) token: revoke the whole chain.
       await OAuthRefreshToken.deleteMany({ familyId: doc.familyId });
-      throw new InvalidGrantError('Refresh token has already been used — session revoked');
+      throw new InvalidGrantError('Refresh token has already been used - session revoked');
     }
 
     doc.usedAt = new Date();
@@ -171,7 +171,7 @@ const provider = {
       userId: doc.userId, clientId: client.client_id, resource: effectiveResource, scopes: doc.scopes,
     });
     // New token in the same family, lifetime capped to the original grant
-    // (not extended on rotation) — see model comment.
+    // (not extended on rotation) - see model comment.
     const newToken = randomToken();
     await OAuthRefreshToken.create({
       tokenHash: sha256Hex(newToken),

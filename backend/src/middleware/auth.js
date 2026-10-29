@@ -7,7 +7,7 @@ if (!SECRET) {
   process.exit(1);
 }
 
-// Verifies the nh_token cookie without ever writing to `res` — returns the
+// Verifies the nh_token cookie without ever writing to `res` - returns the
 // JWT payload on success, or null (never throws). Used both by authMiddleware
 // and by routes that need an optional/soft session check (e.g. MCP OAuth
 // consent screen, which must redirect to login rather than 401).

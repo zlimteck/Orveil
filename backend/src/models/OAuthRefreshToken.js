@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-// Refresh token (RFC 6749 §6) — hashed at rest. Rotated on every use: the old
+// Refresh token (RFC 6749 §6) - hashed at rest. Rotated on every use: the old
 // doc is kept with `usedAt` set (instead of deleted) so a replay of an
 // already-rotated token can be detected and revoke the whole `familyId` chain.
 // `expiresAt` is fixed at the family's original grant time (not extended on

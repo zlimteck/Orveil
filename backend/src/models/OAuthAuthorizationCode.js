@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-// Authorization code (RFC 6749 §4.1.2) — only the SHA-256 hash is stored, the
+// Authorization code (RFC 6749 §4.1.2) - only the SHA-256 hash is stored, the
 // code itself is a one-time secret handed to the client. 60s lifetime, consumed
 // on first use (deleted, not flagged, to make replay structurally impossible).
 const oauthAuthorizationCodeSchema = new mongoose.Schema({

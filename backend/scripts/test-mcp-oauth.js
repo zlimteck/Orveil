@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Standalone smoke test for the MCP OAuth 2.1 flow (RFC 8414/9728/7591/7009 + PKCE).
-// No test framework, no new dependency — the project has none yet. Exercises
+// No test framework, no new dependency - the project has none yet. Exercises
 // every scenario required for the feature against a *running* Orveil backend
 // pointed at a disposable database (never run this against a real instance).
 //
@@ -107,9 +107,15 @@ async function main() {
 
   const stateAnon = await fetch(`${BASE}/api/oauth/authorize-state?pending=${pending}`).then(r => r.json());
   check('authorize-state reports authenticated:false without a session', stateAnon.authenticated === false);
+  check('authorize-state never leaks the CSRF token to an unauthenticated caller', stateAnon.csrfToken === undefined);
 
   const state = await fetch(`${BASE}/api/oauth/authorize-state?pending=${pending}`, { headers: { Cookie: cookie } }).then(r => r.json());
   check('authorize-state reports authenticated:true and returns a CSRF token', state.authenticated === true && !!state.csrfToken);
+
+  const malformedPending = await fetch(`${BASE}/api/oauth/authorize-state?pending=not-a-valid-objectid`);
+  check('a malformed pending id is rejected cleanly (not a process crash)', malformedPending.status === 410);
+  const stillAlive = await fetch(`${BASE}/api/health`);
+  check('the server survived the malformed pending id request', stillAlive.status === 200);
 
   const badCsrf = await fetch(`${BASE}/api/oauth/authorize-decision`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: cookie },
@@ -173,7 +179,7 @@ async function main() {
     method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshed.refresh_token, client_id: client.client_id }),
   });
-  check('replay revokes the whole chain — the newer token is dead too', familyDead.status === 400);
+  check('replay revokes the whole chain - the newer token is dead too', familyDead.status === 400);
 
   console.log(`\n${failures === 0 ? 'All checks passed.' : `${failures} check(s) failed.`}`);
   process.exit(failures === 0 ? 0 : 1);

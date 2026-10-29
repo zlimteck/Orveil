@@ -10,7 +10,7 @@ const { authMiddleware } = require('./middleware/auth');
 
 const app = express();
 
-// Trust the first hop (reverse proxy — Cloudflare/Caddy/nginx in front of
+// Trust the first hop (reverse proxy - Cloudflare/Caddy/nginx in front of
 // Orveil in self-hosted setups) so req.ip / express-rate-limit see the real
 // client IP instead of the proxy's.
 app.set('trust proxy', 1);
@@ -18,7 +18,7 @@ app.set('trust proxy', 1);
 // Security headers
 app.use(require('helmet')({
   strictTransportSecurity: false,  // no TLS cert — avoid HSTS forcing HTTPS
-  frameguard: { action: 'deny' },  // X-Frame-Options: DENY — Orveil is never meant to be iframed
+  frameguard: { action: 'deny' },  // X-Frame-Options: DENY - Orveil is never meant to be iframed
   contentSecurityPolicy: {
     useDefaults: false,
     directives: {
@@ -68,7 +68,7 @@ app.use('/api/webhook', require('./routes/webhooks'));
 console.log('[MCP] Serveur MCP démarré sur /api/mcp (Streamable HTTP)');
 
 // MCP OAuth 2.1 authorization server (RFC 8414/9728/7591/7009 + PKCE).
-// Mounted at the application root — discovery, /authorize, /token, /register
+// Mounted at the application root - discovery, /authorize, /token, /register
 // and /revoke must never sit behind authMiddleware or restrictive CORS.
 try {
   const { mcpAuthRouter } = require('@modelcontextprotocol/sdk/server/auth/router.js');
@@ -76,7 +76,7 @@ try {
   const { getBaseUrl } = require('./utils/publicUrl');
   const issuerUrl = getBaseUrl();
   const resourceServerUrl = new URL('/api/mcp', issuerUrl);
-  // mcpAuthRouter's handlers each configure their own CORS (open, per RFC) —
+  // mcpAuthRouter's handlers each configure their own CORS (open, per RFC) -
   // no need to wrap it in app-wide CORS here.
   app.use(mcpAuthRouter({
     provider,
@@ -84,9 +84,9 @@ try {
     resourceServerUrl,
     resourceName: 'Orveil',
   }));
-  console.log(`[MCP OAuth] Authorization server mounted — issuer ${issuerUrl.href}`);
+  console.log(`[MCP OAuth] Authorization server mounted - issuer ${issuerUrl.href}`);
 } catch (err) {
-  console.warn(`[MCP OAuth] Disabled — ${err.message}. Set FRONTEND_URL to a public HTTPS URL to enable it.`);
+  console.warn(`[MCP OAuth] Disabled - ${err.message}. Set FRONTEND_URL to a public HTTPS URL to enable it.`);
 }
 app.get('/api/health', (req, res) => res.json({ ok: true, ts: new Date() }));
 app.use('/api/monitors', require('./routes/pushStats'));
