@@ -153,6 +153,18 @@ function buildSections(t) {
         { method: 'DELETE', path: '/api/settings/backup/:key',          descKey: 'backupDelete' },
       ],
     },
+    {
+      key: 'mcp',
+      routes: [
+        { method: 'GET',  path: '/api/mcp',                                      descKey: 'mcpEndpoint' },
+        { method: 'GET',  path: '/.well-known/oauth-protected-resource/api/mcp', descKey: 'mcpProtectedResource' },
+        { method: 'GET',  path: '/.well-known/oauth-authorization-server',       descKey: 'mcpAuthServer' },
+        { method: 'POST', path: '/register',                                    descKey: 'mcpRegister', body: '{ "redirect_uris": ["https://…"], "client_name": "…" }' },
+        { method: 'GET',  path: '/authorize',                                    descKey: 'mcpAuthorize' },
+        { method: 'POST', path: '/token',                                        descKey: 'mcpToken' },
+        { method: 'POST', path: '/revoke',                                       descKey: 'mcpRevoke' },
+      ],
+    },
   ].map(s => ({
     title: t(`api.sections.${s.key}`),
     routes: s.routes.map(r => ({ ...r, desc: t(`api.routes.${r.descKey}`) })),
@@ -230,6 +242,26 @@ function TokenCard({ t }) {
   );
 }
 
+function McpConnectorCard({ t }) {
+  const mcpUrl = `${BASE}/api/mcp`;
+  return (
+    <div className="card space-y-3">
+      <h2 className="text-sm font-semibold text-thistle">{t('api.mcpConnector.title')}</h2>
+      <p className="text-xs text-muted">{t('api.mcpConnector.hint')}</p>
+      <div className="bg-granite-3/60 border border-border rounded-lg px-3 py-2 flex items-center gap-2 font-mono text-xs">
+        <span className="text-frosted truncate flex-1">{mcpUrl}</span>
+        <CopyBtn text={mcpUrl} />
+      </div>
+      <ol className="text-xs text-muted list-decimal list-inside space-y-0.5">
+        <li>{t('api.mcpConnector.step1')}</li>
+        <li>{t('api.mcpConnector.step2')}</li>
+        <li>{t('api.mcpConnector.step3')}</li>
+      </ol>
+      <p className="text-xs text-muted/70">{t('api.mcpConnector.httpsNote')}</p>
+    </div>
+  );
+}
+
 export default function ApiDocs() {
   const { t } = useLang();
   const sections = buildSections(t);
@@ -242,6 +274,8 @@ export default function ApiDocs() {
           {t('api.baseUrl')} : <span className="font-mono text-periwinkle">{BASE}/api</span>
         </p>
       </div>
+
+      <McpConnectorCard t={t} />
 
       <TokenCard t={t} />
 

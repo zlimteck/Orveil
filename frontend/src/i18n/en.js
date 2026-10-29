@@ -446,6 +446,14 @@ export default {
       confirmRegenerate: 'Regenerate the API key? Existing integrations will need to be updated.',
     },
     params: 'params',
+    mcpConnector: {
+      title: 'MCP connector (Claude)',
+      hint: 'Add Orveil as a custom connector in Claude to query your monitors, incidents and changelogs directly from a conversation.',
+      step1: 'Claude (web or iOS) -> Settings -> Connectors -> Add custom connector',
+      step2: 'Paste the URL above as the MCP server URL',
+      step3: 'Click Connect -> sign in to Orveil, then authorize access',
+      httpsNote: 'Requires FRONTEND_URL to be set to a public HTTPS URL (or localhost) for the OAuth flow to be available.',
+    },
     sections: {
       services: 'Services',
       public: 'Public',
@@ -455,6 +463,7 @@ export default {
       incidents: 'Incidents',
       stats: 'Statistics',
       prometheus: 'Prometheus',
+      mcp: 'MCP (Claude and other OAuth clients)',
     },
     routes: {
       health:                  'Healthcheck — returns { ok: true, ts: "…" }',
@@ -513,6 +522,13 @@ export default {
       haEntities:              'List available Home Assistant entities (proxy)',
       statsGet:                'Global statistics — uptime + SLA status per monitor, incidents, MTTR, MTTD, severity breakdown, notification counts',
       metricsGet:              'Prometheus endpoint — returns all monitor metrics in Prometheus text format (orveil_monitor_status, orveil_monitor_latency_ms, 24h/7d/30d uptime, open incidents)',
+      mcpEndpoint:             'MCP server (Streamable HTTP) - accepts either an OAuth token (see below) or the API key above as a Bearer token',
+      mcpProtectedResource:    'Protected resource metadata (RFC 9728) - used automatically by OAuth clients like Claude',
+      mcpAuthServer:           'Authorization server metadata (RFC 8414) - authorize/token/register endpoints',
+      mcpRegister:             'Dynamic client registration (RFC 7591) - redirect_uris must be HTTPS (http://localhost exempt)',
+      mcpAuthorize:            'Authorization flow entry point (PKCE S256 required) - redirects to the Orveil login/consent screen',
+      mcpToken:                'Exchanges an authorization code or refresh token for an access token',
+      mcpRevoke:               'Revokes a refresh token (RFC 7009)',
     },
   },
   incidents: {

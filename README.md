@@ -433,6 +433,75 @@ Once saved, the custom metric appears in the **Card metric** dropdown (Monitorin
 
 ---
 
+## MCP (Model Context Protocol)
+
+Orveil exposes an MCP server at `/api/mcp` (Streamable HTTP) with tools to list monitors, check status, read incidents/changelogs, trigger checks, manage maintenance windows, and more.
+
+Two auth methods are supported on that endpoint, checked automatically:
+
+- **OAuth 2.1** (recommended) - needed to add Orveil as a custom connector in Claude, since Claude does not support sending a static `Authorization` header. Implements RFC 8414/9728 discovery, RFC 7591 dynamic client registration, PKCE (S256 only), and refresh token rotation.
+- **Static API key** (legacy) - the `Bearer <mcpApiKey>` token shown on the API docs page, for scripts and tools that just need a fixed header.
+
+### Claude (web / iOS)
+
+1. Claude -> Settings -> Connectors -> Add custom connector
+2. Paste `https://<your-orveil-domain>/api/mcp` as the server URL
+3. Click Connect -> sign in to Orveil (if not already) -> authorize access
+
+This requires `FRONTEND_URL` to be set to a public HTTPS URL (or `localhost` for local testing) - see [Environment variables](#environment-variables). If it isn't, the backend logs `[MCP OAuth] Disabled` on startup and only the legacy static key works.
+
+### Manual flow (curl)
+
+Useful to debug the OAuth flow by hand, or integrate a client the discovery metadata doesn't cover automatically.
+
+```bash
+BASE=https://your-orveil-domain
+
+# 1. Register a client (RFC 7591)
+curl -s -X POST "$BASE/register" -H 'Content-Type: application/json' -d '{
+  "redirect_uris": ["https://your-client.example/callback"],
+  "token_endpoint_auth_method": "none"
+}'
+# -> { "client_id": "...", ... }
+
+# 2. Generate a PKCE pair
+VERIFIER=$(openssl rand -base64 32 | tr -d '=+/' | cut -c1-43)
+CHALLENGE=$(printf '%s' "$VERIFIER" | openssl dgst -sha256 -binary | openssl base64 | tr '+/' '-_' | tr -d '=')
+
+# 3. Open this URL in a browser, log in, click Allow - it redirects to your
+#    redirect_uri with ?code=...&state=...
+echo "$BASE/authorize?client_id=<client_id>&redirect_uri=https://your-client.example/callback&response_type=code&code_challenge=$CHALLENGE&code_challenge_method=S256&state=xyz&resource=$BASE/api/mcp"
+
+# 4. Exchange the code for tokens
+curl -s -X POST "$BASE/token" -H 'Content-Type: application/x-www-form-urlencoded' \
+  --data-urlencode "grant_type=authorization_code" \
+  --data-urlencode "code=<code from step 3>" \
+  --data-urlencode "code_verifier=$VERIFIER" \
+  --data-urlencode "redirect_uri=https://your-client.example/callback" \
+  --data-urlencode "client_id=<client_id>"
+# -> { "access_token": "...", "refresh_token": "...", ... }
+
+# 5. Call the MCP server
+curl -s -X POST "$BASE/api/mcp" \
+  -H "Authorization: Bearer <access_token>" \
+  -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+### MCP Inspector
+
+[`@modelcontextprotocol/inspector`](https://github.com/modelcontextprotocol/inspector) can drive the same OAuth flow interactively:
+
+```bash
+npx @modelcontextprotocol/inspector
+```
+
+Point it at `https://your-orveil-domain/api/mcp` - it discovers the OAuth metadata, walks you through registration and consent in a browser tab, and lets you call tools directly from its UI.
+
+A dependency-free regression script covering the whole flow (discovery, registration, PKCE, consent, token exchange, refresh rotation) lives at `backend/scripts/test-mcp-oauth.js`, meant to run against a disposable database - not a production instance.
+
+---
+
 ## Environment variables
 
 | Variable | Default | Description |
@@ -444,8 +513,9 @@ Once saved, the custom metric appears in the **Card metric** dropdown (Monitorin
 | `ADMIN_USERNAME` | `admin` | Admin account username |
 | `ADMIN_PASSWORD` | *(random)* | Admin account password - printed in logs on first start if not set. **Set this explicitly.** |
 | `DOCKER_PROXY_URL` | *(none)* | URL of the Docker socket proxy - set to `http://docker-proxy:2375` when using the compose above |
-| `FRONTEND_URL` | `http://localhost:3050` | Public URL of the app. Controls session cookie security automatically - `http://` disables the `Secure` flag, `https://` enables it. Also restricts CORS in production. |
+| `FRONTEND_URL` | `http://localhost:3050` | Public URL of the app. Controls session cookie security automatically - `http://` disables the `Secure` flag, `https://` enables it. Also restricts CORS in production. Must be a public HTTPS URL (or `localhost`) for the MCP OAuth flow to be available. |
 | `METRICS_TOKEN` | *(none)* | Static Bearer token for the Prometheus metrics endpoint |
+| `MCP_OAUTH_JWT_SECRET` | *(auto-generated)* | Signing secret for MCP OAuth access tokens - `openssl rand -hex 32`. Only needed if you run multiple Orveil instances sharing one database and want them to share the same secret; otherwise one is generated once and stored in the database automatically. |
 
 **Generate an encryption key:**
 
