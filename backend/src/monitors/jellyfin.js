@@ -17,7 +17,7 @@ async function check(config, lastState, lang = 'fr') {
     timeout: 10000,
     httpsAgent: proxyAgents?.httpsAgent || new https.Agent({ rejectUnauthorized }),
     ...(proxyAgents && { httpAgent: proxyAgents.httpAgent }),
-    headers: { 'X-Emby-Token': apiKey },
+    headers: { Authorization: `MediaBrowser Token="${apiKey}"` },
   });
 
   const start = Date.now();
