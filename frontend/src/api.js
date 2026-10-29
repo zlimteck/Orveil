@@ -21,6 +21,12 @@ export const auth = {
   changePassword: (data) => api.post('/auth/change-password', data).then(r => r.data),
 };
 
+export const oauth = {
+  authorizeState:    (pending) => api.get('/oauth/authorize-state', { params: { pending } }).then(r => r.data),
+  authorizeDecision: (pending, csrfToken, decision) =>
+    api.post('/oauth/authorize-decision', { pending, csrfToken, decision }).then(r => r.data),
+};
+
 export const totp = {
   status:  ()     => api.get('/auth/totp/status').then(r => r.data),
   setup:   ()     => api.post('/auth/totp/setup').then(r => r.data),

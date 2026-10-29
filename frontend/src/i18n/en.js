@@ -937,6 +937,16 @@ export default {
       multistep:   'Total duration (ms)',
     },
   },
+  oauth: {
+    loading: 'Checking…',
+    expired: 'This authorization request has expired. Please retry from the client.',
+    missingPending: 'Invalid request.',
+    wantsAccess: '{{client}} wants to access your Orveil instance.',
+    redirectsTo: 'You will be redirected to',
+    allow: 'Allow',
+    allowing: 'Allowing…',
+    deny: 'Deny',
+  },
   notFound: {
     title: 'Page offline',
     monitoring: "We've been monitoring this URL for",

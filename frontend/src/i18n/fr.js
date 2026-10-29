@@ -937,6 +937,16 @@ export default {
       multistep:   'Durée totale (ms)',
     },
   },
+  oauth: {
+    loading: 'Vérification…',
+    expired: 'Cette demande d\'autorisation a expiré. Relancez la connexion depuis le client.',
+    missingPending: 'Requête invalide.',
+    wantsAccess: '{{client}} souhaite accéder à votre instance Orveil.',
+    redirectsTo: 'Vous serez redirigé vers',
+    allow: 'Autoriser',
+    allowing: 'Autorisation…',
+    deny: 'Refuser',
+  },
   notFound: {
     title: 'Page hors ligne',
     monitoring: 'Nous surveillons cette URL depuis',

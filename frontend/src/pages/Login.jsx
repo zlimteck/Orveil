@@ -1,10 +1,24 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { startAuthentication } from '@simplewebauthn/browser';
 import { auth as authApi, totp as totpApi, passkey as passkeyApi } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useLang } from '../context/LangContext';
 import { Fingerprint } from 'lucide-react';
+
+// Resolves ?continue= to a same-origin path, or '/' otherwise. Strict origin +
+// pathname comparison (not startsWith) to rule out open-redirect payloads like
+// "https://orveil.example.com.evil.com" or "/\evil.com".
+function resolveContinue(raw) {
+  if (!raw) return '/';
+  try {
+    const url = new URL(raw, window.location.origin);
+    if (url.origin !== window.location.origin) return '/';
+    return url.pathname + url.search;
+  } catch {
+    return '/';
+  }
+}
 
 export default function Login() {
   const [form, setForm] = useState({ username: '', password: '' });
@@ -19,6 +33,8 @@ export default function Login() {
   const { login } = useAuth();
   const { t } = useLang();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const continueTo = resolveContinue(searchParams.get('continue'));
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -30,7 +46,7 @@ export default function Login() {
         setPendingToken(data.pendingToken);
       } else {
         login(data.username);
-        navigate('/');
+        navigate(continueTo);
       }
     } catch (err) {
       setError(err.response?.data?.error || t('login.error'));
@@ -46,7 +62,7 @@ export default function Login() {
     try {
       const data = await totpApi.login(pendingToken, otpCode);
       login(data.username);
-      navigate('/');
+      navigate(continueTo);
     } catch (err) {
       setError(err.response?.data?.error || t('login.error'));
     } finally {
@@ -62,7 +78,7 @@ export default function Login() {
       const credential = await startAuthentication(options);
       const data = await passkeyApi.login({ challengeId, credential });
       login(data.username);
-      navigate('/');
+      navigate(continueTo);
     } catch (err) {
       if (err.name === 'NotAllowedError') {
         setError(t('login.passkeyDismissed'));

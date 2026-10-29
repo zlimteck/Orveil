@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet, useSearchParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LangProvider } from './context/LangContext';
@@ -15,6 +15,7 @@ import Timeline from './pages/Timeline';
 import Settings from './pages/Settings';
 import ApiDocs from './pages/ApiDocs';
 import Login from './pages/Login';
+import OAuthConsent from './pages/OAuthConsent';
 import StatusPage from './pages/StatusPage';
 import NotFound from './pages/NotFound';
 import KonamiEasterEgg from './components/KonamiEasterEgg';
@@ -29,9 +30,22 @@ function AuthGuard() {
   return user ? <Outlet /> : <Navigate to="/login" replace />;
 }
 
+// Same-origin-only redirect resolution, mirrored from Login.jsx's resolveContinue.
+function resolveContinue(raw) {
+  if (!raw) return '/';
+  try {
+    const url = new URL(raw, window.location.origin);
+    if (url.origin !== window.location.origin) return '/';
+    return url.pathname + url.search;
+  } catch {
+    return '/';
+  }
+}
+
 function LoginGuard() {
   const { user } = useAuth();
-  return user ? <Navigate to="/" replace /> : <Login />;
+  const [searchParams] = useSearchParams();
+  return user ? <Navigate to={resolveContinue(searchParams.get('continue'))} replace /> : <Login />;
 }
 
 export default function App() {
@@ -43,6 +57,7 @@ export default function App() {
       <Routes>
         <Route path="/status" element={<StatusPage />} />
         <Route path="/login" element={<LoginGuard />} />
+        <Route path="/oauth/authorize" element={<OAuthConsent />} />
         <Route path="*" element={<NotFound />} />
         <Route element={<AuthGuard />}>
           <Route element={<Layout />}>
