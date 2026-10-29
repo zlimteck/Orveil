@@ -1,26 +1,21 @@
 'use strict';
 const router = require('express').Router();
 const { StreamableHTTPServerTransport } = require('@modelcontextprotocol/sdk/server/streamableHttp.js');
+const { requireBearerAuth } = require('@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js');
+const { getOAuthProtectedResourceMetadataUrl } = require('@modelcontextprotocol/sdk/server/auth/router.js');
 const { createServer } = require('../mcp/server');
+const { dualVerifier } = require('../mcp/dualVerifier');
+const { getBaseUrl } = require('../utils/publicUrl');
 
-async function checkAuth(req, res) {
-  const Settings = require('../models/Settings');
-  const s = await Settings.findOne({ key: 'global' }).lean();
-  const apiKey = s?.mcpApiKey;
-  if (!apiKey) {
-    res.status(503).json({ error: 'MCP API key not generated yet — open Settings to initialize it' });
-    return false;
-  }
-  const auth = req.headers['authorization'] || '';
-  if (auth !== `Bearer ${apiKey}`) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return false;
-  }
-  return true;
+function auth(req, res, next) {
+  const resourceServerUrl = new URL('/api/mcp', getBaseUrl(req));
+  return requireBearerAuth({
+    verifier: dualVerifier,
+    resourceMetadataUrl: getOAuthProtectedResourceMetadataUrl(resourceServerUrl),
+  })(req, res, next);
 }
 
 async function handle(req, res) {
-  if (!await checkAuth(req, res)) return;
   try {
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
     const server = createServer();
@@ -32,11 +27,8 @@ async function handle(req, res) {
   }
 }
 
-router.post('/', handle);
-router.get('/',  handle);
-router.delete('/', async (req, res) => {
-  if (!await checkAuth(req, res)) return;
-  res.status(200).json({ ok: true });
-});
+router.post('/', auth, handle);
+router.get('/',  auth, handle);
+router.delete('/', auth, (req, res) => res.status(200).json({ ok: true }));
 
 module.exports = router;

@@ -446,6 +446,14 @@ export default {
       confirmRegenerate: 'Régénérer la clé API ? Les intégrations existantes devront être mises à jour.',
     },
     params: 'params',
+    mcpConnector: {
+      title: 'Connecteur MCP (Claude)',
+      hint: 'Ajoutez Orveil comme connecteur personnalisé dans Claude pour interroger vos services, incidents et changelogs directement depuis une conversation.',
+      step1: 'Claude (web ou iOS) -> Paramètres -> Connecteurs -> Ajouter un connecteur personnalisé',
+      step2: 'Collez l\'URL ci-dessus comme URL du serveur MCP',
+      step3: 'Cliquez sur Se connecter -> connectez-vous à Orveil puis autorisez l\'accès',
+      httpsNote: 'Nécessite FRONTEND_URL réglé sur une URL HTTPS publique (ou localhost) pour que le flux OAuth soit disponible.',
+    },
     sections: {
       services: 'Services',
       public: 'Public',
@@ -455,6 +463,7 @@ export default {
       incidents: 'Incidents',
       stats: 'Statistiques',
       prometheus: 'Prometheus',
+      mcp: 'MCP (Claude et autres clients OAuth)',
     },
     routes: {
       health:                  'Healthcheck — retourne { ok: true, ts: "…" }',
@@ -513,6 +522,13 @@ export default {
       haEntities:              'Liste les entités Home Assistant disponibles (proxy)',
       statsGet:                'Statistiques globales — uptime + statut SLA par monitor, incidents, MTTR, MTTD, répartition par sévérité, notifications',
       metricsGet:              'Endpoint Prometheus — retourne les métriques de tous les services au format texte Prometheus (orveil_monitor_status, orveil_monitor_latency_ms, uptime 24h/7d/30d, incidents ouverts)',
+      mcpEndpoint:             'Serveur MCP (Streamable HTTP) - accepte soit un token OAuth (voir ci-dessous), soit la clé API ci-dessus en Bearer',
+      mcpProtectedResource:    'Métadonnées de ressource protégée (RFC 9728) - utilisées automatiquement par les clients OAuth comme Claude',
+      mcpAuthServer:           'Métadonnées du serveur d\'autorisation (RFC 8414) - endpoints authorize/token/register',
+      mcpRegister:             'Enregistrement dynamique de client (RFC 7591) - redirect_uris en HTTPS obligatoire (http://localhost excepté)',
+      mcpAuthorize:            'Point d\'entrée du flux d\'autorisation (PKCE S256 obligatoire) - redirige vers l\'écran de connexion/consentement Orveil',
+      mcpToken:                'Échange d\'un code d\'autorisation ou d\'un refresh token contre un access token',
+      mcpRevoke:               'Révoque un refresh token (RFC 7009)',
     },
   },
   incidents: {
@@ -936,6 +952,16 @@ export default {
       portforward: 'Latence (ms)',
       multistep:   'Durée totale (ms)',
     },
+  },
+  oauth: {
+    loading: 'Vérification…',
+    expired: 'Cette demande d\'autorisation a expiré. Relancez la connexion depuis le client.',
+    missingPending: 'Requête invalide.',
+    wantsAccess: '{{client}} souhaite accéder à votre instance Orveil.',
+    redirectsTo: 'Vous serez redirigé vers',
+    allow: 'Autoriser',
+    allowing: 'Autorisation…',
+    deny: 'Refuser',
   },
   notFound: {
     title: 'Page hors ligne',

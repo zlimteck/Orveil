@@ -54,6 +54,7 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3050}
       DOCKER_PROXY_URL: http://docker-proxy:2375
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      MCP_OAUTH_JWT_SECRET: ${MCP_OAUTH_JWT_SECRET:-}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-orveil}
       METRICS_TOKEN: ${METRICS_TOKEN:-}
